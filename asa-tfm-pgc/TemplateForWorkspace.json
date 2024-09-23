@@ -1,0 +1,922 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Nombre del área de trabajo",
+			"defaultValue": "asa-tfm-pgc"
+		},
+		"asa-tfm-pgc-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Cadena protegida para \"connectionString\"de \"asa-tfm-pgc-WorkspaceDefaultSqlServer\"",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:asa-tfm-pgc.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"ls_ADLG2_Bronze_Landing_accountKey": {
+			"type": "secureString",
+			"metadata": "Cadena protegida para \"accountKey\"de \"ls_ADLG2_Bronze_Landing\""
+		},
+		"ls_COLI_ERP_password": {
+			"type": "secureString",
+			"metadata": "Cadena protegida para \"password\"de \"ls_COLI_ERP\""
+		},
+		"asa-tfm-pgc-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://datalake1pgc.dfs.core.windows.net"
+		},
+		"ls_ADLG2_Bronze_Landing_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://datalake1pgc.dfs.core.windows.net/"
+		},
+		"ls_COLI_ERP_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "@{linkedService().NombreServidor}"
+		},
+		"ls_COLI_ERP_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().NombreBaseDatos}"
+		},
+		"ls_COLI_ERP_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "sa"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/1 - SqlToLanding')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Listado tablas a cargar",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "csvConfiguration",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Copiar Origen a Destino",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Listado tablas a cargar",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Listado tablas a cargar').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copiar Tablas de Configuracion",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "ActiveForLoad",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "SELECT * ,@{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE fechaActualizacion >= CAST(@{item().UpdateDate} AS int);",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings",
+												"copyBehavior": "FlattenHierarchy"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"parallelCopies": 1,
+										"dataIntegrationUnits": 4,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "dsSQLGenerico",
+											"type": "DatasetReference",
+											"parameters": {
+												"NombreServidor": {
+													"value": "@item().ServerName",
+													"type": "Expression"
+												},
+												"NombreBD": {
+													"value": "@item().DataBaseName",
+													"type": "Expression"
+												},
+												"NombreEsquema": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"NombreTabla": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												},
+												"FechaActualizacion": {
+													"value": "@item().UpdateDate",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "dsParquetRaw",
+											"type": "DatasetReference",
+											"parameters": {
+												"NombreFichero": {
+													"value": "@concat( item().FileName, '_', formatDateTime(utcnow(), 'yyyyMMdd'),'.', item().Format)\n",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "ActiveForLoad",
+									"type": "Filter",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"items": {
+											"value": "@activity('Listado tablas a cargar').output.value",
+											"type": "Expression"
+										},
+										"condition": {
+											"value": "@not(equals(item().Load, 'N'))",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-09-16T00:20:34Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/csvConfiguration')]",
+				"[concat(variables('workspaceId'), '/datasets/dsSQLGenerico')]",
+				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/1 - SqlToLanding_old')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Listado tablas a cargar",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "csvConfiguration",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Listado tablas a cargar",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Listado tablas a cargar').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copiar Tablas de Configuracion",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"parallelCopies": 1,
+										"dataIntegrationUnits": 4,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "dsSQLGenerico",
+											"type": "DatasetReference",
+											"parameters": {
+												"NombreServidor": {
+													"value": "@item().ServerName",
+													"type": "Expression"
+												},
+												"NombreBD": {
+													"value": "@item().DataBaseName",
+													"type": "Expression"
+												},
+												"NombreEsquema": {
+													"value": "@item().SchemaName",
+													"type": "Expression"
+												},
+												"NombreTabla": {
+													"value": "@item().TableName",
+													"type": "Expression"
+												},
+												"FechaActualizacion": {
+													"value": "@item().UpdateDate",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "dsParquetRaw",
+											"type": "DatasetReference",
+											"parameters": {
+												"NombreFichero": {
+													"value": "@concat( item().FileName, '_', formatDateTime(utcnow(), 'yyyyMMdd'),'.', item().Format)\n",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-09-15T16:45:27Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/csvConfiguration')]",
+				"[concat(variables('workspaceId'), '/datasets/dsSQLGenerico')]",
+				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/2 - LadingToProcessed')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lista ficheros Landing",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsRawEntidades",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "ParquetReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-09-14T15:16:54Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/3 - ProcessedToSilver')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lista ficheros Landing",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsRawEntidades",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "ParquetReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-09-14T15:15:28Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/4 - SilverToGold')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lista ficheros Landing",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsRawEntidades",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "ParquetReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-09-14T15:17:01Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ETL')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "1",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "1 - SqlToLanding",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "2",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "2 - LadingToProcessed",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "3",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "2",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "3 - ProcessedToSilver",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "4",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "3",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "4 - SilverToGold",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-09-15T16:46:15Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/1 - SqlToLanding')]",
+				"[concat(variables('workspaceId'), '/pipelines/2 - LadingToProcessed')]",
+				"[concat(variables('workspaceId'), '/pipelines/3 - ProcessedToSilver')]",
+				"[concat(variables('workspaceId'), '/pipelines/4 - SilverToGold')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/csvConfiguration')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ADLG2_Bronze_Landing",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "ConfiguracionOrigenes.csv",
+						"folderPath": "Configuration",
+						"fileSystem": "bronze"
+					},
+					"columnDelimiter": ";",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "ServerName;DataBaseName;SchemaName;TableName;PathName;FileName;Load",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dsParquetRaw')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ADLG2_Bronze_Landing",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"NombreFichero": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().NombreFichero",
+							"type": "Expression"
+						},
+						"folderPath": "Landing",
+						"fileSystem": "bronze"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dsRawEntidades')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ADLG2_Bronze_Landing",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Landing",
+						"fileSystem": "bronze"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dsSQLGenerico')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_COLI_ERP",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"NombreServidor": {
+							"value": "@dataset().NombreServidor",
+							"type": "Expression"
+						},
+						"NombreBaseDatos": {
+							"value": "@dataset().NombreBD",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"NombreServidor": {
+						"type": "string"
+					},
+					"NombreBD": {
+						"type": "string"
+					},
+					"NombreEsquema": {
+						"type": "string"
+					},
+					"NombreTabla": {
+						"type": "string"
+					},
+					"FechaActualizacion": {
+						"type": "int"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().NombreEsquema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().NombreTabla",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_COLI_ERP')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/asa-tfm-pgc-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('asa-tfm-pgc-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/asa-tfm-pgc-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('asa-tfm-pgc-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ls_ADLG2_Bronze_Landing')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_ADLG2_Bronze_Landing_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_ADLG2_Bronze_Landing_accountKey')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ls_COLI_ERP')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"NombreServidor": {
+						"type": "string"
+					},
+					"NombreBaseDatos": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"server": "[parameters('ls_COLI_ERP_properties_typeProperties_server')]",
+					"database": "[parameters('ls_COLI_ERP_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": true,
+					"authenticationType": "SQL",
+					"userName": "[parameters('ls_COLI_ERP_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('ls_COLI_ERP_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "IR-Coli-ERP",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/IR-Coli-ERP')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/IR-Coli-ERP')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		}
+	]
+}

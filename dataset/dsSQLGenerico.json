@@ -1,0 +1,50 @@
+{
+	"name": "dsSQLGenerico",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_COLI_ERP",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"NombreServidor": {
+					"value": "@dataset().NombreServidor",
+					"type": "Expression"
+				},
+				"NombreBaseDatos": {
+					"value": "@dataset().NombreBD",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"NombreServidor": {
+				"type": "string"
+			},
+			"NombreBD": {
+				"type": "string"
+			},
+			"NombreEsquema": {
+				"type": "string"
+			},
+			"NombreTabla": {
+				"type": "string"
+			},
+			"FechaActualizacion": {
+				"type": "int"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().NombreEsquema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().NombreTabla",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

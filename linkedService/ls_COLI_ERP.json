@@ -1,0 +1,29 @@
+{
+	"name": "ls_COLI_ERP",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"parameters": {
+			"NombreServidor": {
+				"type": "string"
+			},
+			"NombreBaseDatos": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"server": "@{linkedService().NombreServidor}",
+			"database": "@{linkedService().NombreBaseDatos}",
+			"encrypt": "mandatory",
+			"trustServerCertificate": true,
+			"authenticationType": "SQL",
+			"userName": "sa",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJiZmEyN2JmZS00NDFmLTQ1MDUtOWRkYi03ZGQyMjhhOGM3OWUiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "IR-Coli-ERP",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

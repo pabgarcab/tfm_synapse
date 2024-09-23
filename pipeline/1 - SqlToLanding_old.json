@@ -1,0 +1,142 @@
+{
+	"name": "1 - SqlToLanding_old",
+	"properties": {
+		"activities": [
+			{
+				"name": "Listado tablas a cargar",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "csvConfiguration",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Listado tablas a cargar",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Listado tablas a cargar').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copiar Tablas de Configuracion",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"parallelCopies": 1,
+								"dataIntegrationUnits": 4,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "dsSQLGenerico",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreServidor": {
+											"value": "@item().ServerName",
+											"type": "Expression"
+										},
+										"NombreBD": {
+											"value": "@item().DataBaseName",
+											"type": "Expression"
+										},
+										"NombreEsquema": {
+											"value": "@item().SchemaName",
+											"type": "Expression"
+										},
+										"NombreTabla": {
+											"value": "@item().TableName",
+											"type": "Expression"
+										},
+										"FechaActualizacion": {
+											"value": "@item().UpdateDate",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "dsParquetRaw",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreFichero": {
+											"value": "@concat( item().FileName, '_', formatDateTime(utcnow(), 'yyyyMMdd'),'.', item().Format)\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2024-09-15T16:45:27Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

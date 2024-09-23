@@ -1,0 +1,170 @@
+{
+	"name": "1 - SqlToLanding",
+	"properties": {
+		"activities": [
+			{
+				"name": "Listado tablas a cargar",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "csvConfiguration",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Copiar Origen a Destino",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Listado tablas a cargar",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Listado tablas a cargar').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copiar Tablas de Configuracion",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "ActiveForLoad",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "SELECT * ,@{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE fechaActualizacion >= CAST(@{item().UpdateDate} AS int);",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings",
+										"copyBehavior": "FlattenHierarchy"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"parallelCopies": 1,
+								"dataIntegrationUnits": 4,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "dsSQLGenerico",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreServidor": {
+											"value": "@item().ServerName",
+											"type": "Expression"
+										},
+										"NombreBD": {
+											"value": "@item().DataBaseName",
+											"type": "Expression"
+										},
+										"NombreEsquema": {
+											"value": "@item().SchemaName",
+											"type": "Expression"
+										},
+										"NombreTabla": {
+											"value": "@item().TableName",
+											"type": "Expression"
+										},
+										"FechaActualizacion": {
+											"value": "@item().UpdateDate",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "dsParquetRaw",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreFichero": {
+											"value": "@concat( item().FileName, '_', formatDateTime(utcnow(), 'yyyyMMdd'),'.', item().Format)\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "ActiveForLoad",
+							"type": "Filter",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"items": {
+									"value": "@activity('Listado tablas a cargar').output.value",
+									"type": "Expression"
+								},
+								"condition": {
+									"value": "@not(equals(item().Load, 'N'))",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2024-09-16T00:20:34Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -11,8 +11,8 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": "ConfiguracionOrigenes.csv",
-				"folderPath": "Configuration",
-				"fileSystem": "bronze"
+				"folderPath": "bronze/Configuration",
+				"fileSystem": "mdw"
 			},
 			"columnDelimiter": ";",
 			"escapeChar": "\\",

@@ -529,12 +529,44 @@
 											"referenceName": "MergeBronzeFilesToSilver",
 											"type": "NotebookReference"
 										},
+										"parameters": {
+											"data_lake_container": {
+												"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net"
+											},
+											"bronze_folder": {
+												"value": "bronze/Landing"
+											},
+											"table_name": {
+												"value": {
+													"value": "@substring(item().name, 0, indexOf(item().name, '_'))",
+													"type": "Expression"
+												}
+											},
+											"silver_folder": {
+												"value": "silver"
+											},
+											"source_wildcard": {
+												"value": {
+													"value": "@concat(substring(item().name, 0, indexOf(item().name, '_')), '*.parquet')",
+													"type": "Expression"
+												}
+											},
+											"key_column_str": {
+												"value": {
+													"value": "@concat('id',substring(item().name, 0, indexOf(item().name, '_')))",
+													"type": "Expression"
+												}
+											}
+										},
 										"snapshot": true,
 										"executorSize": "Small",
 										"conf": {
-											"spark.dynamicAllocation.enabled": false
+											"spark.dynamicAllocation.enabled": false,
+											"spark.dynamicAllocation.minExecutors": 1,
+											"spark.dynamicAllocation.maxExecutors": 1
 										},
-										"driverSize": "Small"
+										"driverSize": "Small",
+										"numExecutors": 1
 									}
 								}
 							]
@@ -1134,7 +1166,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "b8d3fdac-e4f9-403c-bb01-ee0a428c3bfd"
+						"spark.autotune.trackingId": "e3aa7fae-ad7e-4053-a853-ad44f1c01314"
 					}
 				},
 				"metadata": {
@@ -1152,6 +1184,7 @@
 				"cells": [
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"# path of the data lake container (bronze and silver for this example)\r\n",
 							"data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",

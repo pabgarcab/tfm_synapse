@@ -509,6 +509,33 @@
 											}
 										}
 									]
+								},
+								{
+									"name": "MergeBronzeToSilver",
+									"type": "SynapseNotebook",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebook": {
+											"referenceName": "MergeBronzeFilesToSilver",
+											"type": "NotebookReference"
+										},
+										"snapshot": true,
+										"executorSize": "Small",
+										"conf": {
+											"spark.dynamicAllocation.enabled": false
+										},
+										"driverSize": "Small"
+									}
 								}
 							]
 						}
@@ -553,7 +580,8 @@
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]",
 				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]",
-				"[concat(variables('workspaceId'), '/datasets/dsParquetProcessed')]"
+				"[concat(variables('workspaceId'), '/datasets/dsParquetProcessed')]",
+				"[concat(variables('workspaceId'), '/notebooks/MergeBronzeFilesToSilver')]"
 			]
 		},
 		{
@@ -1259,6 +1287,41 @@
 						],
 						"outputs": [],
 						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Silver')]",
+			"type": "Microsoft.Synapse/workspaces/databases",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"Ddls": [
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Name": "Silver",
+							"EntityType": "DATABASE",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"Properties": {
+								"IsSyMSCDMDatabase": true
+							},
+							"Source": {
+								"Provider": "ADLS",
+								"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver",
+								"Properties": {
+									"FormatType": "parquet",
+									"LinkedServiceName": "ls_ADLG2_Bronze_Landing"
+								}
+							}
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
 					}
 				]
 			},

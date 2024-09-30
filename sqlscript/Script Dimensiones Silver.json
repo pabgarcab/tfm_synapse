@@ -1,0 +1,17 @@
+{
+	"name": "Script Dimensiones Silver",
+	"properties": {
+		"content": {
+			"query": "-- Creación DIims\n\nCREATE VIEW [dbo].[vw_dim_Fechas]\n\tAS SELECT * FROM Silver.Fechas",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "SilverlessSTG",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

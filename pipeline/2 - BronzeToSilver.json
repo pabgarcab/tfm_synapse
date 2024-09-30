@@ -61,7 +61,14 @@
 						{
 							"name": "Copy data1",
 							"type": "Copy",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "MergeBronzeToSilver",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -187,11 +194,11 @@
 								"executorSize": "Small",
 								"conf": {
 									"spark.dynamicAllocation.enabled": false,
-									"spark.dynamicAllocation.minExecutors": 1,
-									"spark.dynamicAllocation.maxExecutors": 1
+									"spark.dynamicAllocation.minExecutors": 2,
+									"spark.dynamicAllocation.maxExecutors": 2
 								},
 								"driverSize": "Small",
-								"numExecutors": 1
+								"numExecutors": 2
 							}
 						}
 					]

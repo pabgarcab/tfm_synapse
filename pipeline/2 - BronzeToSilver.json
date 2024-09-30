@@ -148,12 +148,44 @@
 									"referenceName": "MergeBronzeFilesToSilver",
 									"type": "NotebookReference"
 								},
+								"parameters": {
+									"data_lake_container": {
+										"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net"
+									},
+									"bronze_folder": {
+										"value": "bronze/Landing"
+									},
+									"table_name": {
+										"value": {
+											"value": "@substring(item().name, 0, indexOf(item().name, '_'))",
+											"type": "Expression"
+										}
+									},
+									"silver_folder": {
+										"value": "silver"
+									},
+									"source_wildcard": {
+										"value": {
+											"value": "@concat(substring(item().name, 0, indexOf(item().name, '_')), '*.parquet')",
+											"type": "Expression"
+										}
+									},
+									"key_column_str": {
+										"value": {
+											"value": "@concat('id',substring(item().name, 0, indexOf(item().name, '_')))",
+											"type": "Expression"
+										}
+									}
+								},
 								"snapshot": true,
 								"executorSize": "Small",
 								"conf": {
-									"spark.dynamicAllocation.enabled": false
+									"spark.dynamicAllocation.enabled": false,
+									"spark.dynamicAllocation.minExecutors": 1,
+									"spark.dynamicAllocation.maxExecutors": 1
 								},
-								"driverSize": "Small"
+								"driverSize": "Small",
+								"numExecutors": 1
 							}
 						}
 					]

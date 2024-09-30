@@ -150,31 +150,37 @@
 								},
 								"parameters": {
 									"data_lake_container": {
-										"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net"
+										"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net",
+										"type": "string"
 									},
 									"bronze_folder": {
-										"value": "bronze/Landing"
+										"value": "bronze/Landing",
+										"type": "string"
 									},
 									"table_name": {
 										"value": {
 											"value": "@substring(item().name, 0, indexOf(item().name, '_'))",
 											"type": "Expression"
-										}
+										},
+										"type": "string"
 									},
 									"silver_folder": {
-										"value": "silver"
+										"value": "silver",
+										"type": "string"
 									},
 									"source_wildcard": {
 										"value": {
 											"value": "@concat(substring(item().name, 0, indexOf(item().name, '_')), '*.parquet')",
 											"type": "Expression"
-										}
+										},
+										"type": "string"
 									},
 									"key_column_str": {
 										"value": {
 											"value": "@concat('id',substring(item().name, 0, indexOf(item().name, '_')))",
 											"type": "Expression"
-										}
+										},
+										"type": "string"
 									}
 								},
 								"snapshot": true,

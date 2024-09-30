@@ -8,6 +8,9 @@
 		"parameters": {
 			"NombreFichero": {
 				"type": "string"
+			},
+			"NombreCarpeta": {
+				"type": "string"
 			}
 		},
 		"annotations": [],
@@ -19,7 +22,10 @@
 					"value": "@dataset().NombreFichero",
 					"type": "Expression"
 				},
-				"folderPath": "bronze/Landing",
+				"folderPath": {
+					"value": "@concat('bronze/Processed/', dataset().NombreCarpeta)",
+					"type": "Expression"
+				},
 				"fileSystem": "mdw"
 			},
 			"compressionCodec": "snappy"

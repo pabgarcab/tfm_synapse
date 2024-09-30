@@ -41,20 +41,19 @@
 							"userProperties": [],
 							"typeProperties": {
 								"dataset": {
-									"referenceName": "dsRawEntidades",
-									"type": "DatasetReference"
+									"referenceName": "dsParquetRaw",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreFichero": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
 								},
-								"logStorageSettings": {
-									"linkedServiceName": {
-										"referenceName": "ls_ADLG2_Bronze_Landing",
-										"type": "LinkedServiceReference"
-									},
-									"path": "mdw/bronze/Logs"
-								},
-								"enableLogging": true,
+								"enableLogging": false,
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
+									"recursive": false,
 									"enablePartitionDiscovery": false
 								}
 							}
@@ -77,11 +76,6 @@
 									"storeSettings": {
 										"type": "AzureBlobFSReadSettings",
 										"recursive": false,
-										"wildcardFolderPath": {
-											"value": "@item().name()",
-											"type": "Expression"
-										},
-										"wildcardFileName": ".parquet",
 										"enablePartitionDiscovery": false
 									},
 									"formatSettings": {
@@ -111,8 +105,14 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "dsRawEntidades",
-									"type": "DatasetReference"
+									"referenceName": "dsParquetRaw",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreFichero": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
 								}
 							],
 							"outputs": [
@@ -121,9 +121,10 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"NombreFichero": {
-											"value": "@item().name()",
+											"value": "@item().name",
 											"type": "Expression"
-										}
+										},
+										"NombreCarpeta": "@substring(item().name, 0, indexOf(item().name, '_'))"
 									}
 								}
 							]

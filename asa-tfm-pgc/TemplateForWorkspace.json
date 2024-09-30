@@ -458,12 +458,12 @@
 											"type": "ParquetSource",
 											"storeSettings": {
 												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
+												"recursive": false,
 												"wildcardFolderPath": {
 													"value": "@item().name()",
 													"type": "Expression"
 												},
-												"wildcardFileName": "*.parquet",
+												"wildcardFileName": ".parquet",
 												"enablePartitionDiscovery": false
 											},
 											"formatSettings": {
@@ -500,7 +500,7 @@
 									],
 									"outputs": [
 										{
-											"referenceName": "dsParquetSilver",
+											"referenceName": "dsParquetProcessed",
 											"type": "DatasetReference",
 											"parameters": {
 												"NombreFichero": {
@@ -553,7 +553,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]",
-				"[concat(variables('workspaceId'), '/datasets/dsParquetSilver')]",
+				"[concat(variables('workspaceId'), '/datasets/dsParquetProcessed')]",
 				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
 			]
 		},
@@ -797,7 +797,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/dsParquetRaw')]",
+			"name": "[concat(parameters('workspaceName'), '/dsParquetProcessed')]",
 			"type": "Microsoft.Synapse/workspaces/datasets",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -831,7 +831,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/dsParquetSilver')]",
+			"name": "[concat(parameters('workspaceName'), '/dsParquetRaw')]",
 			"type": "Microsoft.Synapse/workspaces/datasets",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -853,7 +853,7 @@
 							"value": "@dataset().NombreFichero",
 							"type": "Expression"
 						},
-						"folderPath": "Silver",
+						"folderPath": "bronze/Landing",
 						"fileSystem": "mdw"
 					},
 					"compressionCodec": "snappy"

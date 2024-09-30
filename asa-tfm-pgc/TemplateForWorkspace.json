@@ -442,7 +442,14 @@
 								{
 									"name": "Copy data1",
 									"type": "Copy",
-									"dependsOn": [],
+									"dependsOn": [
+										{
+											"activity": "MergeBronzeToSilver",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
 									"policy": {
 										"timeout": "0.12:00:00",
 										"retry": 0,
@@ -568,11 +575,11 @@
 										"executorSize": "Small",
 										"conf": {
 											"spark.dynamicAllocation.enabled": false,
-											"spark.dynamicAllocation.minExecutors": 1,
-											"spark.dynamicAllocation.maxExecutors": 1
+											"spark.dynamicAllocation.minExecutors": 2,
+											"spark.dynamicAllocation.maxExecutors": 2
 										},
 										"driverSize": "Small",
-										"numExecutors": 1
+										"numExecutors": 2
 									}
 								}
 							]
@@ -1152,6 +1159,26 @@
 			"properties": {
 				"type": "ManagedIdentity",
 				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Script Dimensiones Silver')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "-- Creación DIims\n\nCREATE VIEW [dbo].[vw_dim_Fechas]\n\tAS SELECT * FROM Silver.Fechas",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "SilverlessSTG",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
 			},
 			"dependsOn": []
 		},

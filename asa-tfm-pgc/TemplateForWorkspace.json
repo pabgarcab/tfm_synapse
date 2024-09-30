@@ -422,21 +422,19 @@
 									"userProperties": [],
 									"typeProperties": {
 										"dataset": {
-											"referenceName": "dsRawEntidades",
+											"referenceName": "dsParquetRaw",
 											"type": "DatasetReference",
-											"parameters": {}
+											"parameters": {
+												"NombreFichero": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
 										},
-										"logStorageSettings": {
-											"linkedServiceName": {
-												"referenceName": "ls_ADLG2_Bronze_Landing",
-												"type": "LinkedServiceReference"
-											},
-											"path": "mdw/bronze/Logs"
-										},
-										"enableLogging": true,
+										"enableLogging": false,
 										"storeSettings": {
 											"type": "AzureBlobFSReadSettings",
-											"recursive": true,
+											"recursive": false,
 											"enablePartitionDiscovery": false
 										}
 									}
@@ -459,11 +457,6 @@
 											"storeSettings": {
 												"type": "AzureBlobFSReadSettings",
 												"recursive": false,
-												"wildcardFolderPath": {
-													"value": "@item().name()",
-													"type": "Expression"
-												},
-												"wildcardFileName": ".parquet",
 												"enablePartitionDiscovery": false
 											},
 											"formatSettings": {
@@ -493,9 +486,14 @@
 									},
 									"inputs": [
 										{
-											"referenceName": "dsRawEntidades",
+											"referenceName": "dsParquetRaw",
 											"type": "DatasetReference",
-											"parameters": {}
+											"parameters": {
+												"NombreFichero": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
 										}
 									],
 									"outputs": [
@@ -504,9 +502,10 @@
 											"type": "DatasetReference",
 											"parameters": {
 												"NombreFichero": {
-													"value": "@item().name()",
+													"value": "@item().name",
 													"type": "Expression"
-												}
+												},
+												"NombreCarpeta": "@substring(item().name, 0, indexOf(item().name, '_'))"
 											}
 										}
 									]
@@ -553,8 +552,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]",
-				"[concat(variables('workspaceId'), '/datasets/dsParquetProcessed')]",
-				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
+				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]",
+				"[concat(variables('workspaceId'), '/datasets/dsParquetProcessed')]"
 			]
 		},
 		{
@@ -808,6 +807,9 @@
 				"parameters": {
 					"NombreFichero": {
 						"type": "string"
+					},
+					"NombreCarpeta": {
+						"type": "string"
 					}
 				},
 				"annotations": [],
@@ -819,7 +821,10 @@
 							"value": "@dataset().NombreFichero",
 							"type": "Expression"
 						},
-						"folderPath": "bronze/Landing",
+						"folderPath": {
+							"value": "@concat('bronze/Processed/', dataset().NombreCarpeta)",
+							"type": "Expression"
+						},
 						"fileSystem": "mdw"
 					},
 					"compressionCodec": "snappy"

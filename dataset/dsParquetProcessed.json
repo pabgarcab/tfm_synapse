@@ -1,5 +1,5 @@
 {
-	"name": "dsParquetSilver",
+	"name": "dsParquetProcessed",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_ADLG2_Bronze_Landing",
@@ -19,7 +19,7 @@
 					"value": "@dataset().NombreFichero",
 					"type": "Expression"
 				},
-				"folderPath": "Silver",
+				"folderPath": "bronze/Landing",
 				"fileSystem": "mdw"
 			},
 			"compressionCodec": "snappy"

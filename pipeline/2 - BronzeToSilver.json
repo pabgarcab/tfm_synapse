@@ -76,12 +76,12 @@
 									"type": "ParquetSource",
 									"storeSettings": {
 										"type": "AzureBlobFSReadSettings",
-										"recursive": true,
+										"recursive": false,
 										"wildcardFolderPath": {
 											"value": "@item().name()",
 											"type": "Expression"
 										},
-										"wildcardFileName": "*.parquet",
+										"wildcardFileName": ".parquet",
 										"enablePartitionDiscovery": false
 									},
 									"formatSettings": {
@@ -117,7 +117,7 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "dsParquetSilver",
+									"referenceName": "dsParquetProcessed",
 									"type": "DatasetReference",
 									"parameters": {
 										"NombreFichero": {
@@ -153,6 +153,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {

@@ -531,31 +531,37 @@
 										},
 										"parameters": {
 											"data_lake_container": {
-												"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net"
+												"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net",
+												"type": "string"
 											},
 											"bronze_folder": {
-												"value": "bronze/Landing"
+												"value": "bronze/Landing",
+												"type": "string"
 											},
 											"table_name": {
 												"value": {
 													"value": "@substring(item().name, 0, indexOf(item().name, '_'))",
 													"type": "Expression"
-												}
+												},
+												"type": "string"
 											},
 											"silver_folder": {
-												"value": "silver"
+												"value": "silver",
+												"type": "string"
 											},
 											"source_wildcard": {
 												"value": {
 													"value": "@concat(substring(item().name, 0, indexOf(item().name, '_')), '*.parquet')",
 													"type": "Expression"
-												}
+												},
+												"type": "string"
 											},
 											"key_column_str": {
 												"value": {
 													"value": "@concat('id',substring(item().name, 0, indexOf(item().name, '_')))",
 													"type": "Expression"
-												}
+												},
+												"type": "string"
 											}
 										},
 										"snapshot": true,
@@ -1166,7 +1172,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "e3aa7fae-ad7e-4053-a853-ad44f1c01314"
+						"spark.autotune.trackingId": "b8d3fdac-e4f9-403c-bb01-ee0a428c3bfd"
 					}
 				},
 				"metadata": {
@@ -1184,7 +1190,6 @@
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# path of the data lake container (bronze and silver for this example)\r\n",
 							"data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",

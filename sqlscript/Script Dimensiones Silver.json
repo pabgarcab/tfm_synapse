@@ -2,7 +2,7 @@
 	"name": "Script Dimensiones Silver",
 	"properties": {
 		"content": {
-			"query": "-- Creación DIims\n\nCREATE VIEW [dbo].[vw_dim_Fechas]\n\tAS SELECT * FROM Silver.Fechas",
+			"query": "CREATE  or ALTER view [dbo].[vw_dim_Fechas] AS \nSELECT \n    idFechas,\n    ClaveFecha,\n    Fecha,\n    Mes,\n    NumeroMes,\n    Año,\n    NumeroSemana,\n    DiaSemana,\n    NumeroDiaSemana,\n    DiaAño,\n    Trimestre,\n    Cuatrimestre,\n    CASE WHEN Cuatrimestre IN (1,2) THEN 1\n         WHEN Cuatrimestre IN (2,4) THEN 2\n         ELSE -1 END AS Semestre,\n    fechaActualizacion\nFROM \n    Silver.dbo.fechas",
 			"metadata": {
 				"language": "sql"
 			},

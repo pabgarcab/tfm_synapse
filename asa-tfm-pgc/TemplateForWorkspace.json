@@ -124,7 +124,7 @@
 										"source": {
 											"type": "SqlServerSource",
 											"sqlReaderQuery": {
-												"value": "SELECT * ,@{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE fechaActualizacion >= CAST(@{item().UpdateDate} AS int);",
+												"value": "SELECT * ,@{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga, pipeline().RunId AS pipelineID\nFROM @{item().SchemaName}.@{item().TableName} \nWHERE fechaActualizacion >= CAST(@{item().UpdateDate} AS int) -7;",
 												"type": "Expression"
 											},
 											"queryTimeout": "02:00:00",
@@ -1199,7 +1199,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "4922f5ea-d91b-4857-a4ee-f9dd0eef9d16"
+						"spark.autotune.trackingId": "4e25b601-1b15-4d4c-a52f-4facb918a798"
 					}
 				},
 				"metadata": {
@@ -1217,7 +1217,6 @@
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# # path of the data lake container (bronze and silver for this example)\r\n",
 							"# data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",

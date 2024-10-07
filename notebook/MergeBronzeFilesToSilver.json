@@ -13,7 +13,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "1c71c230-d28f-49e6-9d93-271f93f4a68c"
+				"spark.autotune.trackingId": "4e25b601-1b15-4d4c-a52f-4facb918a798"
 			}
 		},
 		"metadata": {
@@ -46,6 +46,19 @@
 					"# key_columns_str = 'idfechas'"
 				],
 				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Carga de ficheros parquet Landing sobre tablas Delta capa Silver**"
+				]
 			},
 			{
 				"cell_type": "code",
@@ -146,6 +159,19 @@
 				"execution_count": null
 			},
 			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Actualizar CSV Configuracion**"
+				]
+			},
+			{
 				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
@@ -159,7 +185,25 @@
 					}
 				},
 				"source": [
-					"## Actualizar DateUpdate en el csv"
+					"# Actualizar DateUpdate en el csv\r\n",
+					"\r\n",
+					"cuenta =  'datalakefrancepgc'\r\n",
+					"contendor = 'etl/bronze/Configuration'\r\n",
+					"archivo = 'ConfiguracionOrigenes.csv'\r\n",
+					"\r\n",
+					"ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
+					"\r\n",
+					"# Leer CSV\r\n",
+					"df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
+					"#Generamos fecha en formato 'yyyyMMdd'\r\n",
+					"fecha_actual = date_format(current_date(), 'yyyyMMdd')\r\n",
+					"# Modificar CSV\r\n",
+					"df_modificado = df.withColumn(\r\n",
+					"    \"UpdateDate\",\r\n",
+					"    when(df[\"Filename\"] == table_name, fecha_actual).otherwise(df[\"UpdateDate\"])\r\n",
+					")\r\n",
+					"# Sobreescrir CSV\r\n",
+					"df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
 				],
 				"execution_count": null
 			}

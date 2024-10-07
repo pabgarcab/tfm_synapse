@@ -29,7 +29,7 @@
 				"type": "string"
 			},
 			"FechaActualizacion": {
-				"type": "int"
+				"type": "string"
 			}
 		},
 		"annotations": [],

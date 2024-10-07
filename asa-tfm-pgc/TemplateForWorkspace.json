@@ -1199,7 +1199,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "976b8e73-330c-4f5b-a8f0-0138a7aa0f7a"
+						"spark.autotune.trackingId": "4922f5ea-d91b-4857-a4ee-f9dd0eef9d16"
 					}
 				},
 				"metadata": {
@@ -1234,6 +1234,19 @@
 						],
 						"outputs": [],
 						"execution_count": null
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"**Carga de ficheros parquet Landing sobre tablas Delta capa Silver**"
+						]
 					},
 					{
 						"cell_type": "code",
@@ -1337,6 +1350,19 @@
 						"execution_count": null
 					},
 					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"**Actualizar CSV Configuracion**"
+						]
+					},
+					{
 						"cell_type": "code",
 						"metadata": {
 							"jupyter": {
@@ -1350,7 +1376,25 @@
 							}
 						},
 						"source": [
-							"## Actualizar DateUpdate en el csv"
+							"# Actualizar DateUpdate en el csv\r\n",
+							"\r\n",
+							"cuenta =  'datalakefrancepgc'\r\n",
+							"contendor = 'etl/bronze/Configuration'\r\n",
+							"archivo = 'ConfiguracionOrigenes.csv'\r\n",
+							"\r\n",
+							"ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
+							"\r\n",
+							"# Leer CSV\r\n",
+							"df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
+							"#Generamos fecha en formato 'yyyyMMdd'\r\n",
+							"fecha_actual = date_format(current_date(), 'yyyyMMdd')\r\n",
+							"# Modificar CSV\r\n",
+							"df_modificado = df.withColumn(\r\n",
+							"    \"UpdateDate\",\r\n",
+							"    when(df[\"Filename\"] == table_name, fecha_actual).otherwise(df[\"UpdateDate\"])\r\n",
+							")\r\n",
+							"# Sobreescrir CSV\r\n",
+							"df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
 						],
 						"outputs": [],
 						"execution_count": null

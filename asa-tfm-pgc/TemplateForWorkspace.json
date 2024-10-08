@@ -102,111 +102,84 @@
 							},
 							"activities": [
 								{
-									"name": "Copiar Tablas de Configuracion",
-									"type": "Copy",
-									"dependsOn": [
-										{
-											"activity": "ActiveForLoad",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "SqlServerSource",
-											"sqlReaderQuery": {
-												"value": "SELECT *, @{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga, @{pipeline().RunId} AS pipelineID \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE CAST(CAST('@{item().IncrementalColumn}' AS nvarchar) AS date) >= CAST('@{item().UpdateDate}' AS date) - INTERVAL '7 day';\n\n",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00",
-											"partitionOption": "None"
-										},
-										"sink": {
-											"type": "ParquetSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings",
-												"copyBehavior": "FlattenHierarchy"
-											},
-											"formatSettings": {
-												"type": "ParquetWriteSettings"
-											}
-										},
-										"enableStaging": false,
-										"parallelCopies": 1,
-										"dataIntegrationUnits": 4,
-										"translator": {
-											"type": "TabularTranslator",
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "dsSQLGenerico",
-											"type": "DatasetReference",
-											"parameters": {
-												"NombreServidor": {
-													"value": "@item().ServerName",
-													"type": "Expression"
-												},
-												"NombreBD": {
-													"value": "@item().DataBaseName",
-													"type": "Expression"
-												},
-												"NombreEsquema": {
-													"value": "@item().SchemaName",
-													"type": "Expression"
-												},
-												"NombreTabla": {
-													"value": "@item().TableName",
-													"type": "Expression"
-												},
-												"FechaActualizacion": {
-													"value": "@item().UpdateDate",
-													"type": "Expression"
-												}
-											}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "dsParquetRaw",
-											"type": "DatasetReference",
-											"parameters": {
-												"NombreFichero": {
-													"value": "@concat( item().FileName, '_', formatDateTime(utcnow(), 'yyyyMMdd'),'.', item().Format)\n",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								},
-								{
-									"name": "ActiveForLoad",
-									"type": "Filter",
+									"name": "Active For Load",
+									"type": "IfCondition",
 									"dependsOn": [],
 									"userProperties": [],
 									"typeProperties": {
-										"items": {
-											"value": "@activity('Listado tablas a cargar').output.value",
+										"expression": {
+											"value": "@not(equals(trim(item().Load), 'N'))",
 											"type": "Expression"
 										},
-										"condition": {
-											"value": "@not(equals(item().Load, 'N'))",
-											"type": "Expression"
-										}
+										"ifTrueActivities": [
+											{
+												"name": "Carga Landing",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"sqlReaderQuery": {
+															"value": "SELECT *, @{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga, '@{pipeline().RunId}' AS pipelineID \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE @{item().IncrementalColumn}>= CAST(CAST(@{item().UpdateDate} AS nvarchar) AS datetime2);",
+															"type": "Expression"
+														},
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "ParquetSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings",
+															"copyBehavior": "FlattenHierarchy"
+														},
+														"formatSettings": {
+															"type": "ParquetWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"parallelCopies": 1,
+													"dataIntegrationUnits": 4,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "dsSQLGenerico",
+														"type": "DatasetReference",
+														"parameters": {
+															"NombreServidor": "@item().ServerName",
+															"NombreBD": "@item().DataBaseName",
+															"NombreEsquema": "@item().SchemaName",
+															"NombreTabla": "@item().TableName",
+															"FechaActualizacion": "@item().UpdateDate"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "dsParquetRaw",
+														"type": "DatasetReference",
+														"parameters": {
+															"NombreFichero": "@concat( item().FileName, '_', formatDateTime(utcnow(), 'yyyyMMdd'),'.', item().Format)"
+														}
+													}
+												]
+											}
+										]
 									}
 								}
 							]

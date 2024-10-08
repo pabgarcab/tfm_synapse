@@ -157,7 +157,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"notebook": {
-									"referenceName": "MergeBronzeFilesToSilver",
+									"referenceName": "MergeLandingFilesToSilver",
 									"type": "NotebookReference"
 								},
 								"parameters": {

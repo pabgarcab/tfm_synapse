@@ -1177,7 +1177,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "f8e98189-764a-478b-8a95-1ee7cd034ec1"
+						"spark.autotune.trackingId": "0cf68435-4b60-4246-898b-8be836f9bc08"
 					}
 				},
 				"metadata": {
@@ -1356,16 +1356,18 @@
 						"source": [
 							"# Actualizar DateUpdate en el csv\r\n",
 							"\r\n",
-							"cuenta =  'datalakefrancepgc'\r\n",
-							"contendor = 'etl/bronze/Configuration'\r\n",
+							"cuenta =  'datalake1pgc'\r\n",
+							"contendor = 'mdw/bronze/Configuration'\r\n",
 							"archivo = 'ConfiguracionOrigenes.csv'\r\n",
 							"\r\n",
 							"ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
 							"\r\n",
 							"# Leer CSV\r\n",
 							"df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
+							"\r\n",
 							"#Generamos fecha en formato 'yyyyMMdd'\r\n",
 							"fecha_actual = date_format(current_date(), 'yyyyMMdd')\r\n",
+							"\r\n",
 							"# Modificar CSV\r\n",
 							"df_modificado = df.withColumn(\r\n",
 							"    \"UpdateDate\",\r\n",

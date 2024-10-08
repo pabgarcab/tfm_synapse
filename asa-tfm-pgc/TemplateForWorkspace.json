@@ -375,11 +375,13 @@
 							},
 							"activities": [
 								{
-									"name": "Delete1",
+									"name": "Clean Landing",
 									"type": "Delete",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [
 										{
-											"activity": "Copy data1",
+											"activity": "LandingToProcessed",
 											"dependencyConditions": [
 												"Succeeded"
 											]
@@ -413,7 +415,7 @@
 									}
 								},
 								{
-									"name": "Copy data1",
+									"name": "LandingToProcessed",
 									"type": "Copy",
 									"dependsOn": [
 										{
@@ -485,7 +487,10 @@
 													"value": "@item().name",
 													"type": "Expression"
 												},
-												"NombreCarpeta": "@substring(item().name, 0, indexOf(item().name, '_'))"
+												"NombreCarpeta": {
+													"value": "@concat(\n    substring(item().name, 0, indexOf(item().name, '_')), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 1), 4), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 5), 2), \n    '/'\n)\n",
+													"type": "Expression"
+												}
 											}
 										}
 									]

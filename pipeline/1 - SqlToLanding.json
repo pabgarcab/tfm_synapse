@@ -145,8 +145,6 @@
 			{
 				"name": "Clean Landing",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -169,12 +167,13 @@
 							"referenceName": "ls_ADLG2_Bronze_Landing",
 							"type": "LinkedServiceReference"
 						},
-						"path": "mdw/bronze/Landing"
+						"path": "mdw/bronze/Logs"
 					},
 					"enableLogging": true,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
+						"wildcardFileName": "*",
 						"enablePartitionDiscovery": false
 					}
 				}

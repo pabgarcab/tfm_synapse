@@ -61,7 +61,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "List of tables to load",
+						"name": "List of Tables to Load",
 						"type": "Lookup",
 						"dependsOn": [
 							{
@@ -104,7 +104,7 @@
 						"type": "ForEach",
 						"dependsOn": [
 							{
-								"activity": "List of tables to load",
+								"activity": "List of Tables to Load",
 								"dependencyConditions": [
 									"Succeeded"
 								]

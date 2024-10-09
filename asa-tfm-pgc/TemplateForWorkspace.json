@@ -54,7 +54,14 @@
 					{
 						"name": "Listado tablas a cargar",
 						"type": "Lookup",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Clean Landing",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -184,6 +191,43 @@
 								}
 							]
 						}
+					},
+					{
+						"name": "Clean Landing",
+						"type": "Delete",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsParquetRaw",
+								"type": "DatasetReference",
+								"parameters": {
+									"NombreFichero": "*"
+								}
+							},
+							"logStorageSettings": {
+								"linkedServiceName": {
+									"referenceName": "ls_ADLG2_Bronze_Landing",
+									"type": "LinkedServiceReference"
+								},
+								"path": "mdw/bronze/Landing"
+							},
+							"enableLogging": true,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
 					}
 				],
 				"policy": {
@@ -194,8 +238,9 @@
 			},
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/datasets/csvConfiguration')]",
-				"[concat(variables('workspaceId'), '/datasets/dsSQLGenerico')]",
-				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]"
+				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]",
+				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]",
+				"[concat(variables('workspaceId'), '/datasets/dsSQLGenerico')]"
 			]
 		},
 		{
@@ -1177,7 +1222,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "12ad3adf-ab38-475e-833d-d946ac619edd"
+						"spark.autotune.trackingId": "e6c0d9c5-0cb4-408a-b534-e014d5dd18cd"
 					}
 				},
 				"metadata": {
@@ -1195,7 +1240,6 @@
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# path of the data lake container (bronze and silver for this example)\r\n",
 							"data_lake_container = 'abfss://etl@datalakefrancepgc.dfs.core.windows.net'\r\n",

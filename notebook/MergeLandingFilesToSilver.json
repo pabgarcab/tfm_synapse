@@ -13,7 +13,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "f3214af9-a41f-4181-92e2-b4b0af08cb41"
+				"spark.autotune.trackingId": "4698b6a8-d311-477b-93a9-67274c9a453c"
 			}
 		},
 		"metadata": {
@@ -99,14 +99,6 @@
 				},
 				"source": [
 					"### Prueba::\r\n",
-					"\r\n",
-					"\r\n",
-					"# # Crear SparkSession\r\n",
-					"# spark = SparkSession.builder \\\r\n",
-					"#     .appName(\"Delta Merge Example\") \\\r\n",
-					"#     .config(\"spark.sql.extensions\", \"delta.sql.DeltaSparkSessionExtensions\") \\\r\n",
-					"#     .config(\"spark.sql.catalog.spark_catalog\", \"delta.catalog.DeltaCatalog\") \\\r\n",
-					"#     .getOrCreate()\r\n",
 					"\r\n",
 					"# Supongamos que tienes las variables necesarias\r\n",
 					"# Fecha actual en formato yyyymmdd\r\n",

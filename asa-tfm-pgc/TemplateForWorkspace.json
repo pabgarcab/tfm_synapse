@@ -204,8 +204,6 @@
 					{
 						"name": "Clean Landing",
 						"type": "Delete",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -228,12 +226,13 @@
 									"referenceName": "ls_ADLG2_Bronze_Landing",
 									"type": "LinkedServiceReference"
 								},
-								"path": "mdw/bronze/Landing"
+								"path": "mdw/bronze/Logs"
 							},
 							"enableLogging": true,
 							"storeSettings": {
 								"type": "AzureBlobFSReadSettings",
 								"recursive": true,
+								"wildcardFileName": "*",
 								"enablePartitionDiscovery": false
 							}
 						}
@@ -1232,7 +1231,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "1a862854-b42d-4968-8b1b-0dd6f1b691e2"
+						"spark.autotune.trackingId": "c3ce8fdc-b360-4ba1-af15-350e475c4184"
 					}
 				},
 				"metadata": {
@@ -1320,35 +1319,6 @@
 							}
 						},
 						"source": [
-							"# table_name = \"silver.fechas\"  # Reemplaza con el nombre de tu tabla\r\n",
-							"\r\n",
-							"# # Ejecutar el comando para eliminar la tabla\r\n",
-							"# spark.sql(f\"DROP TABLE IF EXISTS {table_name}\")\r\n",
-							"\r\n",
-							"# source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
-							"\r\n",
-							"# Determine path of Delta Lake Table \r\n",
-							"#delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
-							"\r\n",
-							"#spark.sql(f\"DROP TABLE IF EXISTS silver.fecha\")"
-						],
-						"outputs": [],
-						"execution_count": null
-					},
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
 							"### Prueba::\r\n",
 							"\r\n",
 							"\r\n",
@@ -1362,7 +1332,7 @@
 							"# Supongamos que tienes las variables necesarias\r\n",
 							"# Fecha actual en formato yyyymmdd\r\n",
 							"fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
-							"fecha_delta = '20241008'\r\n",
+							"#fecha_delta = '20241008'\r\n",
 							"# Convert comma separated string with keys to array\r\n",
 							"key_columns = key_columns_str.split(',')\r\n",
 							"\r\n",
@@ -1418,121 +1388,8 @@
 							"    sdf = sdf.withColumn(\"fechaCarga\", sdf.fechaCarga)  # Mantener fechaCarga del DataFrame\r\n",
 							"    sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))  # Establecer fechaDelta al crear la tabla\r\n",
 							"    sdf.write.format('delta').save(delta_table_path)\r\n",
-							""
-						],
-						"outputs": [],
-						"execution_count": null
-					},
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
-							"# ### Prueba ori::\r\n",
-							"# from pyspark.sql import SparkSession\r\n",
-							"# from pyspark.sql.functions import current_date, date_format\r\n",
-							"# from delta.tables import *\r\n",
 							"\r\n",
-							"# # # Crear SparkSession\r\n",
-							"# # spark = SparkSession.builder \\\r\n",
-							"# #     .appName(\"Delta Merge Example\") \\\r\n",
-							"# #     .config(\"spark.sql.extensions\", \"delta.sql.DeltaSparkSessionExtensions\") \\\r\n",
-							"# #     .config(\"spark.sql.catalog.spark_catalog\", \"delta.catalog.DeltaCatalog\") \\\r\n",
-							"# #     .getOrCreate()\r\n",
-							"\r\n",
-							"# # Supongamos que tienes las variables necesarias\r\n",
-							"# # Fecha actual en formato yyyymmdd\r\n",
-							"# fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
-							"# fecha_delta = '20241007'\r\n",
-							"# # Convert comma separated string with keys to array\r\n",
-							"# key_columns = key_columns_str.split(',')\r\n",
-							"\r\n",
-							"# # Convert array with keys to where-clause for merge statement\r\n",
-							"# conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
-							"\r\n",
-							"# # Determine path of source files from ingest layer\r\n",
-							"# source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
-							"\r\n",
-							"# # Determine path of Delta Lake Table \r\n",
-							"# delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
-							"\r\n",
-							"# # Read file(s) in spark data frame\r\n",
-							"# sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
-							"\r\n",
-							"# # Eliminar las columnas que no se desean\r\n",
-							"# sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")\r\n",
-							"\r\n",
-							"# # Check if the Delta Table exists\r\n",
-							"# if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
-							"#     # Read the existing Delta Table\r\n",
-							"#     delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
-							"\r\n",
-							"#     # Get the schema of the existing Delta table\r\n",
-							"#     existing_columns = delta_table.toDF().columns\r\n",
-							"    \r\n",
-							"#     # Añadir columna fechaDelta al DataFrame\r\n",
-							"#     sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))\r\n",
-							"\r\n",
-							"#     # Crear el conjunto de actualizaciones excluyendo 'fechaCarga'\r\n",
-							"#     update_set = {f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col != 'fechaCarga'}\r\n",
-							"\r\n",
-							"#     # Merge new data into existing table\r\n",
-							"#     delta_table.alias(\"existing\").merge(\r\n",
-							"#         source=sdf.alias(\"updates\"),\r\n",
-							"#         condition=\" AND \".join(conditions_list)\r\n",
-							"#     ).whenMatchedUpdate(\r\n",
-							"#         set={\r\n",
-							"#             \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
-							"#             \"fechaDelta\": \"updates.fechaDelta\",  # Usar fechaDelta del DataFrame\r\n",
-							"#             **{f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}  # Incluir otros campos\r\n",
-							"#         }\r\n",
-							"#     ).whenNotMatchedInsert(\r\n",
-							"#         values={\r\n",
-							"#             \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
-							"#             \"fechaDelta\": fecha_delta,  # Establecer fechaDelta al insertar\r\n",
-							"#             **{f\"{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}  # Incluir otros campos\r\n",
-							"#         }\r\n",
-							"#     ).execute()\r\n",
-							"# else:\r\n",
-							"#     # Crear nueva tabla Delta con nuevos datos, incluyendo la columna fechaDelta\r\n",
-							"#     sdf = sdf.withColumn(\"fechaCarga\", sdf.fechaCarga)  # Mantener fechaCarga del DataFrame\r\n",
-							"#     sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))  # Establecer fechaDelta al crear la tabla\r\n",
-							"#     sdf.write.format('delta').save(delta_table_path)\r\n",
-							""
-						],
-						"outputs": [],
-						"execution_count": null
-					},
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
-							"# Adding the Delta Table to the Delta Database for easy querying in other notebooks or scripts within Synapse.\r\n",
-							"spark.sql(f'CREATE TABLE IF NOT EXISTS Silver.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
-							" \r\n",
-							"# Spark SQL version\r\n",
-							"# CREATE TABLE Silver.MyTable\r\n",
-							"# USING DELTA\r\n",
-							"#LOCATION 'abfss://yourcontainer@yourdatalake.dfs.core.windows.net/Silver/MyTable'"
+							"spark.sql(f'CREATE TABLE IF NOT EXISTS Silver.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
 						],
 						"outputs": [],
 						"execution_count": null
@@ -1583,25 +1440,6 @@
 							"# )\r\n",
 							"# # Sobreescrir CSV\r\n",
 							"# #df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
-						],
-						"outputs": [],
-						"execution_count": null
-					},
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
-							""
 						],
 						"outputs": [],
 						"execution_count": null

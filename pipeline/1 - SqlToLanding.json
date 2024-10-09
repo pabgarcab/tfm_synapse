@@ -5,7 +5,14 @@
 			{
 				"name": "Listado tablas a cargar",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Clean Landing",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -133,6 +140,43 @@
 							}
 						}
 					]
+				}
+			},
+			{
+				"name": "Clean Landing",
+				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "dsParquetRaw",
+						"type": "DatasetReference",
+						"parameters": {
+							"NombreFichero": "*"
+						}
+					},
+					"logStorageSettings": {
+						"linkedServiceName": {
+							"referenceName": "ls_ADLG2_Bronze_Landing",
+							"type": "LinkedServiceReference"
+						},
+						"path": "mdw/bronze/Landing"
+					},
+					"enableLogging": true,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					}
 				}
 			}
 		],

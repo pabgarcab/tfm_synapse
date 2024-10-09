@@ -46,6 +46,15 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('workspaceName'), '/sparkTFM')]",
+			"type": "Microsoft.Synapse/workspaces/bigDataPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/1 - SqlToLanding')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -422,8 +431,6 @@
 								{
 									"name": "Clean Landing",
 									"type": "Delete",
-									"state": "Inactive",
-									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [
 										{
 											"activity": "LandingToProcessed",
@@ -543,8 +550,6 @@
 								{
 									"name": "MergeBronzeToSilver",
 									"type": "SynapseNotebook",
-									"state": "Inactive",
-									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [],
 									"policy": {
 										"timeout": "0.12:00:00",
@@ -586,7 +591,7 @@
 												},
 												"type": "string"
 											},
-											"key_column_str": {
+											"key_columns_str": {
 												"value": {
 													"value": "@concat('id',substring(item().name, 0, indexOf(item().name, '_')))",
 													"type": "Expression"
@@ -595,6 +600,10 @@
 											}
 										},
 										"snapshot": true,
+										"sparkPool": {
+											"referenceName": "sparkTFM",
+											"type": "BigDataPoolReference"
+										},
 										"executorSize": "Small",
 										"conf": {
 											"spark.dynamicAllocation.enabled": false,
@@ -649,7 +658,8 @@
 				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]",
 				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]",
 				"[concat(variables('workspaceId'), '/datasets/dsParquetProcessed')]",
-				"[concat(variables('workspaceId'), '/notebooks/MergeLandingFilesToSilver')]"
+				"[concat(variables('workspaceId'), '/notebooks/MergeLandingFilesToSilver')]",
+				"[concat(variables('workspaceId'), '/bigDataPools/sparkTFM')]"
 			]
 		},
 		{
@@ -1222,7 +1232,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "120f7844-fea9-4902-bb56-40ddce8321b5"
+						"spark.autotune.trackingId": "1a862854-b42d-4968-8b1b-0dd6f1b691e2"
 					}
 				},
 				"metadata": {
@@ -1390,7 +1400,7 @@
 							"        source=sdf.alias(\"updates\"),\r\n",
 							"        condition=\" AND \".join(conditions_list)\r\n",
 							"    ).whenMatchedUpdate(\r\n",
-							"        #condition=\" OR \".join([f\"existing.{col} != updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')]),\r\n",
+							"        condition=\" OR \".join([f\"existing.{col} != updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')]),\r\n",
 							"        set={\r\n",
 							"            \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
 							"            \"fechaDelta\": \"updates.fechaDelta\",  # Usar fechaDelta del DataFrame\r\n",
@@ -1654,6 +1664,31 @@
 				]
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/sparkTFM')]",
+			"type": "Microsoft.Synapse/workspaces/bigDataPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"autoPause": {
+					"enabled": true,
+					"delayInMinutes": 10
+				},
+				"autoScale": {
+					"enabled": false,
+					"maxNodeCount": 10,
+					"minNodeCount": 3
+				},
+				"nodeCount": 3,
+				"nodeSize": "Small",
+				"nodeSizeFamily": "MemoryOptimized",
+				"sparkVersion": "3.4",
+				"isComputeIsolationEnabled": false,
+				"sessionLevelPackagesEnabled": false,
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "francecentral"
 		}
 	]
 }

@@ -23,8 +23,6 @@
 						{
 							"name": "Clean Landing",
 							"type": "Delete",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [
 								{
 									"activity": "LandingToProcessed",
@@ -144,8 +142,6 @@
 						{
 							"name": "MergeBronzeToSilver",
 							"type": "SynapseNotebook",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
@@ -187,7 +183,7 @@
 										},
 										"type": "string"
 									},
-									"key_column_str": {
+									"key_columns_str": {
 										"value": {
 											"value": "@concat('id',substring(item().name, 0, indexOf(item().name, '_')))",
 											"type": "Expression"
@@ -196,6 +192,10 @@
 									}
 								},
 								"snapshot": true,
+								"sparkPool": {
+									"referenceName": "sparkTFM",
+									"type": "BigDataPoolReference"
+								},
 								"executorSize": "Small",
 								"conf": {
 									"spark.dynamicAllocation.enabled": false,

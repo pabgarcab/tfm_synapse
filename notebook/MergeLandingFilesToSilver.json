@@ -13,7 +13,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "e00ea299-73a8-40c8-9481-423c4c633feb"
+				"spark.autotune.trackingId": "66a2b967-c0f0-4160-9de2-508f6c96caa7"
 			}
 		},
 		"metadata": {
@@ -177,7 +177,7 @@
 					"        source=sdf.alias(\"updates\"),\r\n",
 					"        condition=\" AND \".join(conditions_list)\r\n",
 					"    ).whenMatchedUpdate(\r\n",
-					"        #condition=\" OR \".join([f\"existing.{col} != updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')]),\r\n",
+					"        condition=\" OR \".join([f\"existing.{col} != updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')]),\r\n",
 					"        set={\r\n",
 					"            \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
 					"            \"fechaDelta\": \"updates.fechaDelta\",  # Usar fechaDelta del DataFrame\r\n",

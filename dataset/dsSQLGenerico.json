@@ -30,6 +30,9 @@
 			},
 			"FechaActualizacion": {
 				"type": "string"
+			},
+			"ColumnaIncremental": {
+				"type": "string"
 			}
 		},
 		"annotations": [],

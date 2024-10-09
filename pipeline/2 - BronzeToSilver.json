@@ -3,11 +3,11 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "ForEach1",
+				"name": "UPSERT Landing",
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Get Metadata1",
+						"activity": "Get Metadata Landing",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -16,9 +16,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Get Metadata1').output.childItems",
+						"value": "@activity('Get Metadata Landing').output.childItems",
 						"type": "Expression"
 					},
+					"isSequential": false,
 					"activities": [
 						{
 							"name": "Clean Landing",
@@ -210,7 +211,7 @@
 				}
 			},
 			{
-				"name": "Get Metadata1",
+				"name": "Get Metadata Landing",
 				"type": "GetMetadata",
 				"dependsOn": [],
 				"policy": {

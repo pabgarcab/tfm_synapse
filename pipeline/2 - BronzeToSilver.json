@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "UPSERT Landing",
+				"name": "UPSERT Silver",
 				"type": "ForEach",
 				"dependsOn": [
 					{

@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Listado tablas a cargar",
+				"name": "List of tables to load",
 				"type": "Lookup",
 				"dependsOn": [
 					{
@@ -41,11 +41,11 @@
 				}
 			},
 			{
-				"name": "Copiar Origen a Destino",
+				"name": "Save Landing Files",
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Listado tablas a cargar",
+						"activity": "List of tables to load",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -54,7 +54,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Listado tablas a cargar').output.value",
+						"value": "@activity('List of tables to load').output.value",
 						"type": "Expression"
 					},
 					"isSequential": false,

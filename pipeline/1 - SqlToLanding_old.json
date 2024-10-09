@@ -114,6 +114,10 @@
 										"FechaActualizacion": {
 											"value": "@item().UpdateDate",
 											"type": "Expression"
+										},
+										"ColumnaIncremental": {
+											"value": "@item().IncrementalColumn",
+											"type": "Expression"
 										}
 									}
 								}

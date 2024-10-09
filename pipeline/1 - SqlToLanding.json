@@ -86,7 +86,7 @@
 											"source": {
 												"type": "SqlServerSource",
 												"sqlReaderQuery": {
-													"value": "SELECT *, @{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga, '@{pipeline().RunId}' AS pipelineID \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE fechaActualizacion >= CAST(CAST('@{item().UpdateDate}' AS nvarchar) AS datetime2);",
+													"value": "SELECT *, @{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga, '@{pipeline().RunId}' AS pipelineID \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE @{item().IncrementalColumn} >= CAST(CAST('@{item().UpdateDate}' AS nvarchar) AS datetime2);",
 													"type": "Expression"
 												},
 												"queryTimeout": "02:00:00",

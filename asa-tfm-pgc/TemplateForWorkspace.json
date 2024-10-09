@@ -100,7 +100,7 @@
 						}
 					},
 					{
-						"name": "Copiar Origen a Destino",
+						"name": "Save Landing Files",
 						"type": "ForEach",
 						"dependsOn": [
 							{
@@ -113,7 +113,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"items": {
-								"value": "@activity('Listado tablas a cargar').output.value",
+								"value": "@activity('List of tables to load').output.value",
 								"type": "Expression"
 							},
 							"isSequential": false,
@@ -419,7 +419,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "UPSERT Landing",
+						"name": "UPSERT Silver",
 						"type": "ForEach",
 						"dependsOn": [
 							{

@@ -1495,7 +1495,7 @@
 								"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver",
 								"Properties": {
 									"FormatType": "parquet",
-									"LinkedServiceName": "ls_ADLG2_Bronze_Landing"
+									"LinkedServiceName": "asa-tfm-pgc-WorkspaceDefaultStorage"
 								}
 							}
 						},

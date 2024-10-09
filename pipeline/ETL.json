@@ -35,7 +35,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "3 - ProcessedToSilver",
+						"referenceName": "3 - SilverToSCD2",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true

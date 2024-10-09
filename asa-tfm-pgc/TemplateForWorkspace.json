@@ -61,7 +61,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Listado tablas a cargar",
+						"name": "List of tables to load",
 						"type": "Lookup",
 						"dependsOn": [
 							{
@@ -104,7 +104,7 @@
 						"type": "ForEach",
 						"dependsOn": [
 							{
-								"activity": "Listado tablas a cargar",
+								"activity": "List of tables to load",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -116,6 +116,7 @@
 								"value": "@activity('Listado tablas a cargar').output.value",
 								"type": "Expression"
 							},
+							"isSequential": false,
 							"activities": [
 								{
 									"name": "Active For Load",
@@ -144,7 +145,7 @@
 													"source": {
 														"type": "SqlServerSource",
 														"sqlReaderQuery": {
-															"value": "SELECT *, @{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga, '@{pipeline().RunId}' AS pipelineID \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE @{item().IncrementalColumn}>= CAST(CAST(@{item().UpdateDate} AS nvarchar) AS datetime2);",
+															"value": "SELECT *, @{formatDateTime(pipeline().TriggerTime,'yyyyMMdd')} AS fechaCarga, '@{pipeline().RunId}' AS pipelineID \nFROM @{item().SchemaName}.@{item().TableName} \nWHERE @{item().IncrementalColumn} >= CAST(CAST('@{item().UpdateDate}' AS nvarchar) AS datetime2);",
 															"type": "Expression"
 														},
 														"queryTimeout": "02:00:00",
@@ -181,7 +182,11 @@
 															"NombreBD": "@item().DataBaseName",
 															"NombreEsquema": "@item().SchemaName",
 															"NombreTabla": "@item().TableName",
-															"FechaActualizacion": "@item().UpdateDate"
+															"FechaActualizacion": "@item().UpdateDate",
+															"ColumnaIncremental": {
+																"value": "@item().IncrementalColumn",
+																"type": "Expression"
+															}
 														}
 													}
 												],
@@ -370,6 +375,10 @@
 												"FechaActualizacion": {
 													"value": "@item().UpdateDate",
 													"type": "Expression"
+												},
+												"ColumnaIncremental": {
+													"value": "@item().IncrementalColumn",
+													"type": "Expression"
 												}
 											}
 										}
@@ -410,11 +419,11 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "ForEach1",
+						"name": "UPSERT Landing",
 						"type": "ForEach",
 						"dependsOn": [
 							{
-								"activity": "Get Metadata1",
+								"activity": "Get Metadata Landing",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -423,9 +432,10 @@
 						"userProperties": [],
 						"typeProperties": {
 							"items": {
-								"value": "@activity('Get Metadata1').output.childItems",
+								"value": "@activity('Get Metadata Landing').output.childItems",
 								"type": "Expression"
 							},
+							"isSequential": false,
 							"activities": [
 								{
 									"name": "Clean Landing",
@@ -617,7 +627,7 @@
 						}
 					},
 					{
-						"name": "Get Metadata1",
+						"name": "Get Metadata Landing",
 						"type": "GetMetadata",
 						"dependsOn": [],
 						"policy": {
@@ -1033,6 +1043,9 @@
 					},
 					"FechaActualizacion": {
 						"type": "string"
+					},
+					"ColumnaIncremental": {
+						"type": "string"
 					}
 				},
 				"annotations": [],
@@ -1231,7 +1244,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "4e866322-5148-4368-9b76-32d1dd3342c1"
+						"spark.autotune.trackingId": "4698b6a8-d311-477b-93a9-67274c9a453c"
 					}
 				},
 				"metadata": {
@@ -1249,7 +1262,6 @@
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# # path of the data lake container (bronze and silver for this example)\r\n",
 							"# data_lake_container = 'abfss://etl@datalakefrancepgc.dfs.core.windows.net'\r\n",

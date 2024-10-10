@@ -1244,7 +1244,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "39f763bf-ed7f-4752-804d-2f26caaff06b"
+						"spark.autotune.trackingId": "d86b1efe-e2bf-4115-b6a3-0775503a857d"
 					}
 				},
 				"metadata": {
@@ -1262,6 +1262,7 @@
 				"cells": [
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"# # path of the data lake container (bronze and silver for this example)\r\n",
 							"# data_lake_container = 'abfss://etl@datalakefrancepgc.dfs.core.windows.net'\r\n",
@@ -1336,7 +1337,7 @@
 							"# Supongamos que tienes las variables necesarias\r\n",
 							"# Fecha actual en formato yyyymmdd\r\n",
 							"fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
-							"#fecha_delta = '20241008'\r\n",
+							"fecha_delta = '20241011'\r\n",
 							"# Convert comma separated string with keys to array\r\n",
 							"key_columns = key_columns_str.split(',')\r\n",
 							"\r\n",

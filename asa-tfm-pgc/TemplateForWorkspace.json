@@ -1244,7 +1244,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "4698b6a8-d311-477b-93a9-67274c9a453c"
+						"spark.autotune.trackingId": "39f763bf-ed7f-4752-804d-2f26caaff06b"
 					}
 				},
 				"metadata": {
@@ -1393,7 +1393,7 @@
 							"    sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))  # Establecer fechaDelta al crear la tabla\r\n",
 							"    sdf.write.format('delta').save(delta_table_path)\r\n",
 							"\r\n",
-							"spark.sql(f'CREATE TABLE IF NOT EXISTS Silver.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
+							"spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
 						],
 						"outputs": [],
 						"execution_count": null
@@ -1467,41 +1467,6 @@
 						],
 						"outputs": [],
 						"execution_count": null
-					}
-				]
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/Silver')]",
-			"type": "Microsoft.Synapse/workspaces/databases",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"Ddls": [
-					{
-						"ActionType": "CREATE",
-						"OldEntity": null,
-						"NewEntity": {
-							"Name": "Silver",
-							"EntityType": "DATABASE",
-							"Origin": {
-								"Type": "SPARK"
-							},
-							"Properties": {
-								"IsSyMSCDMDatabase": true
-							},
-							"Source": {
-								"Provider": "ADLS",
-								"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver",
-								"Properties": {
-									"FormatType": "parquet",
-									"LinkedServiceName": "asa-tfm-pgc-WorkspaceDefaultStorage"
-								}
-							}
-						},
-						"Source": {
-							"Type": "SPARK"
-						}
 					}
 				]
 			},

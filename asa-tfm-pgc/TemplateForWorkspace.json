@@ -1209,7 +1209,7 @@
 						"language": "sql"
 					},
 					"currentConnection": {
-						"databaseName": "master",
+						"databaseName": "SilverlessSTG",
 						"poolName": "Built-in"
 					},
 					"resultLimit": 5000

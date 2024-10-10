@@ -13,7 +13,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "3755f214-b9e2-4009-b8b3-2f5b6b4642a6"
+				"spark.autotune.trackingId": "91da0077-0bd9-4671-83a6-c7f312038408"
 			}
 		},
 		"metadata": {
@@ -103,7 +103,7 @@
 					"# Supongamos que tienes las variables necesarias\r\n",
 					"# Fecha actual en formato yyyymmdd\r\n",
 					"fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
-					"fecha_delta = '20241011'\r\n",
+					"#fecha_delta = '20241011'\r\n",
 					"# Convert comma separated string with keys to array\r\n",
 					"key_columns = key_columns_str.split(',')\r\n",
 					"\r\n",

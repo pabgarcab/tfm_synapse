@@ -1213,7 +1213,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "CREATE  or ALTER view [dbo].[vw_dim_Fechas] AS \nSELECT \n    idFechas,\n    ClaveFecha,\n    Fecha,\n    Mes,\n    NumeroMes,\n    Año,\n    NumeroSemana,\n    DiaSemana,\n    NumeroDiaSemana,\n    DiaAño,\n    Trimestre,\n    Cuatrimestre,\n    CASE WHEN Cuatrimestre IN (1,2) THEN 1\n         WHEN Cuatrimestre IN (2,4) THEN 2\n         ELSE -1 END AS Semestre,\n    fechaActualizacion\nFROM \n    Silver.dbo.fechas",
+					"query": "CREATE  or ALTER view [dbo].[vw_dim_Date] AS \nSELECT \n    idFechas AS idDate,\n    ClaveFecha AS dateKey,\n    Fecha AS date,\n    Mes AS month,\n    NumeroMes AS monthNumber,\n    Ano AS year,\n    NumeroSemana AS weekNumber,\n    DiaSemana AS dayWeek,\n    NumeroDiaSemana AS dayWeekNumber,\n    DiaAno AS yearDay,\n    Trimestre AS quarter,\n    Cuatrimestre AS quadrimester,\n    CASE WHEN Cuatrimestre IN (1,2) THEN 1\n         WHEN Cuatrimestre IN (2,4) THEN 2\n         ELSE -1 END AS semester,\n    fechaCarga AS loadDate,\n    fechaDelta AS deltaDate\nFROM \n    [default].dbo.fechas",
 					"metadata": {
 						"language": "sql"
 					},
@@ -1244,7 +1244,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "29111ede-71e1-48cc-90a3-6d5569381f88"
+						"spark.autotune.trackingId": "91da0077-0bd9-4671-83a6-c7f312038408"
 					}
 				},
 				"metadata": {
@@ -1262,7 +1262,6 @@
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# # path of the data lake container (bronze and silver for this example)\r\n",
 							"# data_lake_container = 'abfss://etl@datalakefrancepgc.dfs.core.windows.net'\r\n",

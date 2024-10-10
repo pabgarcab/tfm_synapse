@@ -46,15 +46,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('workspaceName'), '/sparkTFM')]",
-			"type": "Microsoft.Synapse/workspaces/bigDataPools",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('workspaceName'), '/1 - SqlToLanding')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -1213,7 +1204,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "CREATE  or ALTER view [dbo].[vw_dim_Date] AS \nSELECT \n    idFechas AS idDate,\n    ClaveFecha AS dateKey,\n    Fecha AS date,\n    Mes AS month,\n    NumeroMes AS monthNumber,\n    Ano AS year,\n    NumeroSemana AS weekNumber,\n    DiaSemana AS dayWeek,\n    NumeroDiaSemana AS dayWeekNumber,\n    DiaAno AS yearDay,\n    Trimestre AS quarter,\n    Cuatrimestre AS quadrimester,\n    CASE WHEN Cuatrimestre IN (1,2) THEN 1\n         WHEN Cuatrimestre IN (2,4) THEN 2\n         ELSE -1 END AS semester,\n    fechaCarga AS loadDate,\n    fechaDelta AS deltaDate\nFROM \n    [default].dbo.fechas",
+					"query": "-- Dimensión Fechas --\nGO\nCREATE  or ALTER view [etl].[vw_dim_Date] AS \nSELECT  idFechas AS idDate,\n        ClaveFecha AS dateKey,\n        Fecha AS date,\n        COALESCE(Mes, 'D')  AS month,\n        COALESCE(NumeroMes, -1)  AS monthNumber,\n        COALESCE(Ano, -1)  AS year,\n        COALESCE(NumeroSemana, -1)  AS weekNumber,\n        COALESCE(DiaSemana, 'D') AS dayWeek,\n        COALESCE(NumeroDiaSemana, -1)  AS dayWeekNumber,\n        COALESCE(DiaAno, -1) AS yearDay,\n        COALESCE(Trimestre, -1)  AS quarter,\n        COALESCE(Cuatrimestre, -1)  AS quadrimester,\n        CASE WHEN Cuatrimestre IN (1,2) THEN 1\n            WHEN Cuatrimestre IN (2,4) THEN 2\n            ELSE -1 END AS semester,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[fechas]\n\n-- Dimensión Artículos --\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Articles] AS\nSELECT  idArticulos AS idArticles,\n        nombre AS name,\n        COALESCE(codigoReferencia, 'D') AS externalCode,\n        a.idTalla AS idSize,\n        a.idColor AS idColor,\n        a.idCategoria AS idCategory,\n        a.idLinea AS idLine,\n        idTemporada AS idSeason,\n        COALESCE(descripcion, 'D') AS description,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[articulos] AS a\nLEFT JOIN [default].[dbo].[talla] AS t\n    ON t.idTalla = a.idTalla\n--LEFT JOIN [default].[dbo].[color] AS co\n   -- ON co.idColor = a.idColor\nLEFT JOIN [default].[dbo].[categoria] AS ca\n    ON ca.idCategoria = a.idCategoria\nLEFT JOIN [default].[dbo].[Linea] AS l\n    ON l.idLinea = a.idLinea\n\n\n-- Dimensión Almacenes --\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Warehouse] AS\nSELECT  idAlmacenes AS idWarehouse,\n        a.nombre AS name AS warehouse,\n        a.codigoAlmacen AS externalCode,\n        p.codigoPais AS countryCode, \n        p.nombre AS country,\n        a.Direccion AS adrees,\n        a.ciudad AS city,\n        a.descripcion AS description1,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[almacenes] AS a\nLEFT JOIN [default].[dbo].[pais] as p\n    ON p.idpais = a.idPais\n\n\n-- Dimensión Codigo Postal --\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_PostalCodes] AS\nSELECT *\nFROM [default].[dbo].[codigoPostal]\n\n\n-- Dimensión Divisa --\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Currency] AS\nSELECT *\nFROM [default].[dbo].[divisa]\n\n\n-- Dimensión Horas --\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Hour] AS\nSELECT *\nFROM [default].[dbo].[horas]\n\n\n-- Dimensión Tarifa --\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Tarriff] AS\nSELECT *\nFROM [default].[dbo].[tarifa]\n\n-- Dimensión Tipo Operacion --\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_OperationType] AS\nSELECT *\nFROM [default].[dbo].[tipoOperacion]\n\n\n\n",
 					"metadata": {
 						"language": "sql"
 					},
@@ -1244,7 +1235,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "91da0077-0bd9-4671-83a6-c7f312038408"
+						"spark.autotune.trackingId": "fadff49d-fa5c-4a21-9047-3b9cd5332ec5"
 					}
 				},
 				"metadata": {
@@ -1351,6 +1342,9 @@
 							"\r\n",
 							"# Read file(s) in spark data frame\r\n",
 							"sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
+							"\r\n",
+							"# Check countRows > 0 - Stop Notebook \r\n",
+							"# CREAR DELTA TABLE DE COLOR\r\n",
 							"\r\n",
 							"# Eliminar las columnas que no se desean\r\n",
 							"sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")\r\n",

@@ -1,0 +1,17 @@
+{
+	"name": "Configure SilverlessSTG",
+	"properties": {
+		"content": {
+			"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' GO\n\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\n\nCREATE SCHEMA silver AUTHORIZATION dbo;\nCREATE SCHEMA dim AUTHORIZATION dbo;\nCREATE SCHEMA fact AUTHORIZATION dbo;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

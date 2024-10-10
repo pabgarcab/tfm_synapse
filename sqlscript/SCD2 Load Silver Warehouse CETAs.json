@@ -1,0 +1,17 @@
+{
+	"name": "SCD2 Load Silver Warehouse CETAs",
+	"properties": {
+		"content": {
+			"query": "-- CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\n-- CREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' GO\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc WITH ( TYPE = HADOOP, LOCATION =  'abfss://mdw@datalakefrancepgc.dfs.core.windows.net', CREDENTIAL = ManagedIdentity )\n-- 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\n\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc\n-- WITH (\n    \n--     LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n--     CREDENTIAL = ManagedIdentity\n-- );\n\n-- CREATE SCHEMA silver AUTHORIZATION dbo;\n-- CREATE SCHEMA dim AUTHORIZATION dbo;\n-- CREATE SCHEMA fact AUTHORIZATION dbo;\nCREATE  EXTERNAL TABLE [dim].[Warehouse]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT \nROW_NUMBER () OVER (ORDER BY idWarehouse) idSkWarehouse,\nw.*  --, CAST(CAST(deltaDate as nvarchar) AS datetime2)\n,CAST('1990-01-01' AS datetime2) AS fromDate\n,NULL AS toDate \n,1 isCurrent\nFROM\n[SilverlessSTG].[etl].[vw_dim_Warehouse] as w",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "SilverlessSTG",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

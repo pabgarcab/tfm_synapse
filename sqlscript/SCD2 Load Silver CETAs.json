@@ -1,0 +1,17 @@
+{
+	"name": "SCD2 Load Silver CETAs",
+	"properties": {
+		"content": {
+			"query": "-- CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\n-- CREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' GO\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc WITH ( TYPE = HADOOP, LOCATION =  'abfss://mdw@datalakefrancepgc.dfs.core.windows.net', CREDENTIAL = ManagedIdentity )\n-- 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\n\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc\n-- WITH (\n    \n--     LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n--     CREDENTIAL = ManagedIdentity\n-- );\n\n-- CREATE SCHEMA silver AUTHORIZATION dbo;\n-- CREATE SCHEMA dim AUTHORIZATION dbo;\n-- CREATE SCHEMA fact AUTHORIZATION dbo;\n\n-- CREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\n\n--DROP EXTERNAL TABLE [dim].[Articles]\n\n-- CREATE  EXTERNAL TABLE [silver].[TestFechas]\n-- (\n-- \t idFechas INT,\n--      ClaveFecha INT,\n--      Fecha datetime2(7),\n--      Mes VARCHAR(64),\n--      NumeroMes INT,\n--      Año INT,\n--      NumeroSemana INT,\n--      DiaSemana VARCHAR(64),\n--      NumeroDiaSemana INT,\n--      DiaAño INT,\n--      Trimestre INT,\n--      Cuatrimestre INT,\n--      Semestre INT,\n--      fechaActualizacion INT,\n--      D_valid INT null,\n--     ID_Deleted INT null,\n--     From_date datetime2(7)null,\n--     End_date datetime2(7) null  \n-- )\n-- WITH\n-- (\n-- \tLOCATION = 'gold/TestDimDate', \n-- \tDATA_SOURCE = datalakefrancepgc,\n-- \tFILE_FORMAT = ParquetFileFormat\n-- ) AS \n-- SELECT \n--     idFechas,\n--     ClaveFecha,\n--     Fecha,\n--     Mes,\n--     NumeroMes,\n--     Año,\n--     NumeroSemana,\n--     DiaSemana,\n--     NumeroDiaSemana,\n--     DiaAño,\n--     Trimestre,\n--     Cuatrimestre,\n--     Semestre,\n--     fechaActualizacion,\n--     1 ID_valid,\n--     0 ID_Deleted,\n--     GETDATE() AS From_date,\n--     NULL AS End_date \n-- FROM\n-- [Silverless].[dbo].[vw_dim_Fechas]\n\n\nCREATE  EXTERNAL TABLE [dim].[Articles]\n(\n\tidArticles INT,\n    name NVARCHAR(256),\n    description NVARCHAR(256),\n    externalcode NVARCHAR(64),\n    size NVARCHAR(64),\n    numSize INT,\n    colour NVARCHAR(128),\n    category NVARCHAR(128),\n    codLine NVARCHAR(128),\n    line NVARCHAR(128),\n    season NVARCHAR(64),\n    ID_valid INT null,\n    ID_Deleted INT null,\n    From_date datetime2(7)null,\n    End_date datetime2(7) null  \n)\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Articles', \n\tDATA_SOURCE = datalakefrancepgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT \n[idArticles]\n,[name]\n,[description]\n,[externalCode]\n,[size]\n,[numSize]\n,[colour]\n,[category]\n,[codLine]\n,[line]\n,[season]\n--,[loadDate]\n--,[deltaDate]\n,1 ID_valid\n,0 ID_Deleted\n,GETDATE() AS From_date\n,NULL AS End_date \nFROM\n[silverlessSTG].[etl].[vw_dim_Articles]\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "default",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -35,6 +35,8 @@
 			{
 				"name": "Delete1",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Lista ficheros Landing",
@@ -58,6 +60,8 @@
 			{
 				"name": "Proccess SC2",
 				"type": "SqlPoolStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Delete1",
@@ -78,6 +82,8 @@
 			{
 				"name": "DROP and Load CETAs",
 				"type": "SqlPoolStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Proccess SC2",

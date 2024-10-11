@@ -1,0 +1,17 @@
+{
+	"name": "Crear CETAS SCD2 Primera Carga",
+	"properties": {
+		"content": {
+			"query": "-- drop EXTERNAL TABLE [dim].[Warehouse]\nCREATE  EXTERNAL TABLE [dim].[Warehouse]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT \nROW_NUMBER () OVER (ORDER BY idWarehouse, fromDate) idSkWarehouse,\nw.*,  --, CAST(CAST(deltaDate as nvarchar) AS datetime2)\nCAST('1990-01-01' AS datetime2) AS fromDate,\nCAST('9999-01-01' AS datetime2) AS toDate ,\n1 isCurrent\nFROM\n[SilverlessSTG].[etl].[vw_dim_Warehouse] as w",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "SilverlessSTG",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 1",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [idSkWarehouse]\n,[idWarehouse]\n,[warehouse]\n,[externalCode]\n,[countryCode]\n,[country]\n,[city]\n,[address]\n,[description]\n,[loadDate]\n,[deltaDate]\n,[fromDate]\n,[toDate]\n,[isCurrent]\n,[$hash]\n FROM [dim].[Warehouse]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "GoldenlessDWH",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1366,7 +1366,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' GO\n\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\n\nCREATE SCHEMA silver AUTHORIZATION dbo;\nCREATE SCHEMA scd AUTHORIZATION dbo;\nCREATE SCHEMA dim AUTHORIZATION dbo;\nCREATE SCHEMA fact AUTHORIZATION dbo;",
+					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' GO\n\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\n\nGO\nCREATE SCHEMA etl AUTHORIZATION dbo;\nGO\nCREATE SCHEMA silver AUTHORIZATION dbo;\nGO\nCREATE SCHEMA scd AUTHORIZATION dbo;\n",
 					"metadata": {
 						"language": "sql"
 					},

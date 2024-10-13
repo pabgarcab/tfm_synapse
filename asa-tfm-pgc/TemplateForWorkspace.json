@@ -682,9 +682,11 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataset": {
-								"referenceName": "dsRawEntidades",
+								"referenceName": "dsSilverSCD",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"NombreFichero": "*"
+								}
 							},
 							"fieldList": [
 								"childItems"
@@ -700,8 +702,8 @@
 						}
 					},
 					{
-						"name": "Delete1",
-						"type": "Delete",
+						"name": "ForEach1",
+						"type": "ForEach",
 						"state": "Inactive",
 						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
@@ -712,73 +714,139 @@
 								]
 							}
 						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
 						"userProperties": [],
 						"typeProperties": {
-							"enableLogging": true
+							"activities": [
+								{
+									"name": "Delete1",
+									"type": "Delete",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "dsSilverSCD",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"enableLogging": true,
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										}
+									}
+								},
+								{
+									"name": "Script1",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "Delete1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "asa-tfm-pgc-WorkspaceDefaultSqlServer",
+										"type": "LinkedServiceReference",
+										"parameters": {
+											"DBName": "SilverlessSTG"
+										}
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "NonQuery",
+												"text": ""
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "Delete1_copy1",
+									"type": "Delete",
+									"dependsOn": [
+										{
+											"activity": "Script1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"enableLogging": true
+									}
+								},
+								{
+									"name": "Script1_copy1",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "Delete1_copy1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"scripts": [],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								}
+							]
 						}
-					},
-					{
-						"name": "Proccess SC2",
-						"type": "SqlPoolStoredProcedure",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "Delete1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {}
-					},
-					{
-						"name": "DROP and Load CETAs",
-						"type": "SqlPoolStoredProcedure",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "Proccess SC2",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
 				},
+				"parameters": {
+					"queryReloadSCD": {
+						"type": "string"
+					},
+					"queryReloadGoldCETAs": {
+						"type": "string"
+					}
+				},
 				"annotations": [],
 				"lastPublishTime": "2024-09-14T15:15:28Z"
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]"
+				"[concat(variables('workspaceId'), '/datasets/dsSilverSCD')]",
+				"[concat(variables('workspaceId'), '/linkedServices/asa-tfm-pgc-WorkspaceDefaultSqlServer')]"
 			]
 		},
 		{
@@ -1200,6 +1268,36 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/dsSilverSCD')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ADLG2_Bronze_Landing",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"NombreFichero": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "silver/SCD",
+						"fileSystem": "mdw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/asa-tfm-pgc-WorkspaceDefaultSqlServer')]",
 			"type": "Microsoft.Synapse/workspaces/linkedServices",
 			"apiVersion": "2019-06-01-preview",
@@ -1345,6 +1443,9 @@
 			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
+				"folder": {
+					"name": "Configuration"
+				},
 				"content": {
 					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' \nGO\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA dim AUTHORIZATION dbo\nGO\nCREATE SCHEMA fact AUTHORIZATION dbo",
 					"metadata": {
@@ -1365,6 +1466,9 @@
 			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
+				"folder": {
+					"name": "Configuration"
+				},
 				"content": {
 					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity'\nGO\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA etl AUTHORIZATION dbo;\nGO\nCREATE SCHEMA silver AUTHORIZATION dbo;\nGO\nCREATE SCHEMA scd AUTHORIZATION dbo;",
 					"metadata": {
@@ -1401,6 +1505,26 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/Create Views Dimensions Silver')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "---------------\n-- Dim Date --  Dim Articles hay que descoemntar desdepues de SC2\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Date] AS \nSELECT  idFechas AS idDate,\n        ClaveFecha AS dateKey,\n        Fecha AS date,\n        COALESCE(Mes, 'D')  AS month,\n        COALESCE(NumeroMes, -1)  AS monthNumber,\n        COALESCE(Ano, -1)  AS year,\n        COALESCE(NumeroSemana, -1)  AS weekNumber,\n        COALESCE(DiaSemana, 'D') AS dayWeek,\n        COALESCE(NumeroDiaSemana, -1)             AS dayWeekNumber,\n        COALESCE(DiaAno, -1) AS yearDay,\n        CASE WHEN Trimestre = 1 THEN 'Q1'\n             WHEN Trimestre = 2 THEN 'Q2'\n             WHEN Trimestre = 3 THEN 'Q3'\n             ELSE '-1' END AS quarter,\n        CASE WHEN Cuatrimestre = 1 THEN 'Q1'\n             WHEN Cuatrimestre = 2 THEN 'Q2'\n             WHEN Cuatrimestre = 3 THEN 'Q3'\n             WHEN Cuatrimestre = 4 THEN 'Q4'\n             ELSE '-1' \n        END                                       AS quadrimester,\n        CASE WHEN Cuatrimestre IN (1,2) THEN 'S1'\n            WHEN Cuatrimestre IN (2,4) THEN 'S2'\n            ELSE '-1' \n        END                                       AS semester,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[fechas]\n\n------------------\n-- Dim Articles --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Articles] AS\nSELECT  idArticulos                                                                         AS idArticles,\n        COALESCE(nombre, 'D')                                                               AS name,\n        COALESCE(descripcion, 'D')                                                          AS description,\n        COALESCE(codigoReferencia, 'D')                                                     AS externalCode,\n        COALESCE(t.talla, 'D')                                                              AS size,\n        COALESCE( t.numeroTalla, -1)                                                        AS numSize,\n        COALESCE(co.color, 'D')                                                             AS colour,\n        COALESCE(ca.categoria, 'D')                                                         AS category,\n        COALESCE(l.codigoLinea, 'D')                                                        AS codLine,\n        COALESCE(l.Linea, 'D')                                                              AS line, \n        CASE WHEN a.idCategoria IN (1,3,5,8,10) THEN 'OI'+CAST((a.idTemporada) AS nvarchar)\n             WHEN a.idCategoria IN (2,4,6,7,9) THEN 'OI'+CAST(a.idTemporada AS nvarchar)\n             ELSE 'PV'+CAST(a.idTemporada AS nvarchar)\n        END                                                                                 AS season,\n        a.fechaCarga                                                                        AS loadDate,\n        a.fechaDelta                                                                        AS deltaDate\nFROM [default].[dbo].[articulos] AS a\nLEFT JOIN [default].[dbo].[talla] AS t\n    ON t.idTalla = a.idTalla\nLEFT JOIN [default].[dbo].[color] AS co\n   ON co.idColor = a.idColor\nLEFT JOIN [default].[dbo].[categoria] AS ca -- select * from [default].[dbo].[categoria]\n    ON ca.idCategoria = a.idCategoria\nLEFT JOIN [default].[dbo].[Linea] AS l\n    ON l.idLinea = a.idLinea\nwhere a.fechaDelta <> 20241009\n-------------------\n-- Dim Warehouse --\n-------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Warehouse] AS\nSELECT  idAlmacenes AS idWarehouse,\n        COALESCE(a.Nombre, 'D') AS warehouse,\n        COALESCE(a.codigoAlmacen, 'D') AS externalCode,\n        COALESCE(p.codigoPais, 'D') AS countryCode, \n        COALESCE(p.nombre, 'D') AS country,\n        COALESCE(a.ciudad, 'D') AS city,\n        COALESCE(a.Direccion, 'D') AS address,\n        COALESCE(a.descripcion, 'D') AS description,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[almacenes] AS a\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.idpais = a.idPais\n  -- WHERE a.fechaDelta <> 20241011\n--UNION \n--select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\n--UNION \n--select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\n\n\n---------------------\n-- Dim Postal Code --\n---------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_PostalCodes] AS\nSELECT  idCodigoPostal AS idPostalCodes,\n        COALESCE(codigoPostal, 'D') AS postalCode,\n        COALESCE(region, 'D') AS region,\n        COALESCE(c.codigoPais, 'D') AS countryCode,\n        COALESCE(nombre, 'D') AS country,\n        c.fechaCarga AS loadDate,\n        c.fechaDelta AS deltaDate\nFROM [default].[dbo].[codigoPostal] AS c\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.codigoPais = c.codigoPais\n\n------------------\n-- Dim Currency --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Currency] AS\nSELECT  idDivisa AS idCurrency,\n        COALESCE(nombre, 'D') AS nombreDivisa,\n        COALESCE(Divisa, 'D') AS currencym,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[divisa]\n\n---------------\n-- Dim Hours --\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Hours] AS\nSELECT  idHoras AS idHours,\n        COALESCE(Hora, -1) AS hour,\n        COALESCE(Minuto, -1) AS minute,\n        COALESCE(HoraCompleta, 'D') as fullHour,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[horas]\n\n----------------\n-- Dim Tariff --\n----------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Tarriff] AS\nSELECT  idTarifa AS idTariff,\n        COALESCE(Tarifa, 'D') AS tariff,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate       \nFROM [default].[dbo].[tarifa]\n\n------------------------\n-- Dim Operation Type --\n------------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_OperationType] AS\nSELECT  idTipoOperacion AS idOperationType,\n        COALESCE(Operacion, 'D') AS operation,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[tipoOperacion]\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "SilverlessSTG",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/SCD2 Load Silver CETAs')]",
 			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
@@ -1426,47 +1550,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "--DROP EXTERNAL TABLE  scd.Warehouse \n\nGO\n\nCREATE EXTERNAL TABLE  scd.Warehouse \nWITH\n(\n\tLOCATION = 'silver/SCD/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n        -- c.idWarehouse AS current_idWarehouse,\n        -- c.warehouse AS current_warehouse,\n        -- c.externalCode AS current_externalCode,\n        -- c.countryCode AS current_countryCode,\n        -- c.country AS current_country,\n        -- c.city AS current_city,\n        -- c.address AS current_address,\n        -- c.description AS current_description,\n        -- c.loadDate AS current_loadDate,\n        -- c.deltaDate AS current_deltaDate\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )   --OR (c.warehouse != chg.warehouse OR c.externalCode != chg.externalCode OR c.countryCode != chg.countryCode \n                                    --OR c.country != chg.country OR c.city != chg.city OR c.address != chg.address OR c.description != chg.description)\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n   -- (c.warehouse = chg.warehouse AND c.externalCode = chg.externalCode AND c.countryCode = chg.countryCode AND c.country = chg.country\n     --   AND c.city = chg.city AND c.address = chg.address AND c.description = chg.description)\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n--(c.warehouse != chg.warehouse OR c.externalCode != chg.externalCode OR c.countryCode != chg.countryCode \n  --  OR c.country != chg.country OR c.city != chg.city OR c.address != chg.address OR c.description != chg.description)\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n",
-					"metadata": {
-						"language": "sql"
-					},
-					"currentConnection": {
-						"databaseName": "SilverlessSTG",
-						"poolName": "Built-in"
-					},
-					"resultLimit": 5000
-				},
-				"type": "SqlQuery"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
-			"type": "Microsoft.Synapse/workspaces/sqlscripts",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"content": {
-					"query": "SELECT TOP (100) [idSkWarehouse]\n,[idWarehouse]\n,[warehouse]\n,[externalCode]\n,[countryCode]\n,[country]\n,[city]\n,[address]\n,[description]\n,[loadDate]\n,[deltaDate]\n,[fromDate]\n,[toDate]\n,[isCurrent]\n,[$hash]\n FROM [dim].[Warehouse]",
-					"metadata": {
-						"language": "sql"
-					},
-					"currentConnection": {
-						"databaseName": "GoldenlessDWH",
-						"poolName": "Built-in"
-					},
-					"resultLimit": 5000
-				},
-				"type": "SqlQuery"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/Script Dimensiones Silver')]",
-			"type": "Microsoft.Synapse/workspaces/sqlscripts",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"content": {
-					"query": "---------------\n-- Dim Date --\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Date] AS \nSELECT  idFechas AS idDate,\n        ClaveFecha AS dateKey,\n        Fecha AS date,\n        COALESCE(Mes, 'D')  AS month,\n        COALESCE(NumeroMes, -1)  AS monthNumber,\n        COALESCE(Ano, -1)  AS year,\n        COALESCE(NumeroSemana, -1)  AS weekNumber,\n        COALESCE(DiaSemana, 'D') AS dayWeek,\n        COALESCE(NumeroDiaSemana, -1)  AS dayWeekNumber,\n        COALESCE(DiaAno, -1) AS yearDay,\n        COALESCE(Trimestre, -1)  AS quarter,\n        COALESCE(Cuatrimestre, -1)  AS quadrimester,\n        CASE WHEN Cuatrimestre IN (1,2) THEN 1\n            WHEN Cuatrimestre IN (2,4) THEN 2\n            ELSE -1 END AS semester,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[fechas]\n\n------------------\n-- Dim Articles --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Articles] AS\nSELECT  idArticulos AS idArticles,\n        COALESCE(nombre, 'D') AS name,\n        COALESCE(descripcion, 'D') AS description,\n        COALESCE(codigoReferencia, 'D') AS externalCode,\n        COALESCE(t.talla, 'D') AS size,\n        COALESCE( t.numeroTalla, -1) AS numSize,\n        COALESCE(co.color, 'D') AS colour,\n        COALESCE(ca.categoria, 'D') AS category,\n        COALESCE(l.codigoLinea, 'D') AS codLine,\n        COALESCE(l.Linea, 'D') AS line, \n        CASE WHEN SUBSTRING(CAST(a.fechaCarga AS nvarchar),5,2) IN (4,5,6,7,8,9) THEN 'PV'+CAST(a.idTemporada AS nvarchar)\n        ELSE 'OI'+CAST(idTemporada AS nvarchar)\n        END AS season,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[articulos] AS a\nLEFT JOIN [default].[dbo].[talla] AS t\n    ON t.idTalla = a.idTalla\nLEFT JOIN [default].[dbo].[color] AS co\n   ON co.idColor = a.idColor\nLEFT JOIN [default].[dbo].[categoria] AS ca\n    ON ca.idCategoria = a.idCategoria\nLEFT JOIN [default].[dbo].[Linea] AS l\n    ON l.idLinea = a.idLinea\nwhere a.fechaDelta <> 20241009\n-------------------\n-- Dim Warehouse --\n-------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Warehouse] AS\nSELECT  idAlmacenes AS idWarehouse,\n        COALESCE(a.Nombre, 'D') AS warehouse,\n        COALESCE(a.codigoAlmacen, 'D') AS externalCode,\n        COALESCE(p.codigoPais, 'D') AS countryCode, \n        COALESCE(p.nombre, 'D') AS country,\n        COALESCE(a.ciudad, 'D') AS city,\n        COALESCE(a.Direccion, 'D') AS address,\n        COALESCE(a.descripcion, 'D') AS description,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[almacenes] AS a\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.idpais = a.idPais\n  -- WHERE a.fechaDelta <> 20241011\n--UNION \n--select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\n--UNION \n--select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\n\n\n---------------------\n-- Dim Postal Code --\n---------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_PostalCodes] AS\nSELECT *\nFROM [default].[dbo].[codigoPostal]\n\n------------------\n-- Dim Currency --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Currency] AS\nSELECT *\nFROM [default].[dbo].[divisa]\n\n---------------\n-- Dim Hours --\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Hours] AS\nSELECT *\nFROM [default].[dbo].[horas]\n\n----------------\n-- Dim Tariff --\n----------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Tarriff] AS\nSELECT *\nFROM [default].[dbo].[tarifa]\n\n------------------------\n-- Dim Operation Type --\n------------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_OperationType] AS\nSELECT *\nFROM [default].[dbo].[tipoOperacion]\n\n\n\n",
+					"query": "---------------\n-- Articles --\n---------------\n\nDROP EXTERNAL TABLE  scd.Articles\nGO\n\nCREATE EXTERNAL TABLE  scd.Articles \nWITH\n(\n\tLOCATION = 'silver/SCD/Articles', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Articles]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n   -- (c.warehouse = chg.warehouse AND c.externalCode = chg.externalCode AND c.countryCode = chg.countryCode AND c.country = chg.country\n     --   AND c.city = chg.city AND c.address = chg.address AND c.description = chg.description)\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n--(c.warehouse != chg.warehouse OR c.externalCode != chg.externalCode OR c.countryCode != chg.countryCode \n  --  OR c.country != chg.country OR c.city != chg.city OR c.address != chg.address OR c.description != chg.description)\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n---------------\n-- Currency --\n---------------\n\nGO\n\nDROP EXTERNAL TABLE  scd.Currency \n\nGO\n\nCREATE EXTERNAL TABLE  scd.Currency \nWITH\n(\n\tLOCATION = 'silver/SCD/Currency', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Currency]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )   --OR (c.warehouse != chg.warehouse OR c.externalCode != chg.externalCode OR c.countryCode != chg.countryCode \n                                    --OR c.country != chg.country OR c.city != chg.city OR c.address != chg.address OR c.description != chg.description)\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n\n----------\n-- Date --\n----------\n\nGO\n\nDROP EXTERNAL TABLE  scd.Date \n\nGO\n\nCREATE EXTERNAL TABLE  scd.Date \nWITH\n(\n\tLOCATION = 'silver/SCD/Date', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Date]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] ) \n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n--(c.warehouse != chg.warehouse OR c.externalCode != chg.externalCode OR c.countryCode != chg.countryCode \n  --  OR c.country != chg.country OR c.city != chg.city OR c.address != chg.address OR c.description != chg.description)\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n\n---------------\n-- Hours --\n---------------\n\nGO\n\nDROP EXTERNAL TABLE  scd.Hours \n\nGO\n\nCREATE EXTERNAL TABLE  scd.Hours \nWITH\n(\n\tLOCATION = 'silver/SCD/Hours', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Hours]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )   --OR (c.warehouse != chg.warehouse OR c.externalCode != chg.externalCode OR c.countryCode != chg.countryCode \n                                    --OR c.country != chg.country OR c.city != chg.city OR c.address != chg.address OR c.description != chg.description)\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n\n-------------------\n-- OperationType --\n-------------------\n\nGO\n\nDROP EXTERNAL TABLE  scd.OperationType \n\nGO\n\nCREATE EXTERNAL TABLE  scd.OperationType \nWITH\n(\n\tLOCATION = 'silver/SCD/OperationType', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[OperationType]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash])\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n\n-----------------\n-- PostalCodes --\n-----------------\n\nGO\n\nDROP EXTERNAL TABLE  scd.PostalCodes \n\nGO\n\nCREATE EXTERNAL TABLE  scd.PostalCodes \nWITH\n(\n\tLOCATION = 'silver/SCD/PostalCodes', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[PostalCodes]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n\n------------\n-- Tariff --\n------------\n\nGO\n\nDROP EXTERNAL TABLE  scd.Tariff \n\nGO\n\nCREATE EXTERNAL TABLE  scd.Tariff \nWITH\n(\n\tLOCATION = 'silver/SCD/Tariff', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Tariff]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n---------------\n-- Warehouse --\n---------------\n\nGO\n\nDROP EXTERNAL TABLE  scd.Warehouse \n\nGO\n\nCREATE EXTERNAL TABLE  scd.Warehouse \nWITH\n(\n\tLOCATION = 'silver/SCD/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        1 AS isCurrent\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent -- Marcar las versiones antiguas como no actuales\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    fromDate,\n    toDate,\n    isCurrent \n    from final\nORDER BY idSkWarehouse;\n\n",
 					"metadata": {
 						"language": "sql"
 					},

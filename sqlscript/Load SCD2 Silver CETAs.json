@@ -1,5 +1,5 @@
 {
-	"name": "Load Silver Warehouse CETAs",
+	"name": "Load SCD2 Silver CETAs",
 	"properties": {
 		"folder": {
 			"name": "SCD"

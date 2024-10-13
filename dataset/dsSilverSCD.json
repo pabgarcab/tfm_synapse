@@ -1,0 +1,26 @@
+{
+	"name": "dsSilverSCD",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ADLG2_Bronze_Landing",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"NombreFichero": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "silver/SCD",
+				"fileSystem": "mdw"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

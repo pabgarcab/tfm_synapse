@@ -1485,7 +1485,27 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/Crear CETAS SCD2 Primera Carga')]",
+			"name": "[concat(parameters('workspaceName'), '/Create Views Dimensions Silver')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "---------------\n-- Dim Date --  Dim Articles hay que descoemntar desdepues de SC2\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Date] AS \nSELECT  idFechas AS idDate,\n        ClaveFecha AS dateKey,\n        Fecha AS date,\n        COALESCE(Mes, 'D')  AS month,\n        COALESCE(NumeroMes, -1)  AS monthNumber,\n        COALESCE(Ano, -1)  AS year,\n        COALESCE(NumeroSemana, -1)  AS weekNumber,\n        COALESCE(DiaSemana, 'D') AS dayWeek,\n        COALESCE(NumeroDiaSemana, -1)             AS dayWeekNumber,\n        COALESCE(DiaAno, -1) AS yearDay,\n        CASE WHEN Trimestre = 1 THEN 'Q1'\n             WHEN Trimestre = 2 THEN 'Q2'\n             WHEN Trimestre = 3 THEN 'Q3'\n             ELSE '-1' END AS quarter,\n        CASE WHEN Cuatrimestre = 1 THEN 'Q1'\n             WHEN Cuatrimestre = 2 THEN 'Q2'\n             WHEN Cuatrimestre = 3 THEN 'Q3'\n             WHEN Cuatrimestre = 4 THEN 'Q4'\n             ELSE '-1' \n        END                                       AS quadrimester,\n        CASE WHEN Cuatrimestre IN (1,2) THEN 'S1'\n            WHEN Cuatrimestre IN (2,4) THEN 'S2'\n            ELSE '-1' \n        END                                       AS semester,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[fechas]\n\n------------------\n-- Dim Articles --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Articles] AS\nSELECT  idArticulos                                                                         AS idArticles,\n        COALESCE(nombre, 'D')                                                               AS name,\n        COALESCE(descripcion, 'D')                                                          AS description,\n        COALESCE(codigoReferencia, 'D')                                                     AS externalCode,\n        COALESCE(t.talla, 'D')                                                              AS size,\n        COALESCE( t.numeroTalla, -1)                                                        AS numSize,\n        COALESCE(co.color, 'D')                                                             AS colour,\n        COALESCE(ca.categoria, 'D')                                                         AS category,\n        COALESCE(l.codigoLinea, 'D')                                                        AS codLine,\n        COALESCE(l.Linea, 'D')                                                              AS line, \n        CASE WHEN a.idCategoria IN (1,3,5,8,10) THEN 'OI'+CAST((a.idTemporada) AS nvarchar)\n             WHEN a.idCategoria IN (2,4,6,7,9) THEN 'OI'+CAST(a.idTemporada AS nvarchar)\n             ELSE 'PV'+CAST(a.idTemporada AS nvarchar)\n        END                                                                                 AS season,\n        a.fechaCarga                                                                        AS loadDate,\n        a.fechaDelta                                                                        AS deltaDate\nFROM [default].[dbo].[articulos] AS a\nLEFT JOIN [default].[dbo].[talla] AS t\n    ON t.idTalla = a.idTalla\nLEFT JOIN [default].[dbo].[color] AS co\n   ON co.idColor = a.idColor\nLEFT JOIN [default].[dbo].[categoria] AS ca -- select * from [default].[dbo].[categoria]\n    ON ca.idCategoria = a.idCategoria\nLEFT JOIN [default].[dbo].[Linea] AS l\n    ON l.idLinea = a.idLinea\nwhere a.fechaDelta <> 20241009\n-------------------\n-- Dim Warehouse --\n-------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Warehouse] AS\nSELECT  idAlmacenes AS idWarehouse,\n        COALESCE(a.Nombre, 'D') AS warehouse,\n        COALESCE(a.codigoAlmacen, 'D') AS externalCode,\n        COALESCE(p.codigoPais, 'D') AS countryCode, \n        COALESCE(p.nombre, 'D') AS country,\n        COALESCE(a.ciudad, 'D') AS city,\n        COALESCE(a.Direccion, 'D') AS address,\n        COALESCE(a.descripcion, 'D') AS description,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[almacenes] AS a\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.idpais = a.idPais\n  -- WHERE a.fechaDelta <> 20241011\n--UNION \n--select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\n--UNION \n--select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\n\n\n---------------------\n-- Dim Postal Code --\n---------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_PostalCodes] AS\nSELECT  idCodigoPostal AS idPostalCodes,\n        COALESCE(codigoPostal, 'D') AS postalCode,\n        COALESCE(region, 'D') AS region,\n        COALESCE(c.codigoPais, 'D') AS countryCode,\n        COALESCE(nombre, 'D') AS country,\n        c.fechaCarga AS loadDate,\n        c.fechaDelta AS deltaDate\nFROM [default].[dbo].[codigoPostal] AS c\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.codigoPais = c.codigoPais\n\n------------------\n-- Dim Currency --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Currency] AS\nSELECT  idDivisa AS idCurrency,\n        COALESCE(nombre, 'D') AS nombreDivisa,\n        COALESCE(Divisa, 'D') AS currencym,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[divisa]\n\n---------------\n-- Dim Hours --\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Hours] AS\nSELECT  idHoras AS idHours,\n        COALESCE(Hora, -1) AS hour,\n        COALESCE(Minuto, -1) AS minute,\n        COALESCE(HoraCompleta, 'D') as fullHour,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[horas]\n\n----------------\n-- Dim Tariff --\n----------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Tarriff] AS\nSELECT  idTarifa AS idTariff,\n        COALESCE(Tarifa, 'D') AS tariff,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate       \nFROM [default].[dbo].[tarifa]\n\n------------------------\n-- Dim Operation Type --\n------------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_OperationType] AS\nSELECT  idTipoOperacion AS idOperationType,\n        COALESCE(Operacion, 'D') AS operation,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[tipoOperacion]\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "SilverlessSTG",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Firs Load Gold CETAS SCD2')]",
 			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -1508,50 +1528,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/Create Views Dimensions Silver')]",
-			"type": "Microsoft.Synapse/workspaces/sqlscripts",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"content": {
-					"query": "---------------\n-- Dim Date --  Dim Articles hay que descoemntar desdepues de SC2\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Date] AS \nSELECT  idFechas AS idDate,\n        ClaveFecha AS dateKey,\n        Fecha AS date,\n        COALESCE(Mes, 'D')  AS month,\n        COALESCE(NumeroMes, -1)  AS monthNumber,\n        COALESCE(Ano, -1)  AS year,\n        COALESCE(NumeroSemana, -1)  AS weekNumber,\n        COALESCE(DiaSemana, 'D') AS dayWeek,\n        COALESCE(NumeroDiaSemana, -1)             AS dayWeekNumber,\n        COALESCE(DiaAno, -1) AS yearDay,\n        CASE WHEN Trimestre = 1 THEN 'Q1'\n             WHEN Trimestre = 2 THEN 'Q2'\n             WHEN Trimestre = 3 THEN 'Q3'\n             ELSE '-1' END AS quarter,\n        CASE WHEN Cuatrimestre = 1 THEN 'Q1'\n             WHEN Cuatrimestre = 2 THEN 'Q2'\n             WHEN Cuatrimestre = 3 THEN 'Q3'\n             WHEN Cuatrimestre = 4 THEN 'Q4'\n             ELSE '-1' \n        END                                       AS quadrimester,\n        CASE WHEN Cuatrimestre IN (1,2) THEN 'S1'\n            WHEN Cuatrimestre IN (2,4) THEN 'S2'\n            ELSE '-1' \n        END                                       AS semester,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[fechas]\n\n------------------\n-- Dim Articles --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Articles] AS\nSELECT  idArticulos                                                                         AS idArticles,\n        COALESCE(nombre, 'D')                                                               AS name,\n        COALESCE(descripcion, 'D')                                                          AS description,\n        COALESCE(codigoReferencia, 'D')                                                     AS externalCode,\n        COALESCE(t.talla, 'D')                                                              AS size,\n        COALESCE( t.numeroTalla, -1)                                                        AS numSize,\n        COALESCE(co.color, 'D')                                                             AS colour,\n        COALESCE(ca.categoria, 'D')                                                         AS category,\n        COALESCE(l.codigoLinea, 'D')                                                        AS codLine,\n        COALESCE(l.Linea, 'D')                                                              AS line, \n        CASE WHEN a.idCategoria IN (1,3,5,8,10) THEN 'OI'+CAST((a.idTemporada) AS nvarchar)\n             WHEN a.idCategoria IN (2,4,6,7,9) THEN 'OI'+CAST(a.idTemporada AS nvarchar)\n             ELSE 'PV'+CAST(a.idTemporada AS nvarchar)\n        END                                                                                 AS season,\n        a.fechaCarga                                                                        AS loadDate,\n        a.fechaDelta                                                                        AS deltaDate\nFROM [default].[dbo].[articulos] AS a\nLEFT JOIN [default].[dbo].[talla] AS t\n    ON t.idTalla = a.idTalla\nLEFT JOIN [default].[dbo].[color] AS co\n   ON co.idColor = a.idColor\nLEFT JOIN [default].[dbo].[categoria] AS ca -- select * from [default].[dbo].[categoria]\n    ON ca.idCategoria = a.idCategoria\nLEFT JOIN [default].[dbo].[Linea] AS l\n    ON l.idLinea = a.idLinea\nwhere a.fechaDelta <> 20241009\n-------------------\n-- Dim Warehouse --\n-------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Warehouse] AS\nSELECT  idAlmacenes AS idWarehouse,\n        COALESCE(a.Nombre, 'D') AS warehouse,\n        COALESCE(a.codigoAlmacen, 'D') AS externalCode,\n        COALESCE(p.codigoPais, 'D') AS countryCode, \n        COALESCE(p.nombre, 'D') AS country,\n        COALESCE(a.ciudad, 'D') AS city,\n        COALESCE(a.Direccion, 'D') AS address,\n        COALESCE(a.descripcion, 'D') AS description,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[almacenes] AS a\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.idpais = a.idPais\n  -- WHERE a.fechaDelta <> 20241011\n--UNION \n--select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\n--UNION \n--select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\n\n\n---------------------\n-- Dim Postal Code --\n---------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_PostalCodes] AS\nSELECT  idCodigoPostal AS idPostalCodes,\n        COALESCE(codigoPostal, 'D') AS postalCode,\n        COALESCE(region, 'D') AS region,\n        COALESCE(c.codigoPais, 'D') AS countryCode,\n        COALESCE(nombre, 'D') AS country,\n        c.fechaCarga AS loadDate,\n        c.fechaDelta AS deltaDate\nFROM [default].[dbo].[codigoPostal] AS c\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.codigoPais = c.codigoPais\n\n------------------\n-- Dim Currency --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Currency] AS\nSELECT  idDivisa AS idCurrency,\n        COALESCE(nombre, 'D') AS nombreDivisa,\n        COALESCE(Divisa, 'D') AS currencym,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[divisa]\n\n---------------\n-- Dim Hours --\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Hours] AS\nSELECT  idHoras AS idHours,\n        COALESCE(Hora, -1) AS hour,\n        COALESCE(Minuto, -1) AS minute,\n        COALESCE(HoraCompleta, 'D') as fullHour,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[horas]\n\n----------------\n-- Dim Tariff --\n----------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Tarriff] AS\nSELECT  idTarifa AS idTariff,\n        COALESCE(Tarifa, 'D') AS tariff,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate       \nFROM [default].[dbo].[tarifa]\n\n------------------------\n-- Dim Operation Type --\n------------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_OperationType] AS\nSELECT  idTipoOperacion AS idOperationType,\n        COALESCE(Operacion, 'D') AS operation,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[tipoOperacion]\n\n",
-					"metadata": {
-						"language": "sql"
-					},
-					"currentConnection": {
-						"databaseName": "SilverlessSTG",
-						"poolName": "Built-in"
-					},
-					"resultLimit": 5000
-				},
-				"type": "SqlQuery"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/Load Silver CETAs')]",
-			"type": "Microsoft.Synapse/workspaces/sqlscripts",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"folder": {
-					"name": "SCD"
-				},
-				"content": {
-					"query": "-- CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\n-- CREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' GO\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc WITH ( TYPE = HADOOP, LOCATION =  'abfss://mdw@datalakefrancepgc.dfs.core.windows.net', CREDENTIAL = ManagedIdentity )\n-- 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\n\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc\n-- WITH (\n    \n--     LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n--     CREDENTIAL = ManagedIdentity\n-- );\n\n-- CREATE SCHEMA silver AUTHORIZATION dbo;\n-- CREATE SCHEMA dim AUTHORIZATION dbo;\n-- CREATE SCHEMA fact AUTHORIZATION dbo;\n\n-- CREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\n\n--DROP EXTERNAL TABLE [dim].[Articles]\n\n-- CREATE  EXTERNAL TABLE [silver].[TestFechas]\n-- (\n-- \t idFechas INT,\n--      ClaveFecha INT,\n--      Fecha datetime2(7),\n--      Mes VARCHAR(64),\n--      NumeroMes INT,\n--      Año INT,\n--      NumeroSemana INT,\n--      DiaSemana VARCHAR(64),\n--      NumeroDiaSemana INT,\n--      DiaAño INT,\n--      Trimestre INT,\n--      Cuatrimestre INT,\n--      Semestre INT,\n--      fechaActualizacion INT,\n--      D_valid INT null,\n--     ID_Deleted INT null,\n--     From_date datetime2(7)null,\n--     End_date datetime2(7) null  \n-- )\n-- WITH\n-- (\n-- \tLOCATION = 'gold/TestDimDate', \n-- \tDATA_SOURCE = datalakefrancepgc,\n-- \tFILE_FORMAT = ParquetFileFormat\n-- ) AS \n-- SELECT \n--     idFechas,\n--     ClaveFecha,\n--     Fecha,\n--     Mes,\n--     NumeroMes,\n--     Año,\n--     NumeroSemana,\n--     DiaSemana,\n--     NumeroDiaSemana,\n--     DiaAño,\n--     Trimestre,\n--     Cuatrimestre,\n--     Semestre,\n--     fechaActualizacion,\n--     1 ID_valid,\n--     0 ID_Deleted,\n--     GETDATE() AS From_date,\n--     NULL AS End_date \n-- FROM\n-- [Silverless].[dbo].[vw_dim_Fechas]\n\n\nCREATE  EXTERNAL TABLE [dim].[Articles]\n(\n\tidArticles INT,\n    name NVARCHAR(256),\n    description NVARCHAR(256),\n    externalcode NVARCHAR(64),\n    size NVARCHAR(64),\n    numSize INT,\n    colour NVARCHAR(128),\n    category NVARCHAR(128),\n    codLine NVARCHAR(128),\n    line NVARCHAR(128),\n    season NVARCHAR(64),\n    ID_valid INT null,\n    ID_Deleted INT null,\n    From_date datetime2(7)null,\n    End_date datetime2(7) null  \n)\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Articles', \n\tDATA_SOURCE = datalakefrancepgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT \n[idArticles]\n,[name]\n,[description]\n,[externalCode]\n,[size]\n,[numSize]\n,[colour]\n,[category]\n,[codLine]\n,[line]\n,[season]\n--,[loadDate]\n--,[deltaDate]\n,1 ID_valid\n,0 ID_Deleted\n,GETDATE() AS From_date\n,NULL AS End_date \nFROM\n[silverlessSTG].[etl].[vw_dim_Articles]\n\n\n",
-					"metadata": {
-						"language": "sql"
-					},
-					"currentConnection": {
-						"databaseName": "default",
-						"poolName": "Built-in"
-					},
-					"resultLimit": 5000
-				},
-				"type": "SqlQuery"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/Load Silver Warehouse CETAs')]",
+			"name": "[concat(parameters('workspaceName'), '/Load SCD2 Silver CETAs')]",
 			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -1565,6 +1542,29 @@
 					},
 					"currentConnection": {
 						"databaseName": "SilverlessSTG",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Re-Load Gold CETAs')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "SCD"
+				},
+				"content": {
+					"query": "-- CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\n-- CREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' GO\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc WITH ( TYPE = HADOOP, LOCATION =  'abfss://mdw@datalakefrancepgc.dfs.core.windows.net', CREDENTIAL = ManagedIdentity )\n-- 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\n\n-- CREATE EXTERNAL DATA SOURCE datalake1pgc\n-- WITH (\n    \n--     LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n--     CREDENTIAL = ManagedIdentity\n-- );\n\n-- CREATE SCHEMA silver AUTHORIZATION dbo;\n-- CREATE SCHEMA dim AUTHORIZATION dbo;\n-- CREATE SCHEMA fact AUTHORIZATION dbo;\n\n-- CREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\n\n--DROP EXTERNAL TABLE [dim].[Articles]\n\n-- CREATE  EXTERNAL TABLE [silver].[TestFechas]\n-- (\n-- \t idFechas INT,\n--      ClaveFecha INT,\n--      Fecha datetime2(7),\n--      Mes VARCHAR(64),\n--      NumeroMes INT,\n--      Año INT,\n--      NumeroSemana INT,\n--      DiaSemana VARCHAR(64),\n--      NumeroDiaSemana INT,\n--      DiaAño INT,\n--      Trimestre INT,\n--      Cuatrimestre INT,\n--      Semestre INT,\n--      fechaActualizacion INT,\n--      D_valid INT null,\n--     ID_Deleted INT null,\n--     From_date datetime2(7)null,\n--     End_date datetime2(7) null  \n-- )\n-- WITH\n-- (\n-- \tLOCATION = 'gold/TestDimDate', \n-- \tDATA_SOURCE = datalakefrancepgc,\n-- \tFILE_FORMAT = ParquetFileFormat\n-- ) AS \n-- SELECT \n--     idFechas,\n--     ClaveFecha,\n--     Fecha,\n--     Mes,\n--     NumeroMes,\n--     Año,\n--     NumeroSemana,\n--     DiaSemana,\n--     NumeroDiaSemana,\n--     DiaAño,\n--     Trimestre,\n--     Cuatrimestre,\n--     Semestre,\n--     fechaActualizacion,\n--     1 ID_valid,\n--     0 ID_Deleted,\n--     GETDATE() AS From_date,\n--     NULL AS End_date \n-- FROM\n-- [Silverless].[dbo].[vw_dim_Fechas]\n\n\nCREATE  EXTERNAL TABLE [dim].[Articles]\n(\n\tidArticles INT,\n    name NVARCHAR(256),\n    description NVARCHAR(256),\n    externalcode NVARCHAR(64),\n    size NVARCHAR(64),\n    numSize INT,\n    colour NVARCHAR(128),\n    category NVARCHAR(128),\n    codLine NVARCHAR(128),\n    line NVARCHAR(128),\n    season NVARCHAR(64),\n    ID_valid INT null,\n    ID_Deleted INT null,\n    From_date datetime2(7)null,\n    End_date datetime2(7) null  \n)\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Articles', \n\tDATA_SOURCE = datalakefrancepgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT \n[idArticles]\n,[name]\n,[description]\n,[externalCode]\n,[size]\n,[numSize]\n,[colour]\n,[category]\n,[codLine]\n,[line]\n,[season]\n--,[loadDate]\n--,[deltaDate]\n,1 ID_valid\n,0 ID_Deleted\n,GETDATE() AS From_date\n,NULL AS End_date \nFROM\n[silverlessSTG].[etl].[vw_dim_Articles]\n\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "default",
 						"poolName": "Built-in"
 					},
 					"resultLimit": 5000

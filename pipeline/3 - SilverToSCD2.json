@@ -163,6 +163,14 @@
 				}
 			}
 		],
+		"parameters": {
+			"queryReloadSCD": {
+				"type": "string"
+			},
+			"queryReloadGoldCETAs": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"lastPublishTime": "2024-09-14T15:15:28Z"
 	},

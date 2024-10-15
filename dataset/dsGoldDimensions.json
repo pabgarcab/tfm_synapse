@@ -1,5 +1,5 @@
 {
-	"name": "dsSilverSCD",
+	"name": "dsGoldDimensions",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_ADLG2_Bronze_Landing",
@@ -11,7 +11,7 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": "*",
-				"folderPath": "silver/SCD",
+				"folderPath": "gold/Dimensions",
 				"fileSystem": "mdw"
 			},
 			"compressionCodec": "snappy"

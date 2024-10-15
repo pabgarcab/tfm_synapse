@@ -435,8 +435,6 @@
 								{
 									"name": "Clean Landing",
 									"type": "Delete",
-									"state": "Inactive",
-									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [
 										{
 											"activity": "LandingToProcessed",

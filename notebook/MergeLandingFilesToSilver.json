@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "8f66adc0-a162-45c1-9535-3702b867e62e"
+				"spark.autotune.trackingId": "b612374a-198e-444d-9b5e-c422c3bd5c12"
 			}
 		},
 		"metadata": {
@@ -99,7 +99,7 @@
 					"from pyspark.sql.functions import when, lit, current_date, date_format\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 3
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -219,7 +219,7 @@
 					"# # The silver folder where your Delta Tables will be stored\r\n",
 					"# silver_folder = 'silver/DeltaSTG'\r\n",
 					"# # The name of the table\r\n",
-					"# table_name = 'tipoOperacion'\r\n",
+					"#table_name = 'lineaventa'\r\n",
 					"# # The wildcard filter used within the bronze folder to find files\r\n",
 					"# #source_wildcard = 'color*.parquet'\r\n",
 					"# # A comma separated string of one or more key columns (for the merge)\r\n",
@@ -229,10 +229,10 @@
 					"\r\n",
 					"# # Determine path of Delta Lake Table \r\n",
 					"# delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
-					"# spark.sql(f'DROP TABLE default.{table_name}')\r\n",
+					"#spark.sql(f'DROP TABLE default.{table_name}')\r\n",
 					"# spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
 				],
-				"execution_count": 15
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -364,7 +364,7 @@
 					"# # Sobreescrir CSV\r\n",
 					"# #df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
 				],
-				"execution_count": null
+				"execution_count": 1
 			},
 			{
 				"cell_type": "code",

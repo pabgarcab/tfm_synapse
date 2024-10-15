@@ -1109,6 +1109,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
+						"fileName": "*",
 						"folderPath": "gold/Fact",
 						"fileSystem": "mdw"
 					},

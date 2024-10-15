@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "c3de3cf3-3147-4236-a81f-46c4ecdffd44"
+				"spark.autotune.trackingId": "8f66adc0-a162-45c1-9535-3702b867e62e"
 			}
 		},
 		"metadata": {
@@ -64,7 +64,7 @@
 					"# # A comma separated string of one or more key columns (for the merge)\r\n",
 					"# key_columns_str = 'idColor'"
 				],
-				"execution_count": 14
+				"execution_count": 1
 			},
 			{
 				"cell_type": "markdown",
@@ -137,8 +137,6 @@
 					"sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
 					"\r\n",
 					"# Check countRows > 0 - Stop Notebook \r\n",
-					"# CREAR DELTA TABLE DE COLOR\r\n",
-					"\r\n",
 					"if sdf.count() == 0:\r\n",
 					"    print(\"no procesar\")\r\n",
 					"else:\r\n",
@@ -183,7 +181,7 @@
 					"        sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))  # Establecer fechaDelta al crear la tabla\r\n",
 					"        sdf.write.format('delta').save(delta_table_path)\r\n",
 					"\r\n",
-					"    spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
+					"spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
 				],
 				"execution_count": null
 			},
@@ -214,11 +212,24 @@
 					}
 				},
 				"source": [
-					"# source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
+					"# # path of the data lake container (bronze and silver for this example)\r\n",
+					"# data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
+					"# # The ingestion folder where your parquet file are located\r\n",
+					"# bronze_folder = 'bronze/Landing/'\r\n",
+					"# # The silver folder where your Delta Tables will be stored\r\n",
+					"# silver_folder = 'silver/DeltaSTG'\r\n",
+					"# # The name of the table\r\n",
+					"# table_name = 'tipoOperacion'\r\n",
+					"# # The wildcard filter used within the bronze folder to find files\r\n",
+					"# #source_wildcard = 'color*.parquet'\r\n",
+					"# # A comma separated string of one or more key columns (for the merge)\r\n",
+					"# #key_columns_str = 'idColor'\r\n",
+					"\r\n",
+					"# #source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
 					"\r\n",
 					"# # Determine path of Delta Lake Table \r\n",
 					"# delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
-					"# #spark.sql(f'DROP TABLE default.color')\r\n",
+					"# spark.sql(f'DROP TABLE default.{table_name}')\r\n",
 					"# spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
 				],
 				"execution_count": 15

@@ -24,6 +24,8 @@
 						{
 							"name": "Clean Landing",
 							"type": "Delete",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [
 								{
 									"activity": "LandingToProcessed",
@@ -174,7 +176,7 @@
 										"type": "string"
 									},
 									"silver_folder": {
-										"value": "silver",
+										"value": "silver/DeltaSTG",
 										"type": "string"
 									},
 									"source_wildcard": {

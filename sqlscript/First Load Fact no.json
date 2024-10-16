@@ -1,11 +1,11 @@
 {
-	"name": "First Load Fact",
+	"name": "First Load Fact no",
 	"properties": {
 		"folder": {
 			"name": "Gold Fact CETAs"
 		},
 		"content": {
-			"query": "",
+			"query": "--------------\n-- Sales  --\n---------------\n-- DROP EXTERNAL TABLE [fact].[Sales]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('fact.Sales') )\n    DROP EXTERNAL TABLE fact.Sales \n\nCREATE  EXTERNAL TABLE GoldenlessDWH.[fact].[Sales]\nWITH\n(\n\tLOCATION = 'gold/Fact/Sales', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT\n    -1 AS idSkSales,\n    -1 AS idSales,\n    -1 AS idArticles,\n    -1 AS idWarehouse,\n    -1 AS idClient,\n    -1 AS idPostalCodes,\n    -1 AS idCurrency,\n    -1 AS idTariff,\n    -1 AS idOperationType,\n    -1 AS idHours,\n    -1 AS idDate,\n    CAST('1990-01-01' AS datetime2) AS date,\n    CAST('1990-01-01' AS datetime2) dateOp,\n    'D' AS ticketNumber,\n    -1 AS quantity,\n    -1 AS unitPrice,\n    -1 AS unitCost,\n    -1 AS amtTotalEuros,\n    -1 AS amtNetEuros,\n    -1 AS amtTotalEurosDiscount,\n    -1 AS amtNetEurosDiscount,\n    -1 AS discountSale,\n    -1 AS amtTotalDiscount,\n    -1 AS amtNetDiscount,\n\t19900101 AS loadDate,\n\t19900101 AS deltaDate,\n\tHASHBYTES('SHA2_256',('-1' + '-1' +'-1' + '-1' + '-1' + '-1' + '-1' + '-1' + '-1' + '-1' + '1990-01-01' + '1990-01-01' + 'D' \n    + '-1' + '-1' + '-1' + '-1' + '-1' + '-1' + '-1' + '-1' + '-1' + '-1')) AS [$hash]\nUNION\nSELECT *\nFROM [SilverlessSTG].[silver].[Sales]\n) a ORDER BY idSkSales",
 			"metadata": {
 				"language": "sql"
 			},

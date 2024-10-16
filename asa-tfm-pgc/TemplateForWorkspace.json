@@ -221,14 +221,7 @@
 									"NombreFichero": "*"
 								}
 							},
-							"logStorageSettings": {
-								"linkedServiceName": {
-									"referenceName": "ls_ADLG2_Bronze_Landing",
-									"type": "LinkedServiceReference"
-								},
-								"path": "mdw/bronze/Logs"
-							},
-							"enableLogging": true,
+							"enableLogging": false,
 							"storeSettings": {
 								"type": "AzureBlobFSReadSettings",
 								"recursive": true,
@@ -247,7 +240,6 @@
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/datasets/csvConfiguration')]",
 				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]",
-				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]",
 				"[concat(variables('workspaceId'), '/datasets/dsSQLGenerico')]"
 			]
 		},
@@ -532,12 +524,15 @@
 							"dataset": {
 								"referenceName": "dsSilverSCD",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"NombreFichero": "*"
+								}
 							},
 							"enableLogging": false,
 							"storeSettings": {
 								"type": "AzureBlobFSReadSettings",
 								"recursive": true,
+								"wildcardFileName": "*",
 								"enablePartitionDiscovery": false
 							}
 						}
@@ -545,6 +540,8 @@
 					{
 						"name": "Load SCD2",
 						"type": "Script",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Delete SCD2 Folders",
@@ -1156,12 +1153,20 @@
 					"referenceName": "ls_ADLG2_Bronze_Landing",
 					"type": "LinkedServiceReference"
 				},
+				"parameters": {
+					"NombreFichero": {
+						"type": "string"
+					}
+				},
 				"annotations": [],
 				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "*",
+						"fileName": {
+							"value": "@dataset().NombreFichero",
+							"type": "Expression"
+						},
 						"folderPath": "silver/SCD",
 						"fileSystem": "mdw"
 					},

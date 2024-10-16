@@ -5,8 +5,6 @@
 			{
 				"name": "Delete Dimensions Folders",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load SCD Dimensions",
@@ -94,8 +92,6 @@
 			{
 				"name": "Load Gold Dimensions",
 				"type": "SqlServerStoredProcedure",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Delete Dimensions Folders",
@@ -113,7 +109,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"storedProcedureName": "[silver].[DimSCD]"
+					"storedProcedureName": "[gold].[ReloadDimSCD]"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_Severless",

@@ -509,39 +509,8 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Delete SCD2 Folders",
-						"type": "Delete",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "dsSilverSCD",
-								"type": "DatasetReference",
-								"parameters": {
-									"NombreFichero": "*"
-								}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobFSReadSettings",
-								"recursive": true,
-								"wildcardFileName": "*",
-								"enablePartitionDiscovery": false
-							}
-						}
-					},
-					{
 						"name": "Load SCD2",
 						"type": "Script",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Delete SCD2 Folders",
@@ -569,7 +538,7 @@
 							"scripts": [
 								{
 									"type": "NonQuery",
-									"text": "USE SilverlessSTG;\n---------------\n-- Articles --\n---------------\n-- DROP EXTERNAL TABLE  scd.Articles\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Articles') )\n    DROP EXTERNAL TABLE scd.Articles;\n\nCREATE EXTERNAL TABLE  scd.Articles \nWITH\n(\n\tLOCATION = 'silver/SCD/Articles', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat,\n        CREDENTIAL = [msi_cred]  \n) AS\n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Articles]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n\t    HASHBYTES('SHA2_256',(CAST(s.idArticles AS NVARCHAR)+ s.name + s.description COLLATE DATABASE_DEFAULT + s.externalcode + s.size + CAST(s.numSize AS NVARCHAR) + s.colour + s.category + s.codLine + s.line + s.season)) AS [$hash]\n    FROM etl.vw_dim_Articles s\n    LEFT JOIN current_data c\n        ON s.idArticles = c.idArticles\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkArticles), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Articles]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idArticles) + max_key AS new_idSkArticles, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idArticles = c.idArticles\n    CROSS JOIN max_surrogate_key\n    WHERE c.idArticles IS NULL  OR (c.[$hash] != chg.[$hash] )\n), --select * from new_or_updated_data order by idarticles\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkarticles AS new_idSkArticles,\n        c.idArticles,\n        c.name,\n        c.externalCode,\n        c.size,\n        c.numSize,\n        c.colour,\n        c.category,\n        c.codLine,\n        c.line,\n        c.description,\n        c.season,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idArticles = chg.idArticles\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkArticles, -- Mantener la clave subrogada original\n    c.idArticles,\n    c.name,\n    c.externalCode,\n    c.size,\n    c.numSize,\n    c.colour,\n    c.category,\n    c.codLine,\n    c.line,\n    c.description,\n    c.season,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idArticles = chg.idArticles\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkArticles, \n    idArticles,\n    name,\n    externalCode,\n    size,\n    numSize,\n    colour,\n    category,\n    codLine,\n    line,\n    description,\n    season,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkArticles, \n    idArticles,\n    name,\n    externalCode,\n    size,\n    numSize,\n    colour,\n    category,\n    codLine,\n    line,\n    description,\n    season,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkArticles;"
+									"text": "USE SilverlessSTG;\n\n--------------- \n-- Articles --\n---------------\n\n-- DROP EXTERNAL TABLE scd.Articles\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Articles') ) DROP EXTERNAL TABLE scd.Articles;\n\n-- Crear la tabla externa (sin datos)\nCREATE EXTERNAL TABLE SilverlessSTG.scd.Articles \n(\n    idSkArticles INT,      -- Define el tipo de datos correcto\n    idArticles INT,\n    name NVARCHAR(255),\n    externalCode NVARCHAR(255),\n    size NVARCHAR(50),\n    numSize INT,\n    colour NVARCHAR(50),\n    category NVARCHAR(50),\n    codLine NVARCHAR(50),\n    line NVARCHAR(50),\n    description NVARCHAR(MAX),\n    season NVARCHAR(50),\n    fromDate DATETIME,\n    toDate DATETIME,\n    isCurrent BIT,\n    loadDate DATETIME,\n    deltaDate DATETIME,\n    [$hash] VARBINARY(32)  -- Asegúrate de que el tipo de datos sea correcto\n)\nWITH\n(\n    LOCATION = 'silver/SCD/Articles',\n    DATA_SOURCE = datalake1pgc,\n    FILE_FORMAT = ParquetFileFormat,\n);\n\n-- Cargar datos en la tabla externa desde el CTE\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Articles]\n    WHERE isCurrent = 1\n),\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idArticles AS NVARCHAR) + s.name + s.description COLLATE DATABASE_DEFAULT + s.externalcode + s.size + CAST(s.numSize AS NVARCHAR) + s.colour + s.category + s.codLine + s.line + s.season)) AS [$hash]\n    FROM etl.vw_dim_Articles s\n    LEFT JOIN current_data c\n        ON s.idArticles = c.idArticles\n),\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkArticles), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Articles]\n),\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idArticles) + max_key AS new_idSkArticles,\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idArticles = c.idArticles\n    CROSS JOIN max_surrogate_key\n    WHERE c.idArticles IS NULL OR (c.[$hash] != chg.[$hash])\n),\nunchanged_data AS (\n    SELECT\n        c.idSkarticles AS new_idSkArticles,\n        c.idArticles,\n        c.name,\n        c.externalCode,\n        c.size,\n        c.numSize,\n        c.colour,\n        c.category,\n        c.codLine,\n        c.line,\n        c.description,\n        c.season,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idArticles = chg.idArticles\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n    SELECT\n        c.idSkArticles,\n        c.idArticles,\n        c.name,\n        c.externalCode,\n        c.size,\n        c.numSize,\n        c.colour,\n        c.category,\n        c.codLine,\n        c.line,\n        c.description,\n        c.season,\n        c.fromDate,\n        GETDATE() AS toDate,\n        0 AS isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idArticles = chg.idArticles\n    WHERE c.[$hash] != chg.[$hash]\n\n    UNION ALL\n\n    SELECT\n        new_idSkArticles,\n        idArticles,\n        name,\n        externalCode,\n        size,\n        numSize,\n        colour,\n        category,\n        codLine,\n        line,\n        description,\n        season,\n        fromDate,\n        toDate,\n        isCurrent,\n        loadDate,\n        deltaDate,\n        [$hash]\n    FROM new_or_updated_data\n\n    UNION ALL\n\n    SELECT\n        new_idSkArticles,\n        idArticles,\n        name,\n        externalCode,\n        size,\n        numSize,\n        colour,\n        category,\n        codLine,\n        line,\n        description,\n        season,\n        fromDate,\n        toDate,\n        isCurrent,\n        loadDate,\n        deltaDate,\n        [$hash]\n    FROM unchanged_data\n)\n\n-- Insertar los resultados en la tabla externa\nINSERT INTO scd.Articles\nSELECT     \n    * \nFROM final\nORDER BY idSkArticles;\n"
 								}
 							],
 							"scriptBlockExecutionTimeout": "02:00:00"
@@ -647,6 +616,32 @@
 							],
 							"scriptBlockExecutionTimeout": "02:00:00"
 						}
+					},
+					{
+						"name": "Delete SCD2 Folders",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsSilverSCD",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
 					}
 				],
 				"policy": {
@@ -656,9 +651,9 @@
 				"lastPublishTime": "2024-09-14T15:15:28Z"
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/datasets/dsSilverSCD')]",
 				"[concat(variables('workspaceId'), '/linkedServices/ls_Severless')]",
-				"[concat(variables('workspaceId'), '/datasets/dsGoldDimensions')]"
+				"[concat(variables('workspaceId'), '/datasets/dsGoldDimensions')]",
+				"[concat(variables('workspaceId'), '/datasets/dsSilverSCD')]"
 			]
 		},
 		{
@@ -1153,20 +1148,11 @@
 					"referenceName": "ls_ADLG2_Bronze_Landing",
 					"type": "LinkedServiceReference"
 				},
-				"parameters": {
-					"NombreFichero": {
-						"type": "string"
-					}
-				},
 				"annotations": [],
 				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": {
-							"value": "@dataset().NombreFichero",
-							"type": "Expression"
-						},
 						"folderPath": "silver/SCD",
 						"fileSystem": "mdw"
 					},

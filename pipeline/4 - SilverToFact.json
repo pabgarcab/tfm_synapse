@@ -3,8 +3,10 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Lista ficheros Landing",
-				"type": "GetMetadata",
+				"name": "Clean Fact Silver Folder",
+				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -16,30 +18,49 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "dsRawEntidades",
+						"referenceName": "dsGoldFact",
 						"type": "DatasetReference"
 					},
-					"fieldList": [
-						"childItems"
-					],
+					"enableLogging": true,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
 						"enablePartitionDiscovery": false
-					},
-					"formatSettings": {
-						"type": "ParquetReadSettings"
 					}
 				}
 			},
 			{
-				"name": "Delete Fact",
+				"name": "Load Silver Fact",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Clean Fact Silver Folder",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"scripts": [],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Clean Fact Gold Folder",
 				"type": "Delete",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Lista ficheros Landing",
+						"activity": "Load Silver Fact",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -67,13 +88,11 @@
 				}
 			},
 			{
-				"name": "Reload Fact",
+				"name": "Load Gold Fact",
 				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Delete Fact",
+						"activity": "Clean Fact Gold Folder",
 						"dependencyConditions": [
 							"Succeeded"
 						]

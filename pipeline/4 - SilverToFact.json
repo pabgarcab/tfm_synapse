@@ -32,6 +32,8 @@
 			{
 				"name": "Load Silver Fact",
 				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Clean Fact Silver Folder",
@@ -90,6 +92,8 @@
 			{
 				"name": "Load Gold Fact",
 				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Clean Fact Gold Folder",

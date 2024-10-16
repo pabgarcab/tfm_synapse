@@ -167,14 +167,7 @@
 							"NombreFichero": "*"
 						}
 					},
-					"logStorageSettings": {
-						"linkedServiceName": {
-							"referenceName": "ls_ADLG2_Bronze_Landing",
-							"type": "LinkedServiceReference"
-						},
-						"path": "mdw/bronze/Logs"
-					},
-					"enableLogging": true,
+					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,

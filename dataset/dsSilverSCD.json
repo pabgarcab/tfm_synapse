@@ -5,12 +5,17 @@
 			"referenceName": "ls_ADLG2_Bronze_Landing",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"NombreFichero": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "*",
+				"fileName": "@dataset().NombreFichero",
 				"folderPath": "silver/SCD",
 				"fileSystem": "mdw"
 			},

@@ -17,12 +17,16 @@
 				"typeProperties": {
 					"dataset": {
 						"referenceName": "dsSilverSCD",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"NombreFichero": "*"
+						}
 					},
 					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
+						"wildcardFileName": "*",
 						"enablePartitionDiscovery": false
 					}
 				}
@@ -30,6 +34,8 @@
 			{
 				"name": "Load SCD2",
 				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Delete SCD2 Folders",

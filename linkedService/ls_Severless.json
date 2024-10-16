@@ -10,8 +10,13 @@
 		"annotations": [],
 		"type": "AzureSqlDW",
 		"typeProperties": {
-			"connectionString": "integrated security=False;encrypt=True;connection timeout=30;data source=asa-tfm-pgc-ondemand.sql.azuresynapse.net;initial catalog=@{linkedService().DBName};user id=adminuser",
-			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIlNZTkFQU0VANTNGQkE4RDItNTc2Qy00OUNDLUFGMTUtODYzMzcwMkJCRDEzXzNmMWM1MGE5LTE2YTYtNGI2NC1hZWNiLWZjYWZhNjMzN2ZjMiINCn0="
+			"server": "asa-tfm-pgc-ondemand.sql.azuresynapse.net",
+			"database": "@{linkedService().DBName}",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "adminuser",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIlNZTkFQU0VANTNGQkE4RDItNTc2Qy00OUNDLUFGMTUtODYzMzcwMkJCRDEzXzg2ZDBmMTBkLTg5YWItNDQ2OS05MWQyLTYzMTk4ZGI3Njk0MyINCn0="
 		},
 		"connectVia": {
 			"referenceName": "AutoResolveIntegrationRuntime",

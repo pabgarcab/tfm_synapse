@@ -3,49 +3,13 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Load SCD2",
-				"type": "Script",
-				"dependsOn": [
-					{
-						"activity": "Delete SCD2 Folders",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"linkedServiceName": {
-					"referenceName": "ls_Severless",
-					"type": "LinkedServiceReference",
-					"parameters": {
-						"DBName": "SilverlessSTG"
-					}
-				},
-				"typeProperties": {
-					"scripts": [
-						{
-							"type": "NonQuery",
-							"text": "USE SilverlessSTG;\n\n--------------- \n-- Articles --\n---------------\n\n-- DROP EXTERNAL TABLE scd.Articles\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Articles') ) DROP EXTERNAL TABLE scd.Articles;\n\n-- Crear la tabla externa (sin datos)\nCREATE EXTERNAL TABLE SilverlessSTG.scd.Articles \n(\n    idSkArticles INT,      -- Define el tipo de datos correcto\n    idArticles INT,\n    name NVARCHAR(255),\n    externalCode NVARCHAR(255),\n    size NVARCHAR(50),\n    numSize INT,\n    colour NVARCHAR(50),\n    category NVARCHAR(50),\n    codLine NVARCHAR(50),\n    line NVARCHAR(50),\n    description NVARCHAR(MAX),\n    season NVARCHAR(50),\n    fromDate DATETIME,\n    toDate DATETIME,\n    isCurrent BIT,\n    loadDate DATETIME,\n    deltaDate DATETIME,\n    [$hash] VARBINARY(32)  -- Asegúrate de que el tipo de datos sea correcto\n)\nWITH\n(\n    LOCATION = 'silver/SCD/Articles',\n    DATA_SOURCE = datalake1pgc,\n    FILE_FORMAT = ParquetFileFormat,\n);\n\n-- Cargar datos en la tabla externa desde el CTE\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Articles]\n    WHERE isCurrent = 1\n),\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idArticles AS NVARCHAR) + s.name + s.description COLLATE DATABASE_DEFAULT + s.externalcode + s.size + CAST(s.numSize AS NVARCHAR) + s.colour + s.category + s.codLine + s.line + s.season)) AS [$hash]\n    FROM etl.vw_dim_Articles s\n    LEFT JOIN current_data c\n        ON s.idArticles = c.idArticles\n),\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkArticles), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Articles]\n),\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idArticles) + max_key AS new_idSkArticles,\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idArticles = c.idArticles\n    CROSS JOIN max_surrogate_key\n    WHERE c.idArticles IS NULL OR (c.[$hash] != chg.[$hash])\n),\nunchanged_data AS (\n    SELECT\n        c.idSkarticles AS new_idSkArticles,\n        c.idArticles,\n        c.name,\n        c.externalCode,\n        c.size,\n        c.numSize,\n        c.colour,\n        c.category,\n        c.codLine,\n        c.line,\n        c.description,\n        c.season,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idArticles = chg.idArticles\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n    SELECT\n        c.idSkArticles,\n        c.idArticles,\n        c.name,\n        c.externalCode,\n        c.size,\n        c.numSize,\n        c.colour,\n        c.category,\n        c.codLine,\n        c.line,\n        c.description,\n        c.season,\n        c.fromDate,\n        GETDATE() AS toDate,\n        0 AS isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idArticles = chg.idArticles\n    WHERE c.[$hash] != chg.[$hash]\n\n    UNION ALL\n\n    SELECT\n        new_idSkArticles,\n        idArticles,\n        name,\n        externalCode,\n        size,\n        numSize,\n        colour,\n        category,\n        codLine,\n        line,\n        description,\n        season,\n        fromDate,\n        toDate,\n        isCurrent,\n        loadDate,\n        deltaDate,\n        [$hash]\n    FROM new_or_updated_data\n\n    UNION ALL\n\n    SELECT\n        new_idSkArticles,\n        idArticles,\n        name,\n        externalCode,\n        size,\n        numSize,\n        colour,\n        category,\n        codLine,\n        line,\n        description,\n        season,\n        fromDate,\n        toDate,\n        isCurrent,\n        loadDate,\n        deltaDate,\n        [$hash]\n    FROM unchanged_data\n)\n\n-- Insertar los resultados en la tabla externa\nINSERT INTO scd.Articles\nSELECT     \n    * \nFROM final\nORDER BY idSkArticles;\n"
-						}
-					],
-					"scriptBlockExecutionTimeout": "02:00:00"
-				}
-			},
-			{
 				"name": "Delete Dimensions Folders",
 				"type": "Delete",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Load SCD2",
+						"activity": "Load SCD Dimensions",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -73,44 +37,6 @@
 				}
 			},
 			{
-				"name": "Load Gold Dimensions",
-				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Delete Dimensions Folders",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"linkedServiceName": {
-					"referenceName": "ls_Severless",
-					"type": "LinkedServiceReference",
-					"parameters": {
-						"DBName": "GoldenlessDWH"
-					}
-				},
-				"typeProperties": {
-					"scripts": [
-						{
-							"type": "NonQuery",
-							"text": "---------------\n-- Articles  --\n---------------\n-- DROP EXTERNAL TABLE [dim].[Articles]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.Articles') )\n    DROP EXTERNAL TABLE dim.Articles \n\nCREATE  EXTERNAL TABLE GoldenlessDWH.[dim].[Articles]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Articles', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT \n\t-1  AS idSkArticles,\n\t-1  AS idArticles,\n\t'D' AS name,\n\t'D' AS externalcode,\n\t'D' AS size,\n\t-1  AS numSize,\n\t'D' AS colour,\n\t'D' AS category, \n\t'D' AS codLine,\n\t'D' AS line, \n\t'D' AS description, \n\t'D' AS season,\n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-12-31' AS datetime2) AS toDate,\n\t1  AS isCurrent,\n\t19900101 AS loadDate,\n\t19900101 AS deltaDate,\n\tHASHBYTES('SHA2_256',('-1'+'D'+'D'+'D'+'-1'+'D'+'D'+'D'+'D'+'D'+'D')) AS [$hash]\nUNION\nSELECT *\nFROM [SilverlessSTG].[scd].[Articles]\n) a ORDER BY idSkArticles\n\n\n--------------\n-- Currency --\n--------------\n-- DROP EXTERNAL TABLE [dim].[Currency]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.Currency') )\n    DROP EXTERNAL TABLE dim.Currency \n\nCREATE  EXTERNAL TABLE GoldenlessDWH.[dim].[Currency]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Currency', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT \n\t-1  \t\t AS idSkCurrency, \n\t-1  \t\t AS idCurrency, \n\t'D' \t\t AS name,\n\t'D' \t\t AS currency,\n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-12-31' AS datetime2)  AS toDate,\t\t\n\t1 \t\t\t AS isCurrent, \t\t \t\t\t \n\t19900101 \t AS loadDate, \n\t19900101 \t AS deltaDate, \n\tHASHBYTES('SHA2_256',('-1' + 'D' + 'D')) AS [$hash]\nUNION ALL\nSELECT *\nFROM [SilverlessSTG].[scd].[Currency]\n) C ORDER BY idSkCurrency\n\n\n----------\n-- Date --\n----------\n-- DROP EXTERNAL TABLE [dim].[Date]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.Date') )\n    DROP EXTERNAL TABLE dim.Date \n\nCREATE  EXTERNAL TABLE GoldenlessDWH.[dim].[Date]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Date', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT \n\t-1  \t\t AS idSkDate, \n\t-1  \t\t AS idDate, \n\t-1 \t\t \t AS dateKey,\n\t'1990-01-01' AS date,\n\t'D'    \t     AS month, \n\t-1  \t\t AS monthNumber, \n\t-1 \t\t \t AS year,\n\t-1\t\t\t AS weekNumber,\n\t'D'    \t     AS dayWeek, \t\n\t-1\t\t\t AS dayWeekNumber, \n\t-1 \t\t \t AS yearDay,\n\t'D' \t\t AS quarter,\n\t'D'    \t     AS quadrimester, \t\n\t'D' \t\t AS semester, \n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 \t\t\t AS isCurrent, \n\t19900101 \t AS loadDate, \n\t19900101 \t AS deltaDate, \n\tHASHBYTES('SHA2_256',('-1' + '-1' + '1990-01-01' + 'D' + '-1' + '-1' + '-1' + 'D' + '-1' + '-1' + 'D' + 'D' + 'D')) AS [$hash]\n\nUNION\n\nSELECT \n\tROW_NUMBER () OVER (ORDER BY idDate) AS idSkDate,\n\tidDate,\n\tdateKey,\n\tdate,\n\tmonth,\n\tmonthNumber,\n\tyear,\n\tweekNumber,\n\tdayWeek,\n\tdayWeekNumber,\n\tyearDay,\n\tquarter,\n\tquadrimester,\n\tsemester,\n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 isCurrent,\n\tloadDate,\n\tdeltaDate,\n        HASHBYTES('SHA2_256',(CAST(idDate AS NVARCHAR) + CAST(dateKey AS NVARCHAR) + CAST(date AS NVARCHAR) + month COLLATE DATABASE_DEFAULT + CAST(monthNumber AS NVARCHAR) + CAST(year AS NVARCHAR) \n        + CAST(weekNumber AS NVARCHAR) + dayWeek COLLATE DATABASE_DEFAULT + CAST(dayWeekNumber AS NVARCHAR) + CAST(yearDay AS NVARCHAR) + quarter + quadrimester + semester )) AS [$hash]\nFROM\n\t[SilverlessSTG].[etl].[vw_dim_Date]\n) d ORDER BY idSkDate\n\n-----------\n-- Hours --\n-----------\n-- DROP EXTERNAL TABLE [dim].[Hours]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.Hours') )\n    DROP EXTERNAL TABLE dim.Hours \n\nCREATE  EXTERNAL TABLE GoldenlessDWH.[dim].[Hours]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Hours', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT \n\t-1  \t\t AS idSkHours, \n\t-1  \t\t AS idHours, \n\t-1 \t\t \t AS hour,\n\t-1\t\t\t AS minute,\n\t'D'    \t     AS fullHour, \t \n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 \t\t\t AS isCurrent, \n\t19900101 \t AS loadDate, \n\t19900101 \t AS deltaDate, \n\tHASHBYTES('SHA2_256',('-1' + '-1' + '-1' + 'D')) AS [$hash]\n\nUNION\n\nSELECT \n\tROW_NUMBER () OVER (ORDER BY idHours) AS idSkHours,\n\tidHours,\n\thour,\n\tminute,\n\tfullHour,\n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 isCurrent,\n\tloadDate,\n\tdeltaDate,\n\tHASHBYTES('SHA2_256',(CAST(idHours AS NVARCHAR) + CAST(hour AS NVARCHAR) + CAST(minute AS NVARCHAR) + fullHour)) AS [$hash]\nFROM\n\t[SilverlessSTG].[etl].[vw_dim_Hours]\n) h ORDER BY idSkHours\n\n-------------------\n-- OperationType --\n-------------------\n-- DROP EXTERNAL TABLE [dim].[OperationType]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.OperationType') )\n    DROP EXTERNAL TABLE dim.OperationType \nGO\n\nCREATE  EXTERNAL TABLE GoldenlessDWH.[dim].[OperationType]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/OperationType', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT \n\t-1  \t\t AS idSkOperationType , \n\t-1  \t\t AS idOperationType , \n\t'D' \t\t AS operation,\t\t\t \t\t\t \n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 \t\t\t AS isCurrent, \n\t19900101 \t AS loadDate, \n\t19900101 \t AS deltaDate, \n\tHASHBYTES('SHA2_256',('-1' + 'D')) AS [$hash]\n\nUNION\n\nSELECT \n\tROW_NUMBER () OVER (ORDER BY idOperationType) AS idSkOperationType,\n\tidOperationType,\n\toperation,\n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 isCurrent,\n\tloadDate,\n\tdeltaDate,\n\tHASHBYTES('SHA2_256',(CAST(idOperationType AS NVARCHAR) + operation)) AS [$hash]\nFROM\n\t[SilverlessSTG].[etl].[vw_dim_OperationType]\n) o ORDER BY idSkOperationType\n\n-----------------\n-- PostalCodes --\n-----------------\n--DROP EXTERNAL TABLE [dim].[PostalCodes]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.PostalCodes') )\n    DROP EXTERNAL TABLE dim.PostalCodes \nGO\n\nCREATE  EXTERNAL TABLE [dim].[PostalCodes]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/PostalCodes', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT \n\t-1  \t\t AS idSkPostalCodes, \n\t-1  \t\t AS idpostalCode, \n\t'D' \t\t AS postalCodes,\n\t'D' \t\t AS region,\n\t'D' \t\t AS countryCode,\n\t'D' \t\t AS country,\t\t\t \t\t\t \n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 \t\t\t AS isCurrent, \n\t19900101 \t AS loadDate, \n\t19900101 \t AS deltaDate, \n\tHASHBYTES('SHA2_256',('-1' + '-1' + 'D' + 'D' + 'D' + 'D')) AS [$hash]\n\nUNION\n\nSELECT \n\tROW_NUMBER () OVER (ORDER BY idPostalCodes) AS idSkPostalCodes,\n\tidPostalCodes,\n\tpostalCode,\n\tregion,\n\tcountryCode,\n\tcountry,\n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 isCurrent,\n\tloadDate,\n\tdeltaDate,\n\tHASHBYTES('SHA2_256',(CAST(idPostalCodes AS NVARCHAR)+postalCode+region+countryCode+country)) AS [$hash]\nFROM\n\t[SilverlessSTG].[etl].[vw_dim_PostalCodes]\n) p ORDER BY idSkPostalCodes\n\n------------\n-- Tariff --\n------------\n-- DROP EXTERNAL TABLE [dim].[Tariff]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.Tariff') )\n    DROP EXTERNAL TABLE dim.Tariff \n\nCREATE  EXTERNAL TABLE [dim].[Tariff]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Tariff', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM (\nSELECT \n\t-1  \t\t AS idSkTariff, \n\t-1  \t\t AS idTariff, \n\t'D' \t\t AS tariff, \n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 \t\t\t AS isCurrent, \n\t19900101 \t AS loadDate, \n\t19900101 \t AS deltaDate, \n\tHASHBYTES('SHA2_256',('-1' + 'D')) AS [$hash]\n\nUNION\n\nSELECT \n\tROW_NUMBER () OVER (ORDER BY idTariff) AS idSkTariff,\n\tidTariff,\n\ttariff,\n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 isCurrent,\n\tloadDate,\n\tdeltaDate,\n\tHASHBYTES('SHA2_256',(CAST(idTariff AS NVARCHAR)+tariff)) AS [$hash]\nFROM\n\t[SilverlessSTG].[etl].[vw_dim_Tariff]\n) T ORDER BY idSkTariff\n\n---------------\n-- Warehouse --\n---------------\n-- DROP EXTERNAL TABLE [dim].[Warehouse]\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('dim.Warehouse') )\n    DROP EXTERNAL TABLE dim.Warehouse \nGO\n\nCREATE  EXTERNAL TABLE [dim].[Warehouse]\nWITH\n(\n\tLOCATION = 'gold/Dimensions/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nSELECT * FROM ( \nSELECT \n\t-1  \t\t AS idSkWarehouse, \n\t-1  \t\t AS idWarehouse, \n\t'D' \t\t AS warehouse, \n\t'D' \t\t AS externalcode, \n\t'D' \t\t AS countryCode, \n\t'D' \t\t AS country, \n\t'D' \t\t AS city, \n\t'D' \t\t AS address, \n\t'D' \t\t AS description, \n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\t1 \t\t\t AS isCurrent, \n\t19900101 \t AS loadDate, \n\t19900101 \t AS deltaDate, \n\tHASHBYTES('SHA2_256',('-1' + '-1' + 'D' + 'D' + 'D' + 'D' + 'D' + 'D'+ 'D')) AS [$hash]\n\nUNION\n\nSELECT \n\tidSkWarehouse,\n\tidWarehouse,\n\twarehouse,\n\texternalcode,\n\tcountryCode,\n\tcountry,\n\tcity,\n\taddress,\n\tdescription,  \n\tCAST('1990-01-01' AS datetime2) AS fromDate,\n\tCAST('9999-01-01' AS datetime2) AS toDate,\n\tisCurrent,\n\tloadDate,\n\tdeltaDate,\n\tHASHBYTES('SHA2_256',(CAST(idWarehouse AS NVARCHAR)+warehouse+externalcode+countryCode+country+city+address+description)) AS [$hash]\nFROM\n\t[SilverlessSTG].[scd].[Warehouse]\n) W ORDER BY idSkWarehouse"
-						}
-					],
-					"scriptBlockExecutionTimeout": "02:00:00"
-				}
-			},
-			{
 				"name": "Delete SCD2 Folders",
 				"type": "Delete",
 				"dependsOn": [],
@@ -132,6 +58,68 @@
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
 						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "Load SCD Dimensions",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Delete SCD2 Folders",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[silver].[DimSCD]"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_Severless",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"DBName": "SilverlessSTG"
+					}
+				}
+			},
+			{
+				"name": "Load Gold Dimensions",
+				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Delete Dimensions Folders",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[silver].[DimSCD]"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_Severless",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"DBName": "GoldenlessDWH"
 					}
 				}
 			}

@@ -14,9 +14,6 @@
 		"ls_COLI_ERP_password": {
 			"value": ""
 		},
-		"ls_Severless_connectionString": {
-			"value": ""
-		},
 		"asa-tfm-pgc-WorkspaceDefaultStorage_properties_typeProperties_url": {
 			"value": "https://datalake1pgc.dfs.core.windows.net"
 		},
@@ -31,6 +28,12 @@
 		},
 		"ls_COLI_ERP_properties_typeProperties_userName": {
 			"value": "sa"
+		},
+		"ls_Severless_properties_typeProperties_server": {
+			"value": "asa-tfm-pgc-ondemand.sql.azuresynapse.net"
+		},
+		"ls_Severless_properties_typeProperties_database": {
+			"value": "@{linkedService().DBName}"
 		}
 	}
 }

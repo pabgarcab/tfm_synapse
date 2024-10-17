@@ -273,7 +273,7 @@
 									"referenceName": "dsParquetRaw",
 									"type": "DatasetReference",
 									"parameters": {
-										"NombreFichero": "*"
+										"NombreFichero": "@item().name"
 									}
 								}
 							],

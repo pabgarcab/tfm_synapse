@@ -147,6 +147,8 @@
 									{
 										"name": "Save Metadata",
 										"type": "SqlServerStoredProcedure",
+										"state": "Inactive",
+										"onInactiveMarkAs": "Succeeded",
 										"dependsOn": [
 											{
 												"activity": "Load Landing",

@@ -204,7 +204,7 @@
 						"type": "Lookup",
 						"dependsOn": [
 							{
-								"activity": "Clean Landing",
+								"activity": "Get CSV name",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -231,7 +231,7 @@
 								}
 							},
 							"dataset": {
-								"referenceName": "csvConfiguration",
+								"referenceName": "dsConfiguration",
 								"type": "DatasetReference",
 								"parameters": {}
 							},
@@ -241,6 +241,8 @@
 					{
 						"name": "Save Landing Files",
 						"type": "ForEach",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "List of Tables to Load",
@@ -338,6 +340,27 @@
 														}
 													}
 												]
+											},
+											{
+												"name": "Metadata",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Carga Landing",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {}
 											}
 										]
 									}
@@ -346,8 +369,8 @@
 						}
 					},
 					{
-						"name": "Clean Landing",
-						"type": "Delete",
+						"name": "Get CSV name",
+						"type": "GetMetadata",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -359,18 +382,20 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataset": {
-								"referenceName": "dsParquetRaw",
+								"referenceName": "dsConfiguration",
 								"type": "DatasetReference",
-								"parameters": {
-									"NombreFichero": "*"
-								}
+								"parameters": {}
 							},
-							"enableLogging": false,
+							"fieldList": [
+								"childItems"
+							],
 							"storeSettings": {
 								"type": "AzureBlobFSReadSettings",
 								"recursive": true,
-								"wildcardFileName": "*",
 								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
 							}
 						}
 					}
@@ -378,13 +403,18 @@
 				"policy": {
 					"elapsedTimeMetric": {}
 				},
+				"variables": {
+					"nombreCSV": {
+						"type": "String"
+					}
+				},
 				"annotations": [],
 				"lastPublishTime": "2024-09-16T00:20:34Z"
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/datasets/csvConfiguration')]",
-				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]",
-				"[concat(variables('workspaceId'), '/datasets/dsSQLGenerico')]"
+				"[concat(variables('workspaceId'), '/datasets/dsConfiguration')]",
+				"[concat(variables('workspaceId'), '/datasets/dsSQLGenerico')]",
+				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]"
 			]
 		},
 		{
@@ -410,7 +440,7 @@
 								"value": "@activity('Get Metadata Landing').output.childItems",
 								"type": "Expression"
 							},
-							"isSequential": false,
+							"isSequential": true,
 							"activities": [
 								{
 									"name": "Clean Landing",
@@ -597,6 +627,82 @@
 										"driverSize": "Small",
 										"numExecutors": 2
 									}
+								},
+								{
+									"name": "to erorr",
+									"type": "Copy",
+									"state": "Inactive",
+									"onInactiveMarkAs": "Succeeded",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "ParquetSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "ParquetReadSettings"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"parallelCopies": 1,
+										"dataIntegrationUnits": 4,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "dsParquetRaw",
+											"type": "DatasetReference",
+											"parameters": {
+												"NombreFichero": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "dsParquetProcessed",
+											"type": "DatasetReference",
+											"parameters": {
+												"NombreFichero": {
+													"value": "@item().name",
+													"type": "Expression"
+												},
+												"NombreCarpeta": {
+													"value": "@concat(\n    substring(item().name, 0, indexOf(item().name, '_')), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 1), 4), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 5), 2), \n    '/'\n)\n",
+													"type": "Expression"
+												}
+											}
+										}
+									]
 								}
 							]
 						}
@@ -631,15 +737,59 @@
 								"type": "ParquetReadSettings"
 							}
 						}
+					},
+					{
+						"name": "Delete SUCCESS File",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "UPSERT Silver",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsConfiguration",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": {
+									"value": "@variables('ficheroEliminar')",
+									"type": "Expression"
+								},
+								"enablePartitionDiscovery": false
+							}
+						}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
 				},
+				"variables": {
+					"ficheroEliminar": {
+						"type": "String",
+						"defaultValue": "_SUCCESS"
+					}
+				},
 				"annotations": []
 			},
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/datasets/dsRawEntidades')]",
+				"[concat(variables('workspaceId'), '/datasets/dsConfiguration')]",
 				"[concat(variables('workspaceId'), '/datasets/dsParquetRaw')]",
 				"[concat(variables('workspaceId'), '/datasets/dsParquetProcessed')]",
 				"[concat(variables('workspaceId'), '/notebooks/MergeLandingFilesToSilver')]",
@@ -923,7 +1073,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/ETL')]",
+			"name": "[concat(parameters('workspaceName'), '/Orquestador')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -1065,12 +1215,53 @@
 					"referenceName": "ls_ADLG2_Bronze_Landing",
 					"type": "LinkedServiceReference"
 				},
+				"parameters": {
+					"NombreCSV": {
+						"type": "string"
+					}
+				},
 				"annotations": [],
 				"type": "DelimitedText",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "ConfiguracionOrigenes.csv",
+						"fileName": {
+							"value": "@dataset().NombreCSV",
+							"type": "Expression"
+						},
+						"folderPath": "bronze/Configuration",
+						"fileSystem": "mdw"
+					},
+					"columnDelimiter": ";",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "ServerName;DataBaseName;SchemaName;TableName;PathName;FileName;Load",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dsConfiguration')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ADLG2_Bronze_Landing",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
 						"folderPath": "bronze/Configuration",
 						"fileSystem": "mdw"
 					},
@@ -1486,7 +1677,7 @@
 				"pipelines": [
 					{
 						"pipelineReference": {
-							"referenceName": "ETL",
+							"referenceName": "Orquestador",
 							"type": "PipelineReference"
 						},
 						"parameters": {}
@@ -1503,7 +1694,7 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/pipelines/ETL')]"
+				"[concat(variables('workspaceId'), '/pipelines/Orquestador')]"
 			]
 		},
 		{
@@ -1836,12 +2027,32 @@
 					"name": "Silver SCD + Fact"
 				},
 				"content": {
-					"query": "CREATE OR ALTER PROCEDURE silver.DimSCD\nWITH ENCRYPTION AS \n\n---------------\n-- Articles --\n---------------\n-- DROP EXTERNAL TABLE  scd.Articles\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Articles') )\n    DROP EXTERNAL TABLE scd.Articles;\n\n\nCREATE EXTERNAL TABLE  scd.Articles \nWITH\n(\n\tLOCATION = 'silver/SCD/Articles', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n    \n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Articles]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n\t    HASHBYTES('SHA2_256',(CAST(s.idArticles AS NVARCHAR)+ s.name + s.description COLLATE DATABASE_DEFAULT + s.externalcode + s.size + CAST(s.numSize AS NVARCHAR) + s.colour + s.category + s.codLine + s.line + s.season)) AS [$hash]\n    FROM etl.vw_dim_Articles s\n    LEFT JOIN current_data c\n        ON s.idArticles = c.idArticles\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkArticles), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Articles]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idArticles) + max_key AS new_idSkArticles, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idArticles = c.idArticles\n    CROSS JOIN max_surrogate_key\n    WHERE c.idArticles IS NULL  OR (c.[$hash] != chg.[$hash] )\n), --select * from new_or_updated_data order by idarticles\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkarticles AS new_idSkArticles,\n        c.idArticles,\n        c.name,\n        c.externalCode,\n        c.size,\n        c.numSize,\n        c.colour,\n        c.category,\n        c.codLine,\n        c.line,\n        c.description,\n        c.season,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idArticles = chg.idArticles\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkArticles, -- Mantener la clave subrogada original\n    c.idArticles,\n    c.name,\n    c.externalCode,\n    c.size,\n    c.numSize,\n    c.colour,\n    c.category,\n    c.codLine,\n    c.line,\n    c.description,\n    c.season,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idArticles = chg.idArticles\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkArticles, \n    idArticles,\n    name,\n    externalCode,\n    size,\n    numSize,\n    colour,\n    category,\n    codLine,\n    line,\n    description,\n    season,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkArticles, \n    idArticles,\n    name,\n    externalCode,\n    size,\n    numSize,\n    colour,\n    category,\n    codLine,\n    line,\n    description,\n    season,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkArticles;\n\n\n---------------\n-- Currency --\n---------------\n-- DROP EXTERNAL TABLE  scd.Currency\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Currency') )\n    DROP EXTERNAL TABLE scd.Currency;\n\n\nCREATE EXTERNAL TABLE  scd.Currency \nWITH\n(\n\tLOCATION = 'silver/SCD/Currency', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Currency]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idCurrency AS NVARCHAR) + s.name + s.currency)) AS [$hash]\n    FROM etl.vw_dim_Currency s\n    LEFT JOIN current_data c\n        ON s.idCurrency = c.idCurrency\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkCurrency), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Currency]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idCurrency) + max_key AS new_idSkCurrency, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idCurrency = c.idCurrency\n    CROSS JOIN max_surrogate_key\n    WHERE c.idCurrency IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkCurrency AS new_idSkCurrency,\n        c.idCurrency,\n        c.name,\n        c.currency,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idCurrency = chg.idCurrency\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkCurrency, -- Mantener la clave subrogada original\n    c.idCurrency,\n    c.name,\n    c.currency,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idCurrency = chg.idCurrency\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkCurrency, \n    idCurrency,\n    name,\n    currency,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkCurrency, \n    idCurrency,\n    name,\n    currency,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkCurrency;\n\n\n------------\n-- Client --\n------------\n--DROP EXTERNAL TABLE  scd.Client\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Client') )\n   DROP EXTERNAL TABLE scd.Client   \n\n\nCREATE EXTERNAL TABLE  scd.Client \nWITH\n(\n\tLOCATION = 'silver/SCD/Client', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Client]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idClient AS NVARCHAR) + s.name COLLATE DATABASE_DEFAULT + s.lastName1 COLLATE DATABASE_DEFAULT + s.lastName2 COLLATE DATABASE_DEFAULT\n\t    + s.email COLLATE DATABASE_DEFAULT + s.phoneNumber COLLATE DATABASE_DEFAULT + CAST(s.birthDay AS nvarchar) + CAST(s.age AS nvarchar) + s.gender + s.country + s.countryCode\n\t    + s.region + s.address + s.postalCode)) AS [$hash]\n    FROM etl.vw_dim_Client s\n    LEFT JOIN current_data c\n        ON s.idClient = c.idClient\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkClient), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Client]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idClient) + max_key AS new_idSkClient, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idClient = c.idClient\n    CROSS JOIN max_surrogate_key\n    WHERE c.idClient IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkClient AS new_idSkClient,\n        c.idClient,\n        c.name,\n        c.lastName1,\n        c.lastName2, \n        c.email,\n        c.phoneNumber,\n        c.birthDay,       \n        c.age,\n        c.gender,\n        c.country,\n        c.countryCode,\n        c.region,\n        c.address,\n        c.postalCode,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idClient = chg.idClient\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkClient, -- Mantener la clave subrogada original\n    c.idClient,\n    c.name,\n    c.lastName1,\n    c.lastName2, \n    c.email,\n    c.phoneNumber,\n    c.birthDay,       \n    c.age,\n    c.gender,\n    c.country,\n    c.countryCode,\n    c.region,\n    c.address,\n    c.postalCode,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idClient = chg.idClient\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkClient, \n    idClient,\n    name,\n    lastName1,\n    lastName2, \n    email,\n    phoneNumber,\n    birthDay,       \n    age,\n    gender,\n    country,\n    countryCode,\n    region,\n    address,\n    postalCode,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkClient, \n    idClient,\n    name,\n    lastName1,\n    lastName2, \n    email,\n    phoneNumber,\n    birthDay,       \n    age,\n    gender,\n    country,\n    countryCode,\n    region,\n    address,\n    postalCode,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkClient;\n\n\n----------\n-- Date --\n----------\n--DROP EXTERNAL TABLE  scd.Date \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Date') )\n   DROP EXTERNAL TABLE scd.Date;  \n\n\nCREATE EXTERNAL TABLE  scd.Date \nWITH\n(\n\tLOCATION = 'silver/SCD/Date', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Date]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idDate AS NVARCHAR) + CAST(s.dateKey AS NVARCHAR) + CAST(s.date AS NVARCHAR) + s.month COLLATE DATABASE_DEFAULT + CAST(s.monthNumber AS NVARCHAR) + CAST(s.year AS NVARCHAR) \n        + CAST(s.weekNumber AS NVARCHAR) + s.dayWeek COLLATE DATABASE_DEFAULT + CAST(s.dayWeekNumber AS NVARCHAR) + CAST(s.yearDay AS NVARCHAR) + s.quarter + s.quadrimester + s.semester )) AS [$hash]\n    FROM etl.vw_dim_Date s\n    LEFT JOIN current_data c\n        ON s.idDate = c.idDate\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkDate), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Date]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idDate) + max_key AS new_idSkDate, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idDate = c.idDate\n    CROSS JOIN max_surrogate_key\n    WHERE c.idDate IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkDate AS new_idSkDate,\n        c.idDate,\n        c.dateKey,\n        c.date,\n        c.month,\n        c.monthNumber,\n        c.year,\n        c.weekNumber,\n        c.dayWeek,\n        c.dayWeekNumber,\n        c.yearDay,\n        c.quarter,\n        c.quadrimester,\n        c.semester,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idDate = chg.idDate\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkDate, -- Mantener la clave subrogada original\n    c.idDate,\n\tc.dateKey,\n\tc.date,\n\tc.month,\n\tc.monthNumber,\n\tc.year,\n\tc.weekNumber,\n\tc.dayWeek,\n\tc.dayWeekNumber,\n\tc.yearDay,\n\tc.quarter,\n\tc.quadrimester,\n\tc.semester,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idDate = chg.idDate\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkDate, \n    idDate,\n\tdateKey,\n\tdate,\n\tmonth,\n\tmonthNumber,\n\tyear,\n\tweekNumber,\n\tdayWeek,\n\tdayWeekNumber,\n\tyearDay,\n\tquarter,\n\tquadrimester,\n\tsemester,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkDate, \n    idDate,\n\tdateKey,\n\tdate,\n\tmonth,\n\tmonthNumber,\n\tyear,\n\tweekNumber,\n\tdayWeek,\n\tdayWeekNumber,\n\tyearDay,\n\tquarter,\n\tquadrimester,\n\tsemester,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkDate;\n\n\n---------------\n-- Hours --\n---------------\n-- DROP EXTERNAL TABLE  scd.Hours\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Hours') )\n   DROP EXTERNAL TABLE scd.Hours;   \n\n\nCREATE EXTERNAL TABLE  scd.Hours \nWITH\n(\n\tLOCATION = 'silver/SCD/Hours', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Hours]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idHours AS NVARCHAR) + CAST(s.hour AS NVARCHAR) + CAST(s.minute AS NVARCHAR) + s.fullHour)) AS [$hash]\n    FROM etl.vw_dim_Hours s\n    LEFT JOIN current_data c\n        ON s.idHours = c.idHours\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkHours), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Hours]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idHours) + max_key AS new_idSkHours, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idHours = c.idHours\n    CROSS JOIN max_surrogate_key\n    WHERE c.idHours IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkHours AS new_idSkHours,\n        c.idHours,\n        c.hour,\n        c.minute,\n        c.fullHour,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idHours = chg.idHours\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkHours, -- Mantener la clave subrogada original\n\tc.idHours,\n\tc.hour,\n\tc.minute,\n\tc.fullHour,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idHours = chg.idHours\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkHours, \n\tidHours,\n\thour,\n\tminute,\n\tfullHour,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkHours, \n\tidHours,\n\thour,\n\tminute,\n\tfullHour,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkHours;\n\n\n\n-------------------\n-- OperationType --\n-------------------\n-- DROP EXTERNAL TABLE  scd.OperationType \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.OperationType') )\n   DROP EXTERNAL TABLE scd.OperationType;   \n\n\nCREATE EXTERNAL TABLE  scd.OperationType \nWITH\n(\n\tLOCATION = 'silver/SCD/OperationType', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[OperationType]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n\t    HASHBYTES('SHA2_256',(CAST(s.idOperationType AS NVARCHAR) + s.operation)) AS [$hash]\n    FROM etl.vw_dim_OperationType s\n    LEFT JOIN current_data c\n        ON s.idOperationType = c.idOperationType\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkOperationType), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[OperationType]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idOperationType) + max_key AS new_idSkOperationType, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idOperationType = c.idOperationType\n    CROSS JOIN max_surrogate_key\n    WHERE c.idOperationType IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkOperationType AS new_idSkOperationType,\n        c.idOperationType,\n        c.operation,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idOperationType = chg.idOperationType\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkOperationType, -- Mantener la clave subrogada original\n    c.idOperationType,\n    c.operation,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idOperationType = chg.idOperationType\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkOperationType,\n    idOperationType,\n    operation,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkOperationType, \n    idOperationType,\n    operation,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkOperationType;\n\n\n\n-----------------\n-- PostalCodes --\n-----------------\n--DROP EXTERNAL TABLE  scd.PostalCodes \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.PostalCodes') )\n    DROP EXTERNAL TABLE scd.PostalCodes; \n\nCREATE EXTERNAL TABLE  scd.PostalCodes \nWITH\n(\n\tLOCATION = 'silver/SCD/PostalCodes', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[PostalCodes]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idPostalCodes AS NVARCHAR) + s.postalCode + s.region + s.countryCode + s.country)) AS [$hash]\n    FROM etl.vw_dim_PostalCodes s\n    LEFT JOIN current_data c\n        ON s.idPostalCodes = c.idPostalCodes\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkPostalCodes), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[PostalCodes]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idPostalCodes) + max_key AS new_idSkPostalCodes, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idPostalCodes = c.idPostalCodes\n    CROSS JOIN max_surrogate_key\n    WHERE c.idPostalCodes IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkPostalCodes AS new_idSkPostalCodes,\n        c.idPostalCodes,\n        c.postalCode,\n        c.region,\n        c.countryCode,\n        c.country,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idPostalCodes = chg.idPostalCodes\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkPostalCodes, -- Mantener la clave subrogada original\n    c.idPostalCodes,\n    c.postalCode,\n    c.region,\n    c.countryCode,\n    c.country,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idPostalCodes = chg.idPostalCodes\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkPostalCodes,\n    idPostalCodes,\n    postalCode,\n    region,\n    countryCode,\n    country,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkPostalCodes, \n    idPostalCodes,\n    postalCode,\n    region,\n    countryCode,\n    country,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkPostalCodes;\n\n\n\n------------\n-- Tariff --\n------------\n--DROP EXTERNAL TABLE  scd.Tariff \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Tariff') )\n   DROP EXTERNAL TABLE scd.Tariff;   \n\n\nCREATE EXTERNAL TABLE  scd.Tariff \nWITH\n(\n\tLOCATION = 'silver/SCD/Tariff', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Tariff]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idTariff AS NVARCHAR) + s.tariff)) AS [$hash]\n    FROM etl.vw_dim_Tariff s\n    LEFT JOIN current_data c\n        ON s.idTariff = c.idTariff\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkTariff), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Tariff]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idTariff) + max_key AS new_idSkTariff, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idTariff = c.idTariff\n    CROSS JOIN max_surrogate_key\n    WHERE c.idTariff IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkTariff AS new_idSkTariff,\n        c.idTariff,\n        c.tariff,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idTariff = chg.idTariff\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkTariff, -- Mantener la clave subrogada original\n    c.idTariff,\n    c.tariff,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idTariff = chg.idTariff\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkTariff, \n    idTariff,\n    tariff,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkTariff, \n    idTariff,\n    tariff,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkTariff;\n\n\n\n---------------\n-- Warehouse --\n---------------\n-- DROP EXTERNAL TABLE  scd.Warehouse \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Warehouse') )\n   DROP EXTERNAL TABLE scd.Warehouse;   \n\n\nCREATE EXTERNAL TABLE  scd.Warehouse \nWITH\n(\n\tLOCATION = 'silver/SCD/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        chg.[$hash]\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.isCurrent,\n        c.fromDate,\n        c.toDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.fromDate,\n    GETDATE() AS toDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    isCurrent,\n    fromDate,\n    toDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    isCurrent,\n    fromDate,\n    toDate,\n    [$hash]\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    isCurrent,\n    fromDate,\n    toDate,\n    [$hash]\nFROM final\nORDER BY idSkWarehouse;\n",
+					"query": "CREATE OR ALTER PROCEDURE silver.DimSCD\nWITH ENCRYPTION AS \n\n---------------\n-- Articles --\n---------------\n-- DROP EXTERNAL TABLE  scd.Articles\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Articles') )\n    DROP EXTERNAL TABLE scd.Articles;\n\n\nCREATE EXTERNAL TABLE  scd.Articles \nWITH\n(\n\tLOCATION = 'silver/SCD/Articles', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n    \n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Articles]\n    WHERE isCurrent = 1\n),\n\n-- CTE* creacion\n\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n\t    HASHBYTES('SHA2_256',(CAST(s.idArticles AS NVARCHAR)+ s.name + s.description COLLATE DATABASE_DEFAULT + s.externalcode + s.size + CAST(s.numSize AS NVARCHAR) + s.colour + s.category + s.codLine + s.line + s.season)) AS [$hash]\n    FROM etl.vw_dim_Articles s  -- METER AQUI DEFINICION LAS VISTAS CTE*\n    LEFT JOIN current_data c\n        ON s.idArticles = c.idArticles\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkArticles), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Articles]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idArticles) + max_key AS new_idSkArticles, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idArticles = c.idArticles\n    CROSS JOIN max_surrogate_key\n    WHERE c.idArticles IS NULL  OR (c.[$hash] != chg.[$hash] )\n), --select * from new_or_updated_data order by idarticles\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkarticles AS new_idSkArticles,\n        c.idArticles,\n        c.name,\n        c.externalCode,\n        c.size,\n        c.numSize,\n        c.colour,\n        c.category,\n        c.codLine,\n        c.line,\n        c.description,\n        c.season,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idArticles = chg.idArticles\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkArticles, -- Mantener la clave subrogada original\n    c.idArticles,\n    c.name,\n    c.externalCode,\n    c.size,\n    c.numSize,\n    c.colour,\n    c.category,\n    c.codLine,\n    c.line,\n    c.description,\n    c.season,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idArticles = chg.idArticles\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkArticles, \n    idArticles,\n    name,\n    externalCode,\n    size,\n    numSize,\n    colour,\n    category,\n    codLine,\n    line,\n    description,\n    season,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkArticles, \n    idArticles,\n    name,\n    externalCode,\n    size,\n    numSize,\n    colour,\n    category,\n    codLine,\n    line,\n    description,\n    season,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkArticles;\n\n\n---------------\n-- Currency --\n---------------\n-- DROP EXTERNAL TABLE  scd.Currency\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Currency') )\n    DROP EXTERNAL TABLE scd.Currency;\n\n\nCREATE EXTERNAL TABLE  scd.Currency \nWITH\n(\n\tLOCATION = 'silver/SCD/Currency', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Currency]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idCurrency AS NVARCHAR) + s.name + s.currency)) AS [$hash]\n    FROM etl.vw_dim_Currency s\n    LEFT JOIN current_data c\n        ON s.idCurrency = c.idCurrency\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkCurrency), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Currency]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idCurrency) + max_key AS new_idSkCurrency, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idCurrency = c.idCurrency\n    CROSS JOIN max_surrogate_key\n    WHERE c.idCurrency IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkCurrency AS new_idSkCurrency,\n        c.idCurrency,\n        c.name,\n        c.currency,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idCurrency = chg.idCurrency\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkCurrency, -- Mantener la clave subrogada original\n    c.idCurrency,\n    c.name,\n    c.currency,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idCurrency = chg.idCurrency\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkCurrency, \n    idCurrency,\n    name,\n    currency,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkCurrency, \n    idCurrency,\n    name,\n    currency,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkCurrency;\n\n\n------------\n-- Client --\n------------\n--DROP EXTERNAL TABLE  scd.Client\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Client') )\n   DROP EXTERNAL TABLE scd.Client   \n\n\nCREATE EXTERNAL TABLE  scd.Client \nWITH\n(\n\tLOCATION = 'silver/SCD/Client', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Client]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idClient AS NVARCHAR) + s.name COLLATE DATABASE_DEFAULT + s.lastName1 COLLATE DATABASE_DEFAULT + s.lastName2 COLLATE DATABASE_DEFAULT\n\t    + s.email COLLATE DATABASE_DEFAULT + s.phoneNumber COLLATE DATABASE_DEFAULT + CAST(s.birthDay AS nvarchar) + CAST(s.age AS nvarchar) + s.gender + s.country + s.countryCode\n\t    + s.region + s.address + s.postalCode)) AS [$hash]\n    FROM etl.vw_dim_Client s\n    LEFT JOIN current_data c\n        ON s.idClient = c.idClient\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkClient), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Client]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idClient) + max_key AS new_idSkClient, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idClient = c.idClient\n    CROSS JOIN max_surrogate_key\n    WHERE c.idClient IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkClient AS new_idSkClient,\n        c.idClient,\n        c.name,\n        c.lastName1,\n        c.lastName2, \n        c.email,\n        c.phoneNumber,\n        c.birthDay,       \n        c.age,\n        c.gender,\n        c.country,\n        c.countryCode,\n        c.region,\n        c.address,\n        c.postalCode,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idClient = chg.idClient\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkClient, -- Mantener la clave subrogada original\n    c.idClient,\n    c.name,\n    c.lastName1,\n    c.lastName2, \n    c.email,\n    c.phoneNumber,\n    c.birthDay,       \n    c.age,\n    c.gender,\n    c.country,\n    c.countryCode,\n    c.region,\n    c.address,\n    c.postalCode,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idClient = chg.idClient\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkClient, \n    idClient,\n    name,\n    lastName1,\n    lastName2, \n    email,\n    phoneNumber,\n    birthDay,       \n    age,\n    gender,\n    country,\n    countryCode,\n    region,\n    address,\n    postalCode,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkClient, \n    idClient,\n    name,\n    lastName1,\n    lastName2, \n    email,\n    phoneNumber,\n    birthDay,       \n    age,\n    gender,\n    country,\n    countryCode,\n    region,\n    address,\n    postalCode,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkClient;\n\n\n----------\n-- Date --\n----------\n--DROP EXTERNAL TABLE  scd.Date \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Date') )\n   DROP EXTERNAL TABLE scd.Date;  \n\n\nCREATE EXTERNAL TABLE  scd.Date \nWITH\n(\n\tLOCATION = 'silver/SCD/Date', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Date]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idDate AS NVARCHAR) + CAST(s.dateKey AS NVARCHAR) + CAST(s.date AS NVARCHAR) + s.month COLLATE DATABASE_DEFAULT + CAST(s.monthNumber AS NVARCHAR) + CAST(s.year AS NVARCHAR) \n        + CAST(s.weekNumber AS NVARCHAR) + s.dayWeek COLLATE DATABASE_DEFAULT + CAST(s.dayWeekNumber AS NVARCHAR) + CAST(s.yearDay AS NVARCHAR) + s.quarter + s.quadrimester + s.semester )) AS [$hash]\n    FROM etl.vw_dim_Date s\n    LEFT JOIN current_data c\n        ON s.idDate = c.idDate\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkDate), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Date]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idDate) + max_key AS new_idSkDate, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idDate = c.idDate\n    CROSS JOIN max_surrogate_key\n    WHERE c.idDate IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkDate AS new_idSkDate,\n        c.idDate,\n        c.dateKey,\n        c.date,\n        c.month,\n        c.monthNumber,\n        c.year,\n        c.weekNumber,\n        c.dayWeek,\n        c.dayWeekNumber,\n        c.yearDay,\n        c.quarter,\n        c.quadrimester,\n        c.semester,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idDate = chg.idDate\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkDate, -- Mantener la clave subrogada original\n    c.idDate,\n\tc.dateKey,\n\tc.date,\n\tc.month,\n\tc.monthNumber,\n\tc.year,\n\tc.weekNumber,\n\tc.dayWeek,\n\tc.dayWeekNumber,\n\tc.yearDay,\n\tc.quarter,\n\tc.quadrimester,\n\tc.semester,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idDate = chg.idDate\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkDate, \n    idDate,\n\tdateKey,\n\tdate,\n\tmonth,\n\tmonthNumber,\n\tyear,\n\tweekNumber,\n\tdayWeek,\n\tdayWeekNumber,\n\tyearDay,\n\tquarter,\n\tquadrimester,\n\tsemester,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkDate, \n    idDate,\n\tdateKey,\n\tdate,\n\tmonth,\n\tmonthNumber,\n\tyear,\n\tweekNumber,\n\tdayWeek,\n\tdayWeekNumber,\n\tyearDay,\n\tquarter,\n\tquadrimester,\n\tsemester,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkDate;\n\n\n---------------\n-- Hours --\n---------------\n-- DROP EXTERNAL TABLE  scd.Hours\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Hours') )\n   DROP EXTERNAL TABLE scd.Hours;   \n\n\nCREATE EXTERNAL TABLE  scd.Hours \nWITH\n(\n\tLOCATION = 'silver/SCD/Hours', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Hours]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idHours AS NVARCHAR) + CAST(s.hour AS NVARCHAR) + CAST(s.minute AS NVARCHAR) + s.fullHour)) AS [$hash]\n    FROM etl.vw_dim_Hours s\n    LEFT JOIN current_data c\n        ON s.idHours = c.idHours\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkHours), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Hours]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idHours) + max_key AS new_idSkHours, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idHours = c.idHours\n    CROSS JOIN max_surrogate_key\n    WHERE c.idHours IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkHours AS new_idSkHours,\n        c.idHours,\n        c.hour,\n        c.minute,\n        c.fullHour,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idHours = chg.idHours\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkHours, -- Mantener la clave subrogada original\n\tc.idHours,\n\tc.hour,\n\tc.minute,\n\tc.fullHour,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idHours = chg.idHours\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkHours, \n\tidHours,\n\thour,\n\tminute,\n\tfullHour,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkHours, \n\tidHours,\n\thour,\n\tminute,\n\tfullHour,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkHours;\n\n\n\n-------------------\n-- OperationType --\n-------------------\n-- DROP EXTERNAL TABLE  scd.OperationType \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.OperationType') )\n   DROP EXTERNAL TABLE scd.OperationType;   \n\n\nCREATE EXTERNAL TABLE  scd.OperationType \nWITH\n(\n\tLOCATION = 'silver/SCD/OperationType', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[OperationType]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n\t    HASHBYTES('SHA2_256',(CAST(s.idOperationType AS NVARCHAR) + s.operation)) AS [$hash]\n    FROM etl.vw_dim_OperationType s\n    LEFT JOIN current_data c\n        ON s.idOperationType = c.idOperationType\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkOperationType), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[OperationType]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idOperationType) + max_key AS new_idSkOperationType, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idOperationType = c.idOperationType\n    CROSS JOIN max_surrogate_key\n    WHERE c.idOperationType IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkOperationType AS new_idSkOperationType,\n        c.idOperationType,\n        c.operation,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idOperationType = chg.idOperationType\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkOperationType, -- Mantener la clave subrogada original\n    c.idOperationType,\n    c.operation,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idOperationType = chg.idOperationType\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkOperationType,\n    idOperationType,\n    operation,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkOperationType, \n    idOperationType,\n    operation,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkOperationType;\n\n\n\n-----------------\n-- PostalCodes --\n-----------------\n--DROP EXTERNAL TABLE  scd.PostalCodes \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.PostalCodes') )\n    DROP EXTERNAL TABLE scd.PostalCodes; \n\nCREATE EXTERNAL TABLE  scd.PostalCodes \nWITH\n(\n\tLOCATION = 'silver/SCD/PostalCodes', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[PostalCodes]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idPostalCodes AS NVARCHAR) + s.postalCode + s.region + s.countryCode + s.country)) AS [$hash]\n    FROM etl.vw_dim_PostalCodes s\n    LEFT JOIN current_data c\n        ON s.idPostalCodes = c.idPostalCodes\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkPostalCodes), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[PostalCodes]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idPostalCodes) + max_key AS new_idSkPostalCodes, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idPostalCodes = c.idPostalCodes\n    CROSS JOIN max_surrogate_key\n    WHERE c.idPostalCodes IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkPostalCodes AS new_idSkPostalCodes,\n        c.idPostalCodes,\n        c.postalCode,\n        c.region,\n        c.countryCode,\n        c.country,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idPostalCodes = chg.idPostalCodes\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkPostalCodes, -- Mantener la clave subrogada original\n    c.idPostalCodes,\n    c.postalCode,\n    c.region,\n    c.countryCode,\n    c.country,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idPostalCodes = chg.idPostalCodes\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkPostalCodes,\n    idPostalCodes,\n    postalCode,\n    region,\n    countryCode,\n    country,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkPostalCodes, \n    idPostalCodes,\n    postalCode,\n    region,\n    countryCode,\n    country,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkPostalCodes;\n\n\n\n------------\n-- Tariff --\n------------\n--DROP EXTERNAL TABLE  scd.Tariff \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Tariff') )\n   DROP EXTERNAL TABLE scd.Tariff;   \n\n\nCREATE EXTERNAL TABLE  scd.Tariff \nWITH\n(\n\tLOCATION = 'silver/SCD/Tariff', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Tariff]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.*,\n        HASHBYTES('SHA2_256',(CAST(s.idTariff AS NVARCHAR) + s.tariff)) AS [$hash]\n    FROM etl.vw_dim_Tariff s\n    LEFT JOIN current_data c\n        ON s.idTariff = c.idTariff\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkTariff), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Tariff]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idTariff) + max_key AS new_idSkTariff, -- Asignar nueva clave subrogada\n        chg.*,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idTariff = c.idTariff\n    CROSS JOIN max_surrogate_key\n    WHERE c.idTariff IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkTariff AS new_idSkTariff,\n        c.idTariff,\n        c.tariff,\n        c.fromDate,\n        c.toDate,\n        c.isCurrent,\n        c.loadDate,\n        c.deltaDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idTariff = chg.idTariff\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nfinal AS (\nSELECT\n    c.idSkTariff, -- Mantener la clave subrogada original\n    c.idTariff,\n    c.tariff,\n    c.fromDate,\n    GETDATE() AS toDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.loadDate,\n    c.deltaDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idTariff = chg.idTariff\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkTariff, \n    idTariff,\n    tariff,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkTariff, \n    idTariff,\n    tariff,\n    fromDate,\n    toDate,\n    isCurrent,\n    loadDate,\n    deltaDate,\n    [$hash]\nFROM unchanged_data\n)\nSELECT     \n    * \nFROM final\nORDER BY idSkTariff;\n\n\n\n---------------\n-- Warehouse --\n---------------\n-- DROP EXTERNAL TABLE  scd.Warehouse \nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('scd.Warehouse') )\n   DROP EXTERNAL TABLE scd.Warehouse;   \n\n\nCREATE EXTERNAL TABLE  scd.Warehouse \nWITH\n(\n\tLOCATION = 'silver/SCD/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\nWITH current_data AS (\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n    WHERE isCurrent = 1\n),\n-- Identificar los registros que han cambiado o son nuevos\nchanges AS (\n    SELECT\n        s.idWarehouse,\n        s.warehouse,\n        s.externalCode,\n        s.countryCode,\n        s.country,\n        s.city,\n        s.address,\n        s.description,\n        s.loadDate,\n        s.deltaDate,\n        HASHBYTES('SHA2_256',(CAST(s.idWarehouse AS NVARCHAR) + s.warehouse + s.externalcode + s.countryCode + s.country + s.city + s.address + s.description)) AS [$hash]\n    FROM etl.vw_dim_Warehouse s\n    LEFT JOIN current_data c\n        ON s.idWarehouse = c.idWarehouse\n),\n-- Obtener el valor máximo de la clave subrogada existente en la tabla\nmax_surrogate_key AS (\n    SELECT COALESCE(MAX(idSkWarehouse), 0) AS max_key\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n),\n-- Calcular claves subrogadas para los registros nuevos o modificados\nnew_or_updated_data AS (\n    SELECT\n        ROW_NUMBER() OVER (ORDER BY chg.idWarehouse) + max_key AS new_idSkWarehouse, -- Asignar nueva clave subrogada\n        chg.idWarehouse,\n        chg.warehouse,\n        chg.externalCode,\n        chg.countryCode,\n        chg.country,\n        chg.city,\n        chg.address,\n        chg.description,\n        chg.loadDate,\n        chg.deltaDate,\n        1 AS isCurrent,\n        GETDATE() AS fromDate,\n        '9999-12-31' AS toDate,\n        chg.[$hash]\n    FROM changes chg\n    LEFT JOIN current_data c\n        ON chg.idWarehouse = c.idWarehouse\n    CROSS JOIN max_surrogate_key\n    WHERE c.idWarehouse IS NULL  OR (c.[$hash] != chg.[$hash] )\n),\n-- Obtener los registros que no han cambiado (mantener clave subrogada)\nunchanged_data AS (\n    SELECT\n        c.idSkWarehouse AS new_idSkWarehouse,\n        c.idWarehouse,\n        c.warehouse,\n        c.externalCode,\n        c.countryCode,\n        c.country,\n        c.city,\n        c.address,\n        c.description,\n        c.loadDate,\n        c.deltaDate,\n        c.isCurrent,\n        c.fromDate,\n        c.toDate,\n        c.[$hash]\n    FROM current_data c\n    JOIN changes chg\n        ON c.idWarehouse = chg.idWarehouse\n    -- Seleccionar solo las filas que no han cambiado\n    WHERE c.[$hash] = chg.[$hash]\n),\nfinal AS (\n-- Unión final con las versiones antiguas, actualizadas y sin cambios\nSELECT\n    c.idSkWarehouse, -- Mantener la clave subrogada original\n    c.idWarehouse,\n    c.warehouse,\n    c.externalCode,\n    c.countryCode,\n    c.country,\n    c.city,\n    c.address,\n    c.description,\n    c.loadDate,\n    c.deltaDate,\n    0 AS isCurrent, -- Marcar las versiones antiguas como no actuales\n    c.fromDate,\n    GETDATE() AS toDate,\n    c.[$hash]\nFROM current_data c\nJOIN changes chg\n    ON c.idWarehouse = chg.idWarehouse\nWHERE c.[$hash] != chg.[$hash]\n\nUNION ALL\n\n-- Insertar los registros nuevos o modificados con nuevas claves subrogadas\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    isCurrent,\n    fromDate,\n    toDate,\n    [$hash]\nFROM new_or_updated_data\n\nUNION ALL\n\n-- Insertar los registros que no han cambiado\nSELECT\n    new_idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    isCurrent,\n    fromDate,\n    toDate,\n    [$hash]\nFROM unchanged_data\n\n)\nselect     idSkWarehouse, \n    idWarehouse,\n    warehouse,\n    externalCode,\n    countryCode,\n    country,\n    city,\n    address,\n    description,\n    loadDate,\n    deltaDate,\n    isCurrent,\n    fromDate,\n    toDate,\n    [$hash]\nFROM final\nORDER BY idSkWarehouse;\n",
 					"metadata": {
 						"language": "sql"
 					},
 					"currentConnection": {
 						"databaseName": "SilverlessSTG",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) [idSkClient]\n,[idClient]\n,[name]\n,[lastName1]\n,[lastName2]\n,[email]\n,[phoneNumber]\n,[birthDay]\n,[age]\n,[gender]\n,[country]\n,[countryCode]\n,[region]\n,[address]\n,[postalCode]\n,[fromDate]\n,[toDate]\n,[isCurrent]\n,[loadDate]\n,[deltaDate]\n,[$hash]\n FROM [dim].[Client]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "GoldenlessDWH",
 						"poolName": "Built-in"
 					},
 					"resultLimit": 5000
@@ -1871,7 +2082,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "b612374a-198e-444d-9b5e-c422c3bd5c12"
+						"spark.autotune.trackingId": "3f41f934-3c38-4cee-8fac-084c6f66bdf7"
 					}
 				},
 				"metadata": {
@@ -1954,7 +2165,7 @@
 							"from pyspark.sql import SparkSession"
 						],
 						"outputs": [],
-						"execution_count": 2
+						"execution_count": 3
 					},
 					{
 						"cell_type": "code",
@@ -2202,28 +2413,31 @@
 							}
 						},
 						"source": [
-							"# cuenta =  'datalake1pgc'\r\n",
-							"# contendor = 'mdw'\r\n",
-							"# archivo = '/bronze/Configuration/ConfiguracionOrigenes.csv'\r\n",
-							"\r\n",
-							"# #ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
-							"# ruta = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
-							"# # Leer CSV\r\n",
-							"# #print(ruta)\r\n",
-							"# df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
-							"# #Generamos fecha en formato 'yyyyMMdd'\r\n",
-							"# fecha_actual = date_format(current_date(), 'yyyy-MM-dd')\r\n",
-							"# fecha_actual = '2022-01-17'\r\n",
-							"# # Modificar CSV\r\n",
-							"# df_modificado = df.withColumn(\r\n",
-							"#     \"UpdateDate\",\r\n",
-							"#     when(df[\"Filename\"] == table_name, fecha_actual).otherwise(df[\"UpdateDate\"])\r\n",
-							"# )\r\n",
-							"# # Sobreescrir CSV\r\n",
-							"# #df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
+							"cuenta =  'datalake1pgc'\r\n",
+							"contendor = 'mdw'\r\n",
+							"archivo = '/bronze/Configuration'\r\n",
+							"#archivo = \r\n",
+							"#archivo2 = '/bronze/Configuration/ConfiguracionOrigenes\r\n",
+							"table_name = 'color'\r\n",
+							"#ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
+							"ruta = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
+							"#ruta2 = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
+							"# Leer CSV\r\n",
+							"#print(ruta)\r\n",
+							"df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
+							"#Generamos fecha en formato 'yyyyMMdd'\r\n",
+							"fecha_actual = date_format(current_date(), 'yyyy-MM-dd')\r\n",
+							"fecha_actual = '2022-01-18'\r\n",
+							"# Modificar CSV\r\n",
+							"df_modificado = df.withColumn(\r\n",
+							"    \"UpdateDate\",\r\n",
+							"    when(df[\"Filename\"] == table_name, fecha_actual).otherwise(df[\"UpdateDate\"])\r\n",
+							")\r\n",
+							"# Sobreescrir CSV\r\n",
+							"#df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
 						],
 						"outputs": [],
-						"execution_count": 1
+						"execution_count": 12
 					},
 					{
 						"cell_type": "code",
@@ -2239,11 +2453,389 @@
 							}
 						},
 						"source": [
-							"#df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)\r\n",
+							"#df_modificado.show()"
+						],
+						"outputs": [],
+						"execution_count": 13
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)\r\n",
 							""
 						],
 						"outputs": [],
-						"execution_count": null
+						"execution_count": 14
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/silver')]",
+			"type": "Microsoft.Synapse/workspaces/databases",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"Ddls": [
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Name": "silver",
+							"EntityType": "DATABASE",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"Properties": {
+								"IsSyMSCDMDatabase": true
+							},
+							"Source": {
+								"Provider": "ADLS",
+								"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver/DeltaTables",
+								"Properties": {
+									"FormatType": "parquet",
+									"LinkedServiceName": "ls_ADLG2_Bronze_Landing"
+								}
+							}
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Name": "almacenes",
+							"EntityType": "TABLE",
+							"Namespace": {
+								"DatabaseName": "silver"
+							},
+							"Description": "",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "idAlmacenes",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "Nombre",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "codigoAlmacen",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "idPais",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "Ciudad",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "Direccion",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "Descripcion",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "fechaCarga",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "fechaDelta",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+									"FormatType": "parquet",
+									"SerializeLib": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+									"Properties": {
+										"path": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver/DeltaSTG/almacenes",
+										"FormatTypeSetToDatabaseDefault": false
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver/DeltaSTG/almacenes",
+									"Properties": {
+										"LinkedServiceName": "ls_ADLG2_Bronze_Landing",
+										"LocationSetToDatabaseDefault": false
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"Description": "",
+								"DisplayFolderInfo": "{\"name\":\"Others\",\"colorCode\":\"\"}",
+								"PrimaryKeys": "",
+								"spark.sql.sources.provider": "parquet"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Name": "articulos",
+							"EntityType": "TABLE",
+							"Namespace": {
+								"DatabaseName": "silver"
+							},
+							"Description": "",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "idAlmacenes",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "Nombre",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "codigoAlmacen",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "idPais",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "Ciudad",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "Direccion",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "Descripcion",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "fechaCarga",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "fechaDelta",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+									"FormatType": "parquet",
+									"SerializeLib": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+									"Properties": {
+										"path": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver/DeltaSTG/almacenes",
+										"FormatTypeSetToDatabaseDefault": false
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/silver/DeltaSTG/almacenes",
+									"Properties": {
+										"LinkedServiceName": "ls_ADLG2_Bronze_Landing",
+										"LocationSetToDatabaseDefault": false
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"Description": "",
+								"DisplayFolderInfo": "{\"name\":\"Others\",\"colorCode\":\"\"}",
+								"PrimaryKeys": "",
+								"spark.sql.sources.provider": "parquet"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
 					}
 				]
 			},

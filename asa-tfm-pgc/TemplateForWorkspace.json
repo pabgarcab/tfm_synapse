@@ -223,7 +223,10 @@
 								"type": "DelimitedTextSource",
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
-									"recursive": false,
+									"fileListPath": {
+										"value": "@activity('Get CSV name').output",
+										"type": "Expression"
+									},
 									"enablePartitionDiscovery": false
 								},
 								"formatSettings": {
@@ -241,8 +244,6 @@
 					{
 						"name": "Save Landing Files",
 						"type": "ForEach",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "List of Tables to Load",
@@ -271,7 +272,7 @@
 										},
 										"ifTrueActivities": [
 											{
-												"name": "Carga Landing",
+												"name": "Load Landing",
 												"type": "Copy",
 												"dependsOn": [],
 												"policy": {
@@ -342,11 +343,13 @@
 												]
 											},
 											{
-												"name": "Metadata",
+												"name": "Save Metadata",
 												"type": "SqlServerStoredProcedure",
+												"state": "Inactive",
+												"onInactiveMarkAs": "Succeeded",
 												"dependsOn": [
 													{
-														"activity": "Carga Landing",
+														"activity": "Load Landing",
 														"dependencyConditions": [
 															"Succeeded"
 														]
@@ -402,11 +405,6 @@
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"nombreCSV": {
-						"type": "String"
-					}
 				},
 				"annotations": [],
 				"lastPublishTime": "2024-09-16T00:20:34Z"
@@ -580,11 +578,17 @@
 										},
 										"parameters": {
 											"data_lake_container": {
-												"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net",
+												"value": {
+													"value": "@pipeline().parameters.ADLG2",
+													"type": "Expression"
+												},
 												"type": "string"
 											},
 											"bronze_folder": {
-												"value": "bronze/Landing",
+												"value": {
+													"value": "@pipeline().parameters.BronzeFolder",
+													"type": "Expression"
+												},
 												"type": "string"
 											},
 											"table_name": {
@@ -595,7 +599,10 @@
 												"type": "string"
 											},
 											"silver_folder": {
-												"value": "silver/DeltaSTG",
+												"value": {
+													"value": "@pipeline().parameters.SilverFolder",
+													"type": "Expression"
+												},
 												"type": "string"
 											},
 											"source_wildcard": {
@@ -629,11 +636,16 @@
 									}
 								},
 								{
-									"name": "to erorr",
+									"name": "PendingToError",
 									"type": "Copy",
-									"state": "Inactive",
-									"onInactiveMarkAs": "Succeeded",
-									"dependsOn": [],
+									"dependsOn": [
+										{
+											"activity": "MergeBronzeToSilver",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
 									"policy": {
 										"timeout": "0.12:00:00",
 										"retry": 0,
@@ -680,10 +692,7 @@
 											"referenceName": "dsParquetRaw",
 											"type": "DatasetReference",
 											"parameters": {
-												"NombreFichero": {
-													"value": "@item().name",
-													"type": "Expression"
-												}
+												"NombreFichero": "*"
 											}
 										}
 									],
@@ -778,6 +787,20 @@
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"ADLG2": {
+						"type": "string",
+						"defaultValue": "abfss://mdw@datalake1pgc.dfs.core.windows.net"
+					},
+					"BronzeFolder": {
+						"type": "string",
+						"defaultValue": "bronze/Landing/Pending"
+					},
+					"SilverFolder": {
+						"type": "string",
+						"defaultValue": "silver/DeltaSTG"
+					}
 				},
 				"variables": {
 					"ficheroEliminar": {
@@ -1394,7 +1417,7 @@
 							"value": "@dataset().NombreFichero",
 							"type": "Expression"
 						},
-						"folderPath": "bronze/Landing",
+						"folderPath": "bronze/Landing/Pending",
 						"fileSystem": "mdw"
 					},
 					"compressionCodec": "snappy"
@@ -1419,7 +1442,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"folderPath": "bronze/Landing",
+						"folderPath": "bronze/Landing/Pending",
 						"fileSystem": "mdw"
 					},
 					"compressionCodec": "snappy"
@@ -1780,7 +1803,7 @@
 					"name": "Configuration"
 				},
 				"content": {
-					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' \nGO\nCREATE DATABASE SCOPED CREDENTIAL [https://datalake1pgc.dfs.core.windows.net] \nWITH IDENTITY = 'SHARED ACCESS SIGNATURE',\nSECRET = 'SAS Token';\nGO\nCREATE USER [asa-tfm-pgc] FROM EXTERNAL PROVIDER;\nGO\nALTER ROLE db_datareader ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_datawriter ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_owner ADD MEMBER [asa-tfm-pgc];\nGO\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA dim AUTHORIZATION dbo\nGO\nCREATE SCHEMA fact AUTHORIZATION dbo\nGO\nCREATE SCHEMA gold AUTHORIZATION dbo",
+					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' \nGO\nCREATE DATABASE SCOPED CREDENTIAL [https://datalake1pgc.dfs.core.windows.net] \nWITH IDENTITY = 'SHARED ACCESS SIGNATURE',\nSECRET = 'SAS Token';\nGO\nCREATE USER [asa-tfm-pgc] FROM EXTERNAL PROVIDER;\nGO\nALTER ROLE db_datareader ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_datawriter ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_owner ADD MEMBER [asa-tfm-pgc];\nGO\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA dim AUTHORIZATION dbo\nGO\nCREATE SCHEMA fact AUTHORIZATION dbo\nGO\nCREATE SCHEMA gold AUTHORIZATION dbo\n\nCREATE SCHEMA etl AUTHORIZATION dbo",
 					"metadata": {
 						"language": "sql"
 					},
@@ -1809,6 +1832,29 @@
 					},
 					"currentConnection": {
 						"databaseName": "SilverlessSTG",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Create Views Dimensions Gold')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "Views Silver"
+				},
+				"content": {
+					"query": "---------------\n-- Dim Date --  \n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Date] AS \nSELECT  idFechas AS idDate,\n        ClaveFecha AS dateKey,\n        Fecha AS date,\n        COALESCE(Mes, 'D')  AS month,\n        COALESCE(NumeroMes, -1)  AS monthNumber,\n        COALESCE(Ano, -1)  AS year,\n        COALESCE(NumeroSemana, -1)  AS weekNumber,\n        COALESCE(DiaSemana, 'D') AS dayWeek,\n        COALESCE(NumeroDiaSemana, -1)             AS dayWeekNumber,\n        COALESCE(DiaAno, -1) AS yearDay,\n        CASE WHEN Trimestre = 1 THEN 'Q1'\n             WHEN Trimestre = 2 THEN 'Q2'\n             WHEN Trimestre = 3 THEN 'Q3'\n             ELSE '-1' END AS quarter,\n        CASE WHEN Cuatrimestre = 1 THEN 'Q1'\n             WHEN Cuatrimestre = 2 THEN 'Q2'\n             WHEN Cuatrimestre = 3 THEN 'Q3'\n             WHEN Cuatrimestre = 4 THEN 'Q4'\n             ELSE '-1' \n        END                                       AS quadrimester,\n        CASE WHEN Cuatrimestre IN (1,2) THEN 'S1'\n            WHEN Cuatrimestre IN (2,4) THEN 'S2'\n            ELSE '-1' \n        END                                       AS semester,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[fechas]\n\n\n------------------\n-- Dim Articles --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Articles] AS\nSELECT  idArticulos                                                                         AS idArticles,\n        COALESCE(nombre, 'D')                                                               AS name,\n        COALESCE(descripcion, 'D')                                                          AS description,\n        COALESCE(codigoReferencia, 'D')                                                     AS externalCode,\n        COALESCE(t.talla, 'D')                                                              AS size,\n        COALESCE( t.numeroTalla, -1)                                                        AS numSize,\n        COALESCE(co.color, 'D')                                                             AS colour,\n        COALESCE(ca.categoria, 'D')                                                         AS category,\n        COALESCE(l.codigoLinea, 'D')                                                        AS codLine,\n        COALESCE(l.Linea, 'D')                                                              AS line, \n        CASE WHEN a.idCategoria IN (1,3,5,8,10) THEN 'OI'+CAST((a.idTemporada) AS nvarchar)\n             WHEN a.idCategoria IN (2,4,6,7,9) THEN 'OI'+CAST(a.idTemporada AS nvarchar)\n             ELSE 'PV'+CAST(a.idTemporada AS nvarchar)\n        END                                                                                 AS season,\n        a.fechaCarga                                                                        AS loadDate,\n        a.fechaDelta                                                                        AS deltaDate\nFROM [default].[dbo].[articulos] AS a\nLEFT JOIN [default].[dbo].[talla] AS t\n    ON t.idTalla = a.idTalla\nLEFT JOIN [default].[dbo].[color] AS co\n   ON co.idColor = a.idColor\nLEFT JOIN [default].[dbo].[categoria] AS ca -- select * from [default].[dbo].[categoria]\n    ON ca.idCategoria = a.idCategoria\nLEFT JOIN [default].[dbo].[Linea] AS l\n    ON l.idLinea = a.idLinea\n--where  a.fechaCarga  < '20241009'\n\n\n-------------------\n-- Dim Warehouse --\n-------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Warehouse] AS\nSELECT  idAlmacenes AS idWarehouse,\n        COALESCE(a.Nombre, 'D') AS warehouse,\n        COALESCE(a.codigoAlmacen, 'D') AS externalCode,\n        COALESCE(p.codigoPais, 'D') AS countryCode, \n        COALESCE(p.nombre, 'D') AS country,\n        COALESCE(a.ciudad, 'D') AS city,\n        COALESCE(a.Direccion, 'D') AS address,\n        COALESCE(a.descripcion, 'D') AS description,\n        a.fechaCarga AS loadDate,\n        a.fechaDelta AS deltaDate\nFROM [default].[dbo].[almacenes] AS a\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.idpais = a.idPais\n  -- WHERE a.fechaDelta <> 20241011\n--UNION \n--select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\n--UNION \n--select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\n\n\n---------------------\n-- Dim Postal Code --\n---------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_PostalCodes] AS\nSELECT  idCodigoPostal AS idPostalCodes,\n        COALESCE(codigoPostal, 'D') AS postalCode,\n        COALESCE(region, 'D') AS region,\n        COALESCE(c.codigoPais, 'D') AS countryCode,\n        COALESCE(nombre, 'D') AS country,\n        c.fechaCarga AS loadDate,\n        c.fechaDelta AS deltaDate\nFROM [default].[dbo].[codigoPostal] AS c\nLEFT JOIN [default].[dbo].[pais] AS p\n    ON p.codigoPais = c.codigoPais\n\n------------------\n-- Dim Currency --\n------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Currency] AS\nSELECT  idDivisa AS idCurrency,\n        COALESCE(nombre, 'D') AS name,\n        COALESCE(Divisa, 'D') AS currency,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[divisa]\n\n---------------\n-- Dim Hours --\n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Hours] AS\nSELECT  idHoras AS idHours,\n        COALESCE(Hora, -1) AS hour,\n        COALESCE(Minuto, -1) AS minute,\n        COALESCE(HoraCompleta, 'D') as fullHour,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[horas]\n\n\n----------------\n-- Dim Tariff --\n----------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Tariff] AS\nSELECT  idTarifa AS idTariff,\n        COALESCE(Tarifa, 'D') AS tariff,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate       \nFROM [default].[dbo].[tarifa]\n\n\n------------------------\n-- Dim Operation Type --\n------------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_OperationType] AS\nSELECT  idTipoOperacion AS idOperationType,\n        COALESCE(Operacion, 'D') AS operation,\n        fechaCarga AS loadDate,\n        fechaDelta AS deltaDate\nFROM [default].[dbo].[tipoOperacion]\n\n\n------------------------\n-- Dim Client --\n------------------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_dim_Client] AS\nSELECT  idCliente AS idClient,\n        COALESCE(c.nombre, 'D') AS name,\n        COALESCE(apellido1, 'D') AS lastName1,\n        COALESCE(apellido2, 'D') AS lastName2, \n        COALESCE(email, 'D') AS email,\n        COALESCE(telefono, 'D') AS phoneNumber,\n        COALESCE(cumpleanos, '1900-01-01') AS birthDay,       \n        DATEDIFF(YEAR, cumpleanos, GETDATE()) \n        - CASE \n            WHEN MONTH(GETDATE()) < MONTH('1983-12-04') \n                 OR (MONTH(GETDATE()) = MONTH('1983-12-04') AND DAY(GETDATE()) < DAY('1983-12-04'))\n            THEN 1\n            ELSE 0\n        END AS age,\n        CASE WHEN hombre = 1 THEN 'Hombre'\n        ELSE 'Mujer' \n        END AS gender,\n        COALESCE(p.nombre, 'D') AS country,\n        COALESCE(p.codigoPais, 'D') AS countryCode,\n        COALESCE(cp.region, 'D') AS region,\n        COALESCE(c.direcion, 'D') AS address,\n        COALESCE(cp.codigoPostal, 'D') AS postalCode,\n        COALESCE(activo, 0) AS active,       \n        c.fechaCarga AS loadDate,\n        c.fechaDelta AS deltaDate\nFROM [default].[dbo].[cliente] AS c\nLEFT JOIN [default].[dbo].[pais] AS p\n    On c.idPais = c.idPais\nINNER JOIN [default].[dbo].[codigoPostal] AS cp\n    ON cp.idCodigoPostal = c.idCodigoPostal AND cp.codigoPais = p.codigoPais\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "GoldenlessDWH",
 						"poolName": "Built-in"
 					},
 					"resultLimit": 5000

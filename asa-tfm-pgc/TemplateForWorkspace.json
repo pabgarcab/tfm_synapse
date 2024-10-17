@@ -179,13 +179,6 @@
 								"DBName": "GoldenlessDWH"
 							}
 						}
-					},
-					{
-						"name": "If Condition1",
-						"type": "IfCondition",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {}
 					}
 				],
 				"policy": {

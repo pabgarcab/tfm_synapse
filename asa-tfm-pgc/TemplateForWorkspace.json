@@ -692,7 +692,7 @@
 											"referenceName": "dsParquetRaw",
 											"type": "DatasetReference",
 											"parameters": {
-												"NombreFichero": "*"
+												"NombreFichero": "@item().name"
 											}
 										}
 									],
@@ -1344,6 +1344,46 @@
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"folderPath": "gold/Fact",
+						"fileSystem": "mdw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ls_ADLG2_Bronze_Landing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dsParquetError')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ADLG2_Bronze_Landing",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"NombreFichero": {
+						"type": "string"
+					},
+					"NombreCarpeta": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().NombreFichero",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@concat('bronze/Processed/', dataset().NombreCarpeta)",
+							"type": "Expression"
+						},
 						"fileSystem": "mdw"
 					},
 					"compressionCodec": "snappy"

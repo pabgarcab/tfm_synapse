@@ -159,11 +159,17 @@
 								},
 								"parameters": {
 									"data_lake_container": {
-										"value": "abfss://mdw@datalake1pgc.dfs.core.windows.net",
+										"value": {
+											"value": "@pipeline().parameters.ADLG2",
+											"type": "Expression"
+										},
 										"type": "string"
 									},
 									"bronze_folder": {
-										"value": "bronze/Landing",
+										"value": {
+											"value": "@pipeline().parameters.BronzeFolder",
+											"type": "Expression"
+										},
 										"type": "string"
 									},
 									"table_name": {
@@ -174,7 +180,10 @@
 										"type": "string"
 									},
 									"silver_folder": {
-										"value": "silver/DeltaSTG",
+										"value": {
+											"value": "@pipeline().parameters.SilverFolder",
+											"type": "Expression"
+										},
 										"type": "string"
 									},
 									"source_wildcard": {
@@ -208,11 +217,16 @@
 							}
 						},
 						{
-							"name": "to erorr",
+							"name": "PendingToError",
 							"type": "Copy",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
-							"dependsOn": [],
+							"dependsOn": [
+								{
+									"activity": "MergeBronzeToSilver",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
 							"policy": {
 								"timeout": "0.12:00:00",
 								"retry": 0,
@@ -256,14 +270,8 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "dsParquetRaw",
-									"type": "DatasetReference",
-									"parameters": {
-										"NombreFichero": {
-											"value": "@item().name",
-											"type": "Expression"
-										}
-									}
+									"referenceName": "dsRawEntidades",
+									"type": "DatasetReference"
 								}
 							],
 							"outputs": [
@@ -353,6 +361,20 @@
 				}
 			}
 		],
+		"parameters": {
+			"ADLG2": {
+				"type": "string",
+				"defaultValue": "abfss://mdw@datalake1pgc.dfs.core.windows.net"
+			},
+			"BronzeFolder": {
+				"type": "string",
+				"defaultValue": "bronze/Landing/Pending"
+			},
+			"SilverFolder": {
+				"type": "string",
+				"defaultValue": "silver/DeltaSTG"
+			}
+		},
 		"variables": {
 			"ficheroEliminar": {
 				"type": "String",

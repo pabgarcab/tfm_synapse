@@ -26,7 +26,10 @@
 						"type": "DelimitedTextSource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"recursive": false,
+							"fileListPath": {
+								"value": "@activity('Get CSV name').output",
+								"type": "Expression"
+							},
 							"enablePartitionDiscovery": false
 						},
 						"formatSettings": {
@@ -34,14 +37,8 @@
 						}
 					},
 					"dataset": {
-						"referenceName": "csvConfiguration",
-						"type": "DatasetReference",
-						"parameters": {
-							"NombreCSV": {
-								"value": "@activity('Get CSV name').output.childItems",
-								"type": "Expression"
-							}
-						}
+						"referenceName": "dsConfiguration",
+						"type": "DatasetReference"
 					},
 					"firstRowOnly": false
 				}
@@ -49,8 +46,6 @@
 			{
 				"name": "Save Landing Files",
 				"type": "ForEach",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "List of Tables to Load",
@@ -79,7 +74,7 @@
 								},
 								"ifTrueActivities": [
 									{
-										"name": "Carga Landing",
+										"name": "Load Landing",
 										"type": "Copy",
 										"dependsOn": [],
 										"policy": {
@@ -150,11 +145,11 @@
 										]
 									},
 									{
-										"name": "Metadata",
+										"name": "Save Metadata",
 										"type": "SqlServerStoredProcedure",
 										"dependsOn": [
 											{
-												"activity": "Carga Landing",
+												"activity": "Load Landing",
 												"dependencyConditions": [
 													"Succeeded"
 												]
@@ -197,6 +192,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -205,11 +201,6 @@
 				}
 			}
 		],
-		"variables": {
-			"nombreCSV": {
-				"type": "String"
-			}
-		},
 		"annotations": [],
 		"lastPublishTime": "2024-09-16T00:20:34Z"
 	},

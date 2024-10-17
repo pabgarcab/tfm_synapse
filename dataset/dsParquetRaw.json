@@ -19,7 +19,7 @@
 					"value": "@dataset().NombreFichero",
 					"type": "Expression"
 				},
-				"folderPath": "bronze/Landing",
+				"folderPath": "bronze/Landing/Pending",
 				"fileSystem": "mdw"
 			},
 			"compressionCodec": "snappy"

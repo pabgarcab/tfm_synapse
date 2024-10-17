@@ -5,7 +5,14 @@
 			{
 				"name": "1",
 				"type": "ExecutePipeline",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "0",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"secureInput": false
 				},
@@ -23,7 +30,7 @@
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "1_copy1",
+						"activity": "2",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -65,7 +72,7 @@
 				}
 			},
 			{
-				"name": "1_copy1",
+				"name": "2",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
@@ -82,6 +89,22 @@
 				"typeProperties": {
 					"pipeline": {
 						"referenceName": "2 - BronzeToSilver",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "0",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "0 - Backup DWH",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true

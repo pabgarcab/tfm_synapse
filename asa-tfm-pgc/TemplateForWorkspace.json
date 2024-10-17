@@ -54,6 +54,153 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('workspaceName'), '/0 - Backup DWH')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Clean Backup Folder",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsSilverFact",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "Clean Fact Gold Folder",
+						"type": "Delete",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Load Dim Backup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "dsGoldFact",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "Load Dim Backup",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Clean Backup Folder",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[silver].[FactSales]"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_Severless",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"DBName": "SilverlessSTG"
+							}
+						}
+					},
+					{
+						"name": "Load Fact Backup",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "Clean Fact Gold Folder",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[gold].[FactSales]"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_Severless",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"DBName": "GoldenlessDWH"
+							}
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-09-14T15:15:28Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/dsSilverFact')]",
+				"[concat(variables('workspaceId'), '/datasets/dsGoldFact')]",
+				"[concat(variables('workspaceId'), '/linkedServices/ls_Severless')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/1 - SqlToLanding')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -791,7 +938,14 @@
 					{
 						"name": "1",
 						"type": "ExecutePipeline",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "0",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"secureInput": false
 						},
@@ -810,7 +964,7 @@
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "1_copy1",
+								"activity": "2",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -854,7 +1008,7 @@
 						}
 					},
 					{
-						"name": "1_copy1",
+						"name": "2",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
@@ -876,6 +1030,23 @@
 							"waitOnCompletion": true,
 							"parameters": {}
 						}
+					},
+					{
+						"name": "0",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "0 - Backup DWH",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
 					}
 				],
 				"policy": {
@@ -888,7 +1059,8 @@
 				"[concat(variables('workspaceId'), '/pipelines/1 - SqlToLanding')]",
 				"[concat(variables('workspaceId'), '/pipelines/3 - SilverToSCD2')]",
 				"[concat(variables('workspaceId'), '/pipelines/4 - SilverToFact')]",
-				"[concat(variables('workspaceId'), '/pipelines/2 - BronzeToSilver')]"
+				"[concat(variables('workspaceId'), '/pipelines/2 - BronzeToSilver')]",
+				"[concat(variables('workspaceId'), '/pipelines/0 - Backup DWH')]"
 			]
 		},
 		{
@@ -1393,6 +1565,29 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/Configure BackuplessSTG')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "Configuration"
+				},
+				"content": {
+					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' \nGO\n\nCREATE USER [asa-tfm-pgc] FROM EXTERNAL PROVIDER;\nGO\nALTER ROLE db_datareader ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_datawriter ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_owner ADD MEMBER [asa-tfm-pgc];\nGO\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA bk AUTHORIZATION dbo\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "BackuplessDB",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/Configure GoldelessSTG')]",
 			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
@@ -1591,6 +1786,26 @@
 					},
 					"currentConnection": {
 						"databaseName": "GoldenlessDWH",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SP Backup')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "-- EXEC bk.LoadDim\n-- ==============================================================================\n-- Procedimiento almacenado para cargar las dimensiones en la BBDD Backup \n-- ==============================================================================\n\nCREATE OR ALTER PROCEDURE bk.LoadDim\nWITH ENCRYPTION AS \n\n\n---------------\n-- Articles --\n---------------\n-- DROP EXTERNAL TABLE  bk.dim_Articles\n\n-- IF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_Articles') ) AND ( SELECT * FROM GoldenlessDWH.sys.external_tables WHERE object_id = OBJECT_ID('dim.Articles') )\n--     DROP EXTERNAL TABLE bk.dim_Articles;\n\n-- Darle otra vuelta para hace check de DWH antes del DROP en otra tarea \n\nIF EXISTS (\n    SELECT *  FROM sys.external_tables  WHERE object_id = OBJECT_ID('bk.dim_Articles') ) \nAND \n    EXISTS (\n    SELECT * FROM GoldenlessDWH.sys.external_tables WHERE object_id = OBJECT_ID('dim.Articles') )\nBEGIN\n    DROP EXTERNAL TABLE bk.dim_Articles;\nEND;\n\n\n\nCREATE EXTERNAL TABLE  bk.dim_Articles \nWITH\n(\n\tLOCATION = 'gold/Backup/Articles', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n    \n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Articles]\n    ORDER BY idSkArticles\n\n---------------\n-- Currency --\n---------------\n-- DROP EXTERNAL TABLE  bk.dim_Currency\n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_Currency') )\n    DROP EXTERNAL TABLE bk.dim_Currency;\n\nCREATE EXTERNAL TABLE  bk.dim_Currency \nWITH\n(\n\tLOCATION = 'gold/Backup/Currency', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Currency]\n    ORDER BY idSkCurrency\n\n------------\n-- Client --\n------------\n--DROP EXTERNAL TABLE  bk.dim_Client\n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_Client') )\n   DROP EXTERNAL TABLE bk.dim_Client   \n\nCREATE EXTERNAL TABLE  bk.dim_Client \nWITH\n(\n\tLOCATION = 'gold/Backup/Client', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Client]\n    ORDER BY idSkClient\n\n----------\n-- Date --\n----------\n--DROP EXTERNAL TABLE  bk.dim_Date \n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_Date') )\n   DROP EXTERNAL TABLE bk.dim_Date;  \n\nCREATE EXTERNAL TABLE  bk.dim_Date \nWITH\n(\n\tLOCATION = 'gold/Backup/Date', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Date]\n    ORDER BY idSkDate\n\n---------------\n-- Hours --\n---------------\n-- DROP EXTERNAL TABLE  bk.dim_Hours\n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_Hours') )\n   DROP EXTERNAL TABLE bk.dim_Hours;   \n\nCREATE EXTERNAL TABLE  bk.dim_Hours \nWITH\n(\n\tLOCATION = 'gold/Backup/Hours', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Hours]\n    ORDER BY idSkHours\n\n-------------------\n-- OperationType --\n-------------------\n-- DROP EXTERNAL TABLE  bk.dim_OperationType \n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_OperationType') )\n   DROP EXTERNAL TABLE bk.dim_OperationType;   \n\nCREATE EXTERNAL TABLE  bk.dim_OperationType \nWITH\n(\n\tLOCATION = 'gold/Backup/OperationType', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[OperationType]\n    ORDER BY idSkOperationType\n\n-----------------\n-- PostalCodes --\n-----------------\n--DROP EXTERNAL TABLE  bk.dim_PostalCodes \n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_PostalCodes') )\n    DROP EXTERNAL TABLE bk.dim_PostalCodes; \n\nCREATE EXTERNAL TABLE  bk.dim_PostalCodes \nWITH\n(\n\tLOCATION = 'gold/Backup/PostalCodes', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[PostalCodes]\n    ORDER BY idSkPostalCodes\n\n\n------------\n-- Tariff --\n------------\n--DROP EXTERNAL TABLE  bk.dim_Tariff \n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_Tariff') )\n   DROP EXTERNAL TABLE bk.dim_Tariff;   \n\nCREATE EXTERNAL TABLE  bk.dim_Tariff \nWITH\n(\n\tLOCATION = 'gold/Backup/Tariff', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n\n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Tariff]\n    ORDER BY idSkTariff\n\n---------------\n-- Warehouse --\n---------------\n-- DROP EXTERNAL TABLE  bk.dim_Warehouse \n\nIF EXISTS ( SELECT * FROM sys.external_tables WHERE object_id = OBJECT_ID('bk.dim_Warehouse') )\n   DROP EXTERNAL TABLE bk.dim_Warehouse;   \n\nCREATE EXTERNAL TABLE  bk.dim_Warehouse \nWITH\n(\n\tLOCATION = 'gold/Backup/Warehouse', \n\tDATA_SOURCE = datalake1pgc,\n\tFILE_FORMAT = ParquetFileFormat\n) AS \n    SELECT *\n    FROM [GoldenlessDWH].[dim].[Warehouse]\n    ORDER BY idSkWarehouse\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "BackuplessDB",
 						"poolName": "Built-in"
 					},
 					"resultLimit": 5000

@@ -5,8 +5,6 @@
 			{
 				"name": "Clean Fact Silver Folder",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -18,10 +16,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "dsGoldFact",
+						"referenceName": "dsSilverFact",
 						"type": "DatasetReference"
 					},
-					"enableLogging": true,
+					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
@@ -30,36 +28,8 @@
 				}
 			},
 			{
-				"name": "Load Silver Fact",
-				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Clean Fact Silver Folder",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"scripts": [],
-					"scriptBlockExecutionTimeout": "02:00:00"
-				}
-			},
-			{
 				"name": "Clean Fact Gold Folder",
 				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load Silver Fact",
@@ -81,7 +51,7 @@
 						"referenceName": "dsGoldFact",
 						"type": "DatasetReference"
 					},
-					"enableLogging": true,
+					"enableLogging": false,
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
 						"recursive": true,
@@ -90,10 +60,38 @@
 				}
 			},
 			{
+				"name": "Load Silver Fact",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Clean Fact Silver Folder",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[silver].[FactSales]"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_Severless",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"DBName": "SilverlessSTG"
+					}
+				}
+			},
+			{
 				"name": "Load Gold Fact",
-				"type": "Script",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
+				"type": "SqlServerStoredProcedure",
 				"dependsOn": [
 					{
 						"activity": "Clean Fact Gold Folder",
@@ -111,8 +109,14 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"scripts": [],
-					"scriptBlockExecutionTimeout": "02:00:00"
+					"storedProcedureName": "[gold].[FactSales]"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_Severless",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"DBName": "GoldenlessDWH"
+					}
 				}
 			}
 		],

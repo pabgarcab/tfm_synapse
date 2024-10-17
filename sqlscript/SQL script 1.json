@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 1",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [idSkClient]\n,[idClient]\n,[name]\n,[lastName1]\n,[lastName2]\n,[email]\n,[phoneNumber]\n,[birthDay]\n,[age]\n,[gender]\n,[country]\n,[countryCode]\n,[region]\n,[address]\n,[postalCode]\n,[fromDate]\n,[toDate]\n,[isCurrent]\n,[loadDate]\n,[deltaDate]\n,[$hash]\n FROM [dim].[Client]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "GoldenlessDWH",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

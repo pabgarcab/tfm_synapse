@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "b612374a-198e-444d-9b5e-c422c3bd5c12"
+				"spark.autotune.trackingId": "3f41f934-3c38-4cee-8fac-084c6f66bdf7"
 			}
 		},
 		"metadata": {
@@ -99,7 +99,7 @@
 					"from pyspark.sql.functions import when, lit, current_date, date_format\r\n",
 					"from pyspark.sql import SparkSession"
 				],
-				"execution_count": 2
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -344,27 +344,30 @@
 					}
 				},
 				"source": [
-					"# cuenta =  'datalake1pgc'\r\n",
-					"# contendor = 'mdw'\r\n",
-					"# archivo = '/bronze/Configuration/ConfiguracionOrigenes.csv'\r\n",
-					"\r\n",
-					"# #ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
-					"# ruta = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
-					"# # Leer CSV\r\n",
-					"# #print(ruta)\r\n",
-					"# df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
-					"# #Generamos fecha en formato 'yyyyMMdd'\r\n",
-					"# fecha_actual = date_format(current_date(), 'yyyy-MM-dd')\r\n",
-					"# fecha_actual = '2022-01-17'\r\n",
-					"# # Modificar CSV\r\n",
-					"# df_modificado = df.withColumn(\r\n",
-					"#     \"UpdateDate\",\r\n",
-					"#     when(df[\"Filename\"] == table_name, fecha_actual).otherwise(df[\"UpdateDate\"])\r\n",
-					"# )\r\n",
-					"# # Sobreescrir CSV\r\n",
-					"# #df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
+					"cuenta =  'datalake1pgc'\r\n",
+					"contendor = 'mdw'\r\n",
+					"archivo = '/bronze/Configuration'\r\n",
+					"#archivo = \r\n",
+					"#archivo2 = '/bronze/Configuration/ConfiguracionOrigenes\r\n",
+					"table_name = 'color'\r\n",
+					"#ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
+					"ruta = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
+					"#ruta2 = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
+					"# Leer CSV\r\n",
+					"#print(ruta)\r\n",
+					"df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
+					"#Generamos fecha en formato 'yyyyMMdd'\r\n",
+					"fecha_actual = date_format(current_date(), 'yyyy-MM-dd')\r\n",
+					"fecha_actual = '2022-01-18'\r\n",
+					"# Modificar CSV\r\n",
+					"df_modificado = df.withColumn(\r\n",
+					"    \"UpdateDate\",\r\n",
+					"    when(df[\"Filename\"] == table_name, fecha_actual).otherwise(df[\"UpdateDate\"])\r\n",
+					")\r\n",
+					"# Sobreescrir CSV\r\n",
+					"#df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
 				],
-				"execution_count": 1
+				"execution_count": 12
 			},
 			{
 				"cell_type": "code",
@@ -380,10 +383,28 @@
 					}
 				},
 				"source": [
-					"#df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)\r\n",
+					"#df_modificado.show()"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)\r\n",
 					""
 				],
-				"execution_count": null
+				"execution_count": 14
 			}
 		]
 	}

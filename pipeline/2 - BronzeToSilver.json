@@ -19,7 +19,7 @@
 						"value": "@activity('Get Metadata Landing').output.childItems",
 						"type": "Expression"
 					},
-					"isSequential": false,
+					"isSequential": true,
 					"activities": [
 						{
 							"name": "Clean Landing",
@@ -206,6 +206,82 @@
 								"driverSize": "Small",
 								"numExecutors": 2
 							}
+						},
+						{
+							"name": "to erorr",
+							"type": "Copy",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ParquetSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "ParquetReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"parallelCopies": 1,
+								"dataIntegrationUnits": 4,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "dsParquetRaw",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreFichero": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "dsParquetProcessed",
+									"type": "DatasetReference",
+									"parameters": {
+										"NombreFichero": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"NombreCarpeta": {
+											"value": "@concat(\n    substring(item().name, 0, indexOf(item().name, '_')), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 1), 4), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 5), 2), \n    '/'\n)\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
 						}
 					]
 				}

@@ -6,7 +6,7 @@
 		"pipelines": [
 			{
 				"pipelineReference": {
-					"referenceName": "ETL",
+					"referenceName": "Orquestador",
 					"type": "PipelineReference"
 				}
 			}

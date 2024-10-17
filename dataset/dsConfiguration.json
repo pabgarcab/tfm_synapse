@@ -1,24 +1,15 @@
 {
-	"name": "csvConfiguration",
+	"name": "dsConfiguration",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_ADLG2_Bronze_Landing",
 			"type": "LinkedServiceReference"
-		},
-		"parameters": {
-			"NombreCSV": {
-				"type": "string"
-			}
 		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": {
-					"value": "@dataset().NombreCSV",
-					"type": "Expression"
-				},
 				"folderPath": "bronze/Configuration",
 				"fileSystem": "mdw"
 			},

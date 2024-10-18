@@ -5,6 +5,9 @@
 			"referenceName": "ls_ADLG2_Bronze_Landing",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "Bronze"
+		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {

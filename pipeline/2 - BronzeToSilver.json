@@ -279,17 +279,11 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "dsParquetProcessed",
+									"referenceName": "dsParquetError",
 									"type": "DatasetReference",
 									"parameters": {
-										"NombreFichero": {
-											"value": "@item().name",
-											"type": "Expression"
-										},
-										"NombreCarpeta": {
-											"value": "@concat(\n    substring(item().name, 0, indexOf(item().name, '_')), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 1), 4), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 5), 2), \n    '/'\n)\n",
-											"type": "Expression"
-										}
+										"NombreFichero": "@item().name",
+										"NombreCarpeta": "@concat(     substring(item().name, 0, indexOf(item().name, '_')),      '/',      substring(item().name, add(indexOf(item().name, '_'), 1), 4),      '/',      substring(item().name, add(indexOf(item().name, '_'), 5), 2),      '/' )"
 									}
 								}
 							]

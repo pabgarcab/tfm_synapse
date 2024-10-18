@@ -10,6 +10,9 @@
 				"type": "string"
 			}
 		},
+		"folder": {
+			"name": "Bronze"
+		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {

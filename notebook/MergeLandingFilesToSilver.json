@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "3f41f934-3c38-4cee-8fac-084c6f66bdf7"
+				"spark.autotune.trackingId": "0a91a1aa-96cf-4112-9d61-64e3838aad9e"
 			}
 		},
 		"metadata": {
@@ -137,8 +137,12 @@
 					"sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
 					"\r\n",
 					"# Check countRows > 0 - Stop Notebook \r\n",
-					"if sdf.count() == 0:\r\n",
+					"# if sdf.count() == 0:\r\n",
+					"#     print(\"no procesar\")\r\n",
+					"\r\n",
+					"if sdf.limit(1).count() == 0:\r\n",
 					"    print(\"no procesar\")\r\n",
+					"\r\n",
 					"else:\r\n",
 					"    # Eliminar las columnas que no se desean\r\n",
 					"    sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")\r\n",
@@ -147,6 +151,9 @@
 					"    if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
 					"        # Read the existing Delta Table\r\n",
 					"        delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+					"\r\n",
+					"        #ALTER TABLE sales SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true');\r\n",
+					"\r\n",
 					"\r\n",
 					"        # Get the schema of the existing Delta table\r\n",
 					"        existing_columns = delta_table.toDF().columns\r\n",

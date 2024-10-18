@@ -1,0 +1,20 @@
+{
+	"name": "Create Views Fact Gold",
+	"properties": {
+		"folder": {
+			"name": "Views Silver"
+		},
+		"content": {
+			"query": "---------------\n-- Fact Sales --  \n---------------\nGO\nCREATE OR ALTER VIEW [etl].[vw_fact_Sales] AS \nSELECT  idDesgloseVenta AS idSales,\n        d.idArticulo AS idArticles,\n        c.idAlmacen AS idWarehouse,\n        c.idCliente AS idClient,\n        c.idCodigoPostal AS idPostalCodes,\n        c.idDivisa AS idCurrency,\n        c.idTarifa AS idTariff,\n        c.idTipoOperacion AS idOperationType,\n        c.idHora AS idHours,\n        c.idFecha AS idDate,\n        f.fecha AS  date,\n        CAST(CAST(f.fecha AS nvarchar(10)) + ' ' + h.horaCompleta AS datetime2)AS dateOp,\n        c.codigoTicket As ticketNumber,\n        d.Cantidad AS quantity,\n        d.PrecioUnitario AS unitPrice,\n        d.CosteUnitario AS unitCost,\n        d.importeBruto AS amtTotalEuros,\n        d.importeNeto AS amtNetEuros,\n        d.importeDescuento AS amtTotalEurosDiscount,\n        d.importeNetoDescuento AS amtNetEurosDiscount,\n        CASE WHEN idTarifa IN (2,3) THEN 1\n             ELSE 0 \n        END AS discountSale,\n        CASE WHEN idTarifa = 0 THEN 0\n            ELSE (d.importeBruto - d.importeDescuento) \n        END AS amtTotalDiscount,\n        CASE WHEN idTarifa = 0 THEN 0 \n             ELSE (d.importeNeto - d.importeNetoDescuento) \n        END AS amtNetDiscount,\n        d.fechaCarga AS loadDate,\n        d.fechaDelta AS deltaDate\nFROM [default].[dbo].[desgloseVenta] AS d\nINNER JOIN [default].[dbo].[cabeceraVenta] AS c\n    ON d.idcabecerasVentas = c.idcabeceraVenta\nLEFT JOIN [default].[dbo].[Fechas]  AS f\n    On f.idFechas = c.idFecha\nLEFT JOIN [default].[dbo].[horas]  AS h\n    On h.idHoras = c.idHora",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "GoldenlessDWH",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

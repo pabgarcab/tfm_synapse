@@ -2158,6 +2158,611 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/LoadSCD2AndFact')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "sparkTFM",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "719e8400-b5b9-4200-807d-f28f89a6d5c5"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/7e84f9f8-73c5-4e82-9296-f2f3c4838394/resourceGroups/RG-TFM_MasterVerne_PGC/providers/Microsoft.Synapse/workspaces/asa-tfm-pgc/bigDataPools/sparkTFM",
+						"name": "sparkTFM",
+						"type": "Spark",
+						"endpoint": "https://asa-tfm-pgc.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkTFM",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.4",
+						"nodeCount": 3,
+						"cores": 4,
+						"memory": 28
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"source": [
+							"# Import modules\r\n",
+							"from delta.tables import DeltaTable\r\n",
+							"from delta.tables import *\r\n",
+							"from pyspark.sql.functions import when, lit, current_date, date_format,concat_ws,xxhash64,current_timestamp\r\n",
+							"from pyspark.sql import SparkSession\r\n",
+							"from pyspark.sql import functions as F\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 2
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "python"
+							}
+						},
+						"source": [
+							"%%pyspark\r\n",
+							"spark.sql(\"DROP DATABASE IF EXISTS gold CASCADE\")"
+						],
+						"outputs": [],
+						"execution_count": 4
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"dimensionsList = [ \r\n",
+							"        {\r\n",
+							"            \"name\": \"Articles\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idArticulos                                                                         AS idArticles,\r\n",
+							"                            COALESCE(nombre, 'D')                                                               AS name,\r\n",
+							"                            COALESCE(descripcion, 'D')                                                          AS description,\r\n",
+							"                            COALESCE(codigoReferencia, 'D')                                                     AS externalCode,\r\n",
+							"                            COALESCE(t.talla, 'D')                                                              AS size,\r\n",
+							"                            COALESCE( t.numeroTalla, -1)                                                        AS numSize,\r\n",
+							"                            COALESCE(co.color, 'D')                                                             AS colour,\r\n",
+							"                            COALESCE(ca.categoria, 'D')                                                         AS category,\r\n",
+							"                            COALESCE(l.codigoLinea, 'D')                                                        AS codLine,\r\n",
+							"                            COALESCE(l.Linea, 'D')                                                              AS line, \r\n",
+							"                            CASE WHEN a.idCategoria IN (1,3,5,8,10) THEN 'OI'+CAST((a.idTemporada) AS string)\r\n",
+							"                                WHEN a.idCategoria IN (2,4,6,7,9) THEN 'OI'+CAST(a.idTemporada AS string)\r\n",
+							"                                ELSE 'PV'+CAST(a.idTemporada AS string)\r\n",
+							"                            END                                                                                 AS season,\r\n",
+							"                            a.fechaCarga                                                                        AS loadDate,\r\n",
+							"                            a.fechaDelta                                                                        AS deltaDate\r\n",
+							"                    FROM default.articulos AS a\r\n",
+							"                    LEFT JOIN default.talla AS t\r\n",
+							"                        ON t.idTalla = a.idTalla\r\n",
+							"                    LEFT JOIN default.color AS co\r\n",
+							"                    ON co.idColor = a.idColor\r\n",
+							"                    LEFT JOIN default.categoria AS ca -- select * from default.categoria\r\n",
+							"                        ON ca.idCategoria = a.idCategoria\r\n",
+							"                    LEFT JOIN default.Linea AS l\r\n",
+							"                        ON l.idLinea = a.idLinea\r\n",
+							"                    where  a.fechaCarga  < '20241009'\r\n",
+							"                     \"\"\"\r\n",
+							"        },\r\n",
+							"        {\r\n",
+							"            \"name\": \"Client\",\r\n",
+							"            \"query\": \"\"\"              \r\n",
+							"                    SELECT  idCliente AS idClient,\r\n",
+							"                            COALESCE(c.nombre, 'D') AS name,\r\n",
+							"                            COALESCE(apellido1, 'D') AS lastName1,\r\n",
+							"                            COALESCE(apellido2, 'D') AS lastName2, \r\n",
+							"                            COALESCE(email, 'D') AS email,\r\n",
+							"                            COALESCE(telefono, 'D') AS phoneNumber,\r\n",
+							"                            COALESCE(CAST(cumpleanos AS STRING), '1900-01-01') AS birthDay,       \r\n",
+							"                            YEAR(current_date()) - YEAR(CAST(cumpleanos AS DATE)) \r\n",
+							"                                - CASE \r\n",
+							"                                    WHEN MONTH(current_date()) < MONTH(CAST(cumpleanos AS DATE)) \r\n",
+							"                                        OR (MONTH(current_date()) = MONTH(CAST(cumpleanos AS DATE)) AND DAY(current_date()) < DAY(CAST(cumpleanos AS DATE)))\r\n",
+							"                                    THEN 1\r\n",
+							"                                    ELSE 0\r\n",
+							"                                END AS age,\r\n",
+							"                            CASE WHEN hombre = 1 THEN 'Hombre' ELSE 'Mujer' END AS gender,\r\n",
+							"                            COALESCE(p.nombre, 'D') AS country,\r\n",
+							"                            COALESCE(p.codigoPais, 'D') AS countryCode,\r\n",
+							"                            COALESCE(cp.region, 'D') AS region,\r\n",
+							"                            COALESCE(c.Direcion, 'D') AS address,  \r\n",
+							"                            COALESCE(codigoPostal, 'D') AS postalCode,\r\n",
+							"                            COALESCE(activo, false) AS active,  -- Cambiado 0 a false aquí\r\n",
+							"                            c.fechaCarga AS loadDate,\r\n",
+							"                            c.fechaDelta AS deltaDate\r\n",
+							"                        FROM default.cliente AS c\r\n",
+							"                        LEFT JOIN default.pais AS p ON c.idPais = p.idPais\r\n",
+							"                        INNER JOIN default.codigoPostal AS cp ON cp.idCodigoPostal = c.idCodigoPostal AND cp.codigoPais = p.codigoPais\r\n",
+							"\r\n",
+							"                     \"\"\"\r\n",
+							"        }\r\n",
+							"        ,\r\n",
+							"        {\r\n",
+							"            \"name\": \"Currency\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idDivisa AS idCurrency,\r\n",
+							"                            COALESCE(nombre, 'D') AS name,\r\n",
+							"                            COALESCE(Divisa, 'D') AS currency,\r\n",
+							"                            fechaCarga AS loadDate,\r\n",
+							"                            fechaDelta AS deltaDate\r\n",
+							"                    FROM default.divisa\r\n",
+							"                     \"\"\"\r\n",
+							"        },\r\n",
+							"        {\r\n",
+							"            \"name\": \"Date\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idFechas AS idDate,\r\n",
+							"                            ClaveFecha AS dateKey,\r\n",
+							"                            Fecha AS date,\r\n",
+							"                            COALESCE(Mes, 'D')  AS month,\r\n",
+							"                            COALESCE(NumeroMes, -1)  AS monthNumber,\r\n",
+							"                            COALESCE(Ano, -1)  AS year,\r\n",
+							"                            COALESCE(NumeroSemana, -1)  AS weekNumber,\r\n",
+							"                            COALESCE(DiaSemana, 'D') AS dayWeek,\r\n",
+							"                            COALESCE(NumeroDiaSemana, -1)             AS dayWeekNumber,\r\n",
+							"                            COALESCE(DiaAno, -1) AS yearDay,\r\n",
+							"                            CASE WHEN Trimestre = 1 THEN 'Q1'\r\n",
+							"                                WHEN Trimestre = 2 THEN 'Q2'\r\n",
+							"                                WHEN Trimestre = 3 THEN 'Q3'\r\n",
+							"                                ELSE '-1' END AS quarter,\r\n",
+							"                            CASE WHEN Cuatrimestre = 1 THEN 'Q1'\r\n",
+							"                                WHEN Cuatrimestre = 2 THEN 'Q2'\r\n",
+							"                                WHEN Cuatrimestre = 3 THEN 'Q3'\r\n",
+							"                                WHEN Cuatrimestre = 4 THEN 'Q4'\r\n",
+							"                                ELSE '-1' \r\n",
+							"                            END                                       AS quadrimester,\r\n",
+							"                            CASE WHEN Cuatrimestre IN (1,2) THEN 'S1'\r\n",
+							"                                WHEN Cuatrimestre IN (2,4) THEN 'S2'\r\n",
+							"                                ELSE '-1' \r\n",
+							"                            END                                       AS semester,\r\n",
+							"                            fechaCarga AS loadDate,\r\n",
+							"                            fechaDelta AS deltaDate\r\n",
+							"                    FROM default.fechas;\r\n",
+							"                     \"\"\"\r\n",
+							"        },\r\n",
+							"        {\r\n",
+							"            \"name\": \"Hours\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idHoras AS idHours,\r\n",
+							"                            COALESCE(Hora, -1) AS hour,\r\n",
+							"                            COALESCE(Minuto, -1) AS minute,\r\n",
+							"                            COALESCE(HoraCompleta, 'D') as fullHour,\r\n",
+							"                            fechaCarga AS loadDate,\r\n",
+							"                            fechaDelta AS deltaDate\r\n",
+							"                    FROM default.horas\r\n",
+							"                     \"\"\"\r\n",
+							"        },\r\n",
+							"        {\r\n",
+							"            \"name\": \"OperationType\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idTipoOperacion AS idOperationType,\r\n",
+							"                            COALESCE(Operacion, 'D') AS operation,\r\n",
+							"                            fechaCarga AS loadDate,\r\n",
+							"                            fechaDelta AS deltaDate\r\n",
+							"                    FROM default.tipoOperacion\r\n",
+							"                     \"\"\"\r\n",
+							"        },\r\n",
+							"        {\r\n",
+							"            \"name\": \"PostalCode\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idCodigoPostal AS idPostalCode,\r\n",
+							"                            COALESCE(codigoPostal, 'D') AS postalCode,\r\n",
+							"                            COALESCE(region, 'D') AS region,\r\n",
+							"                            COALESCE(c.codigoPais, 'D') AS countryCode,\r\n",
+							"                            COALESCE(nombre, 'D') AS country,\r\n",
+							"                            c.fechaCarga AS loadDate,\r\n",
+							"                            c.fechaDelta AS deltaDate\r\n",
+							"                    FROM default.codigoPostal AS c\r\n",
+							"                    LEFT JOIN default.pais AS p\r\n",
+							"                        ON p.codigoPais = c.codigoPais\r\n",
+							"                     \"\"\"\r\n",
+							"        },\r\n",
+							"        {\r\n",
+							"            \"name\": \"Tariff\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idTarifa AS idTariff,\r\n",
+							"                            COALESCE(Tarifa, 'D') AS tariff,\r\n",
+							"                            fechaCarga AS loadDate,\r\n",
+							"                            fechaDelta AS deltaDate       \r\n",
+							"                    FROM default.tarifa\r\n",
+							"                     \"\"\"\r\n",
+							"        }\r\n",
+							"        ,\r\n",
+							"        {\r\n",
+							"            \"name\": \"Warehouse\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idAlmacenes AS idWarehouse,\r\n",
+							"                            COALESCE(a.Nombre, 'D') AS warehouse,\r\n",
+							"                            COALESCE(a.codigoAlmacen, 'D') AS externalCode,\r\n",
+							"                            COALESCE(p.codigoPais, 'D') AS countryCode, \r\n",
+							"                            COALESCE(p.nombre, 'D') AS country,\r\n",
+							"                            COALESCE(a.ciudad, 'D') AS city,\r\n",
+							"                            COALESCE(a.Direccion, 'D') AS address,\r\n",
+							"                            COALESCE(a.descripcion, 'D') AS description,\r\n",
+							"                            a.fechaCarga AS loadDate,\r\n",
+							"                            a.fechaDelta AS deltaDate\r\n",
+							"                    FROM default.almacenes AS a\r\n",
+							"                    LEFT JOIN default.pais AS p\r\n",
+							"                        ON p.idpais = a.idPais\r\n",
+							"                    WHERE a.fechaDelta <> 20241011\r\n",
+							"                    UNION \r\n",
+							"                    select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
+							"                    --UNION \r\n",
+							"                    --select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
+							"                     \"\"\"\r\n",
+							"        }\r\n",
+							"    ]\r\n",
+							"    "
+						],
+						"outputs": [],
+						"execution_count": 34
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"dimensionsList = [ \r\n",
+							"        {\r\n",
+							"            \"name\": \"Warehouse\",\r\n",
+							"            \"query\": \"\"\"\r\n",
+							"                    SELECT  idAlmacenes AS idWarehouse,\r\n",
+							"                            COALESCE(a.Nombre, 'D') AS warehouse,\r\n",
+							"                            COALESCE(a.codigoAlmacen, 'D') AS externalCode,\r\n",
+							"                            COALESCE(p.codigoPais, 'D') AS countryCode, \r\n",
+							"                            COALESCE(p.nombre, 'D') AS country,\r\n",
+							"                            COALESCE(a.ciudad, 'D') AS city,\r\n",
+							"                            COALESCE(a.Direccion, 'D') AS address,\r\n",
+							"                            COALESCE(a.descripcion, 'D') AS description,\r\n",
+							"                            a.fechaCarga AS loadDate,\r\n",
+							"                            a.fechaDelta AS deltaDate\r\n",
+							"                    FROM default.almacenes AS a\r\n",
+							"                    LEFT JOIN default.pais AS p\r\n",
+							"                        ON p.idpais = a.idPais\r\n",
+							"                    --WHERE a.fechaDelta <> 20241011\r\n",
+							"                    --UNION \r\n",
+							"                    --select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
+							"                    --UNION \r\n",
+							"                    --select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
+							"                     \"\"\"\r\n",
+							"        }\r\n",
+							"    ]\r\n",
+							"\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 16
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"\r\n",
+							"#spark.sql(f'DROP TABLE Silver.{table_name}')\r\n",
+							"\r\n",
+							"#fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
+							"\r\n",
+							"\r\n",
+							"fecha_delta = '20241012'\r\n",
+							"\r\n",
+							"# Inicializar listas para almacenar resultados\r\n",
+							"results = []\r\n",
+							"correct_files = []\r\n",
+							"incorrect_files = []\r\n",
+							"exception = []\r\n",
+							"\r\n",
+							"for file in dimensionsList:\r\n",
+							"    file_result = {\r\n",
+							"        'file_name': file['name'],\r\n",
+							"        'status': 'Incorrecto',\r\n",
+							"        'inserted_rows': 0,\r\n",
+							"        'updated_rows': 0,\r\n",
+							"        'exception': 'N/A'\r\n",
+							"    }\r\n",
+							"\r\n",
+							"    try:\r\n",
+							"        #table_name = file[\"name\"][:file[\"name\"].index('_')]  # Extrae la subcadena\r\n",
+							"        table_name = file[\"name\"].split('_')[0]\r\n",
+							"        #table_name = \"almacenes\"\r\n",
+							"        source_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
+							"        key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
+							"\r\n",
+							"        #key_columns = key_columns_str\r\n",
+							"        key_columns = key_columns_str.split(',')\r\n",
+							"        conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+							"        #conditions_list = key_columns\r\n",
+							"\r\n",
+							"        #key_columns = key_columns_str.split(',')\r\n",
+							"\r\n",
+							"        # # Convert array with keys to where-clause for merge statement\r\n",
+							"        #conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+							"\r\n",
+							"        # Determinar ruta de archivos fuente\r\n",
+							"        #source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
+							"        #delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
+							"        \r\n",
+							"        delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/{table_name}\"\r\n",
+							"        \r\n",
+							"        # Leer archivo(s) en DataFrame de Spark\r\n",
+							"        #sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
+							"        df = spark.sql(file[\"query\"])\r\n",
+							"        sdf = df\r\n",
+							"        sdf.cache()\r\n",
+							"        #sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")  # Eliminar columnas no deseadas\r\n",
+							"\r\n",
+							"        if sdf.limit(1).count() == 0:  # Valorar si meter filtrado antes y enviar a errores o no y no eviar ni a procesados ni a errores\r\n",
+							"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
+							"            file_result['exception'] = \"Fichero vacio\"\r\n",
+							"            results.append(file_result)  # Agregar resultado sin procesar\r\n",
+							"            correct_files.append(file['name'])  # Agregar a la lista de archivos incorrectos\r\n",
+							"            continue  # Saltar a la siguiente iteración si no hay datos\r\n",
+							"\r\n",
+							"        # Eliminar columna no deseada\r\n",
+							"        #sdf = sdf.drop(\"fechaActualizacion\")\r\n",
+							"        #sdf = sdf.withColumn(\"fromDate\", F.current_date()) \r\n",
+							"        sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss')) \r\n",
+							"                                      # Nueva fecha de inicio\r\n",
+							"        sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"        sdf = sdf.withColumn(\"isCurrent\", F.lit(1))  \r\n",
+							"        columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fechaDelta', 'fromDate', 'toDate', 'isCurrent')]\r\n",
+							"        sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"        # Comprobar si la tabla Delta existe\r\n",
+							"        if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+							"            delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+							"            existing_columns = delta_table.toDF().columns\r\n",
+							"            \r\n",
+							"            # Añadir columna fechaDelta\r\n",
+							"            #sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))\r\n",
+							"\r\n",
+							"            # columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fechaDelta', 'fromDate', 'toDate', 'isCurrent')]\r\n",
+							"            # sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"\r\n",
+							"            # Crear conjunto de actualizaciones excluyendo 'fechaCarga'\r\n",
+							"            #update_set = {f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col != 'fechaCarga'}\r\n",
+							"\r\n",
+							"            # Merge new data into existing table con lógica SCD Tipo 2\r\n",
+							"            delta_table.alias(\"existing\").merge(\r\n",
+							"                source=sdf.alias(\"updates\"),\r\n",
+							"                condition=\" AND \".join(conditions_list)\r\n",
+							"            ).whenMatchedUpdate(\r\n",
+							"                condition=\"existing.isCurrent = 1 AND existing.hash != updates.hash\",\r\n",
+							"                set={\r\n",
+							"                    \"toDate\": F.current_date(),  # Marcar la fecha de fin como hoy\r\n",
+							"                    \"isCurrent\": F.lit(0)         # Marcar como no actual\r\n",
+							"                }\r\n",
+							"            ).whenNotMatchedInsert(\r\n",
+							"                values={\r\n",
+							"                    # # \"fechaCarga\": \"updates.fechaCarga\",\r\n",
+							"                    # # \"fechaDelta\": fecha_delta,\r\n",
+							"                    # \"fromDate\": F.current_date(),  # Nueva fecha de inicio\r\n",
+							"                    # \"toDate\": F.lit('9999-12-31'),  # Fecha de fin indefinida\r\n",
+							"                    # \"isCurrent\": F.lit(1),           # Este es el registro actual\r\n",
+							"                    # **{f\"{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fromDate', 'toDate', 'isCurrent')}\r\n",
+							"                    #\"hash\": fecha_delta,\r\n",
+							"                    **{f\"{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
+							"                }\r\n",
+							"            ).execute()\r\n",
+							"\r\n",
+							"            #post_merge_count = delta_table.toDF().count()\r\n",
+							"            # Almacenar conteos de filas\r\n",
+							"            file_result['status'] = 'Correcto'\r\n",
+							"            \r\n",
+							"            #file_result['inserted_rows'] = merge_result.get('numTargetRowsInserted', 0)  # Filas insertadas  numTargetRowsInserted\r\n",
+							"            #file_result['inserted_rows'] = merge_result.numTargetRowsInserted  # Filas insertadas  numTargetRowsInserted\r\n",
+							"\r\n",
+							"            #file_result['inserted_rows'] = 0  #merge_result.get('numInserted', 0)  # Filas insertadas\r\n",
+							"            #file_result['updated_rows'] = merge_result.get('numTargetRowsUpdated', 0)  # Filas actualizadas\r\n",
+							"            #file_result['updated_rows'] = merge_result.numTargetRowsUpdated # Filas actualizadas\r\n",
+							"\r\n",
+							"            history_df = spark.sql(f\"DESCRIBE HISTORY default.{table_name}\")\r\n",
+							"\r\n",
+							"            # Filtrar solo las operaciones de tipo MERGE y seleccionar las métricas\r\n",
+							"            merge_operations = history_df.filter(history_df.operation == 'MERGE').select(\r\n",
+							"                \"operation\",\r\n",
+							"                \"timestamp\",\r\n",
+							"                history_df.operationMetrics[\"numTargetRowsInserted\"].alias(\"numTargetRowsInserted\"),\r\n",
+							"                history_df.operationMetrics[\"numTargetRowsUpdated\"].alias(\"numTargetRowsUpdated\")\r\n",
+							"            )\r\n",
+							"\r\n",
+							"            # Obtener el último registro ordenando por timestamp en orden descendente\r\n",
+							"            last_merge_operation = merge_operations.orderBy(F.desc(\"timestamp\")).limit(1)\r\n",
+							"\r\n",
+							"            # Collect the result\r\n",
+							"            last_result = last_merge_operation.collect()\r\n",
+							"\r\n",
+							"            # print(f\"Operation: {last_result.operation}, Timestamp: {last_result.timestamp}, Inserted: {last_result.numTargetRowsInserted}, Updated: {last_result.numTargetRowsUpdated}\")\r\n",
+							"            #row = last_result[0]\r\n",
+							"\r\n",
+							"            # Obtener los valores de numTargetRowsInserted y numTargetRowsUpdated\r\n",
+							"            file_result['inserted_rows'] = last_result[0].numTargetRowsInserted\r\n",
+							"            file_result['updated_rows'] = last_result[0].numTargetRowsUpdated\r\n",
+							"\r\n",
+							"\r\n",
+							"            #post_merge_count = delta_table.toDF().count()\r\n",
+							"\r\n",
+							"            # Calcular el número de filas insertadas\r\n",
+							"            #file_result['inserted_rows'] = max(0, post_merge_count - pre_merge_count)\r\n",
+							"            #file_result['updated_rows'] = merge_result.get('numUpdated', 0) if merge_result is not None else 0\r\n",
+							"\r\n",
+							"            correct_files.append(file['name'])  # Agregar a la lista de archivos correctos\r\n",
+							"\r\n",
+							"        else:\r\n",
+							"            # Crear nueva tabla Delta\r\n",
+							"            #sdf = sdf.withColumn(\"fromDate\", sdf.fechaCarga)  # Mantener fechaCarga\r\n",
+							"            sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit('1990-01-01 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"\r\n",
+							"            #sdf = sdf.withColumn(\"toDate\", lit(fecha_delta))  # Establecer fechaDelta\r\n",
+							"            sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"\r\n",
+							"            #sdf = sdf.withColumn(\"isCurrent\", lit(fecha_delta))  # Establecer fechaDelta\r\n",
+							"            sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+							"\r\n",
+							"            columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fechaDelta','fromDate', 'toDate', 'isCurrent')]\r\n",
+							"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"            sdf.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
+							"\r\n",
+							"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name', 'delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+							"\r\n",
+							"            # Almacenar archivo procesado correctamente\r\n",
+							"            file_result['status'] = 'Correcto'\r\n",
+							"            file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
+							"            file_result['updated_rows'] = 0  # Ninguna fila actualizada en la creación\r\n",
+							"            correct_files.append(file['name'])  # Agregar a la lista de archivos correctos\r\n",
+							"\r\n",
+							"\r\n",
+							"    except Exception as e:\r\n",
+							"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
+							"        # Estado ya configurado como 'Incorrecto'\r\n",
+							"        file_result['exception'] = f\"{e}\"\r\n",
+							"        results.append(file_result)  # Agregar resultado de fallo al final\r\n",
+							"        incorrect_files.append(file['name'])  # Agregar a la lista de archivos incorrectos\r\n",
+							"        continue  # Continuar con la siguiente iteración\r\n",
+							"\r\n",
+							"    results.append(file_result)  # Agregar resultado al final del bucle\r\n",
+							"\r\n",
+							"# Convertir resultados a DataFrame\r\n",
+							"results_df = spark.createDataFrame(results)\r\n",
+							"\r\n",
+							"# Ruta donde quieres guardar el archivo\r\n",
+							"output_path = \"/gold/Logs/log_prueba_20241020.txt\"  # Cambia esta ruta según tu configuración\r\n",
+							"#output_path= \"/Users/pablo2799@hotmail.es/\"\r\n",
+							"# Escribir los resultados en un archivo TXT\r\n",
+							"#results_df.coalesce(1).write.mode('overwrite').text(output_path)\r\n",
+							"\r\n",
+							"\r\n",
+							"# Concatenar las columnas en una sola columna con un delimitador (por ejemplo, \"|\")\r\n",
+							"#results_df = results_df.select(concat_ws(\"|\", *results_df.columns).alias(\"result\"))\r\n",
+							"\r\n",
+							"# Escribir el DataFrame en un archivo de texto\r\n",
+							"#results_df.coalesce(1).write.mode('overwrite').text(output_path)\r\n",
+							"\r\n",
+							"\r\n",
+							"\r\n",
+							"print(\"======================\")\r\n",
+							"#print(f\"Resultados guardados en: {output_path}\")\r\n",
+							"\r\n",
+							"\r\n",
+							"# Imprimir resultados en consola\r\n",
+							"for result in results:\r\n",
+							"    print(f\"Archivo: {result['file_name']}, Estado: {result['status']}, Filas insertadas: {result['inserted_rows']}, Filas actualizadas: {result['updated_rows']}, Excepción: {result['exception']}\")\r\n",
+							"\r\n",
+							"# with open(output_path, 'w') as file:\r\n",
+							"#     for row in results:\r\n",
+							"#         # Crear la cadena en el formato deseado\r\n",
+							"#         line = (f\"Archivo: {row['file_name']}, Estado: {row['status']}, \"\r\n",
+							"#                 f\"Filas insertadas: {row['inserted_rows']}, Filas actualizadas: {row['updated_rows']}, \"\r\n",
+							"#                 f\"Excepción: {row['exception']}\\n\")\r\n",
+							"        \r\n",
+							"#         # Agregar la línea al archivo\r\n",
+							"#         file.write(line)\r\n",
+							"\r\n",
+							"# Confirmación\r\n",
+							"print(f\"Resultados guardados en: {output_path}\")\r\n",
+							"\r\n",
+							"# Guardar nombres de archivos correctos e incorrectos en variables de la pipeline\r\n",
+							"correct_files_variable = correct_files\r\n",
+							"incorrect_files_variable = incorrect_files\r\n",
+							"\r\n",
+							"# Si necesitas ver las variables\r\n",
+							"print(\"Archivos correctos:\", correct_files_variable)\r\n",
+							"print(\"Archivos incorrectos:\", incorrect_files_variable)"
+						],
+						"outputs": [],
+						"execution_count": 47
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"#spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 19
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/MergeLandingFilesToSilver')]",
 			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
@@ -2178,7 +2783,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "1c55fdfd-2dc0-4a44-92d8-e7968b20244a"
+						"spark.autotune.trackingId": "e3af29eb-8b5c-41b5-8e7d-e62af53fd9f6"
 					}
 				},
 				"metadata": {
@@ -2353,6 +2958,25 @@
 							"        sdf.write.format('delta').save(delta_table_path)\r\n",
 							"\r\n",
 							"spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Mover ficheros de Pendign a /Error o /Processed"
 						],
 						"outputs": [],
 						"execution_count": null
@@ -2582,6 +3206,302 @@
 						],
 						"outputs": [],
 						"execution_count": 14
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/gold')]",
+			"type": "Microsoft.Synapse/workspaces/databases",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"Ddls": [
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Name": "gold",
+							"EntityType": "DATABASE",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"Properties": {
+								"IsSyMSCDMDatabase": true
+							},
+							"Source": {
+								"Provider": "ADLS",
+								"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions",
+								"Properties": {
+									"FormatType": "parquet",
+									"LinkedServiceName": "ls_ADLG2_Bronze_Landing"
+								}
+							}
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Name": "articles",
+							"EntityType": "TABLE",
+							"Namespace": {
+								"DatabaseName": "gold"
+							},
+							"Description": "",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "idArticles",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "name",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "description",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "externalCode",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "size",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "numSize",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "colour",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "category",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "codLine",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "line",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "season",
+										"OriginDataTypeName": {
+											"TypeName": "double",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "double"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "loadDate",
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "deltaDate",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 8000,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "fromDate",
+										"OriginDataTypeName": {
+											"TypeName": "timestamp",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"TimestampFormat": "YYYY-MM-DD HH:MM:SS.fffffffff",
+												"HIVE_TYPE_STRING": "timestamp"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "toDate",
+										"OriginDataTypeName": {
+											"TypeName": "timestamp",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"TimestampFormat": "YYYY-MM-DD HH:MM:SS.fffffffff",
+												"HIVE_TYPE_STRING": "timestamp"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									},
+									{
+										"Name": "hash",
+										"OriginDataTypeName": {
+											"TypeName": "long",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "long"
+											}
+										},
+										"DeltaFormatInvalidMessages": []
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+									"FormatType": "parquet",
+									"SerializeLib": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+									"Properties": {
+										"path": "abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/articles",
+										"FormatTypeSetToDatabaseDefault": false
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/articles",
+									"Properties": {
+										"LinkedServiceName": "ls_ADLG2_Bronze_Landing",
+										"LocationSetToDatabaseDefault": false
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"Snappy\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"Description": "",
+								"DisplayFolderInfo": "{\"name\":\"Others\",\"colorCode\":\"\"}",
+								"PrimaryKeys": "",
+								"spark.sql.sources.provider": "parquet"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
 					}
 				]
 			},

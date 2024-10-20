@@ -1,0 +1,22 @@
+{
+	"name": "gold_db",
+	"properties": {
+		"Name": "gold_db",
+		"EntityType": "DATABASE",
+		"Origin": {
+			"Type": "SPARK"
+		},
+		"Properties": {
+			"IsSyMSCDMDatabase": true
+		},
+		"Source": {
+			"Provider": "ADLS",
+			"Location": "abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions",
+			"Properties": {
+				"FormatType": "parquet",
+				"LinkedServiceName": "asa-tfm-pgc-WorkspaceDefaultStorage"
+			}
+		}
+	},
+	"type": "DATABASE"
+}

@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "1c55fdfd-2dc0-4a44-92d8-e7968b20244a"
+				"spark.autotune.trackingId": "e3af29eb-8b5c-41b5-8e7d-e62af53fd9f6"
 			}
 		},
 		"metadata": {
@@ -191,6 +191,24 @@
 					"        sdf.write.format('delta').save(delta_table_path)\r\n",
 					"\r\n",
 					"spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Mover ficheros de Pendign a /Error o /Processed"
 				],
 				"execution_count": null
 			},

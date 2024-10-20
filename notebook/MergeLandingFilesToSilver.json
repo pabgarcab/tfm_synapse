@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "0a91a1aa-96cf-4112-9d61-64e3838aad9e"
+				"spark.autotune.trackingId": "1c55fdfd-2dc0-4a44-92d8-e7968b20244a"
 			}
 		},
 		"metadata": {
@@ -135,6 +135,7 @@
 					"\r\n",
 					"# Read file(s) in spark data frame\r\n",
 					"sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
+					"sdf.cache()\r\n",
 					"\r\n",
 					"# Check countRows > 0 - Stop Notebook \r\n",
 					"# if sdf.count() == 0:\r\n",
@@ -153,6 +154,7 @@
 					"        delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
 					"\r\n",
 					"        #ALTER TABLE sales SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true');\r\n",
+					"        spark.sql(f\"ALTER TABLE default.{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
 					"\r\n",
 					"\r\n",
 					"        # Get the schema of the existing Delta table\r\n",

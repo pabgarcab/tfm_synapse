@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "29899648-deb6-4281-9ccc-520c4da5c141"
+				"spark.autotune.trackingId": "a306da32-f8ff-4068-befa-3f2958d8be42"
 			}
 		},
 		"metadata": {
@@ -59,7 +59,7 @@
 					"from pyspark.sql import functions as F\r\n",
 					""
 				],
-				"execution_count": 10
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -72,14 +72,18 @@
 						"transient": {
 							"deleting": false
 						}
-					}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
 				},
 				"source": [
-					"df = spark.sql('select * from gold.warehouse')\r\n",
-					"\r\n",
-					"df.show(20,False)"
+					"%%sql\r\n",
+					"USE default;\r\n",
+					"DROP DATABASE  gold CASCADE ;"
 				],
-				"execution_count": 37
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -92,13 +96,19 @@
 						"transient": {
 							"deleting": false
 						}
-					}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
 				},
 				"source": [
-					"table_name = 'Tariff'\r\n",
-					"delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/{table_name}\""
+					"%%sql\r\n",
+					"USE default;\r\n",
+					"CREATE DATABASE IF NOT EXISTS gold;\r\n",
+					"USE gold;"
 				],
-				"execution_count": 65
+				"execution_count": 4
 			},
 			{
 				"cell_type": "code",
@@ -111,18 +121,23 @@
 						"transient": {
 							"deleting": false
 						}
-					}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
 				},
 				"source": [
-					"#spark.sql(\"DROP DATABASE IF EXISTS gold CASCADE\")\r\n",
-					"\r\n",
-					"\r\n",
-					"spark.sql(f'CREATE TABLE IF NOT EXISTS gold.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
-					"spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
-					"spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name', 'delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
-					""
+					"%%sql\r\n",
+					" \r\n",
+					"--\r\n",
+					"-- Drop Table - s&p500\r\n",
+					"--\r\n",
+					" \r\n",
+					"USE gold;\r\n",
+					"DROP TABLE IF EXISTS dim_warehouse;"
 				],
-				"execution_count": 32
+				"execution_count": 42
 			},
 			{
 				"cell_type": "code",
@@ -167,7 +182,8 @@
 					"                        ON ca.idCategoria = a.idCategoria\r\n",
 					"                    LEFT JOIN default.Linea AS l\r\n",
 					"                        ON l.idLinea = a.idLinea\r\n",
-					"                    where  a.fechaCarga  < '20241009'\r\n",
+					"                    -- where  a.fechaCarga  < '20241009'\r\n",
+					"                    ORDER BY idArticulos\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -199,7 +215,7 @@
 					"                        FROM default.cliente AS c\r\n",
 					"                        LEFT JOIN default.pais AS p ON c.idPais = p.idPais\r\n",
 					"                        INNER JOIN default.codigoPostal AS cp ON cp.idCodigoPostal = c.idCodigoPostal AND cp.codigoPais = p.codigoPais\r\n",
-					"\r\n",
+					"                        ORDER BY idCliente\r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"        ,\r\n",
@@ -212,6 +228,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
 					"                    FROM default.divisa\r\n",
+					"                    ORDER BY idDivisa\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -243,7 +260,8 @@
 					"                            END                                       AS semester,\r\n",
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
-					"                    FROM default.fechas;\r\n",
+					"                    FROM default.fechas\r\n",
+					"                    ORDER BY idFechas\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -256,6 +274,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
 					"                    FROM default.horas\r\n",
+					"                    ORDER BY idHoras\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -266,6 +285,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
 					"                    FROM default.tipoOperacion\r\n",
+					"                    ORDER BY idTipoOperacion\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -281,6 +301,7 @@
 					"                    FROM default.codigoPostal AS c\r\n",
 					"                    LEFT JOIN default.pais AS p\r\n",
 					"                        ON p.codigoPais = c.codigoPais\r\n",
+					"                    ORDER BY idCodigoPostal\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -291,6 +312,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate       \r\n",
 					"                    FROM default.tarifa\r\n",
+					"                    ORDER BY idTarifa\r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"        ,\r\n",
@@ -315,12 +337,13 @@
 					"                    select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
 					"                    --UNION \r\n",
 					"                    --select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
+					"                    ORDER BY idWarehouse\r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"    ]\r\n",
 					"    "
 				],
-				"execution_count": 35
+				"execution_count": 5
 			},
 			{
 				"cell_type": "code",
@@ -356,15 +379,16 @@
 					"                    --WHERE a.fechaDelta <> 20241011\r\n",
 					"                    --UNION \r\n",
 					"                    --select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
-					"                    --UNION \r\n",
-					"                    --select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
+					"                    UNION \r\n",
+					"                    select 14,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
+					"                    ORDER BY idWarehouse\r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"    ]\r\n",
 					"\r\n",
 					""
 				],
-				"execution_count": 14
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -380,64 +404,76 @@
 					}
 				},
 				"source": [
-					"# Supongamos que ya has definido 'sdf' y que contiene tus datos iniciales.\r\n",
+					"from delta.tables import *\r\n",
+					"import pyspark.sql.functions as F\r\n",
 					"\r\n",
-					"# Asegúrate de que la surrogate key se genere correctamente\r\n",
-					"sdf = sdf.withColumn(\"surrogate_key\", F.monotonically_increasing_id())  # Genera surrogate_key\r\n",
+					"df = spark.sql(file[\"query\"])\r\n",
+					"sdf = df.cache()\r\n",
 					"\r\n",
-					"# Comprobar si la tabla Delta existe\r\n",
+					"# Añadir las columnas necesarias\r\n",
+					"sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+					"\r\n",
+					"columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fromDate', 'toDate', 'isCurrent')]\r\n",
+					"sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"#sdf = sdf.withColumn(f\"sk{table_name}\", F.col(f\"id{table_name}\"))\r\n",
+					"\r\n",
+					"# Supongamos que ya tienes tu DataFrame 'sdf' y el DeltaTable 'delta_table'\r\n",
 					"if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
 					"    delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
 					"    \r\n",
-					"    # Ahora, asegurarte de que surrogate_key está presente\r\n",
-					"    existing_columns = delta_table.toDF().columns\r\n",
+					"    # Verifica las columnas del DataFrame 'sdf'\r\n",
+					"    print(\"Columnas en sdf:\", sdf.columns)\r\n",
+					"    sdf = sdf.withColumn(f\"sk{table_name}\", F.expr(f\"row_number() over (order by (select null)) + {max_skWarehouse}\"))\r\n",
+					"    todas_las_columnas = sdf.columns\r\n",
+					"    columnas_al_principio = [f\"sk{table_name}\", f\"id{table_name}\"]\r\n",
+					"    columnas_al_final = [\"fromDate\", \"toDate\", \"isCurrent\", \"loadDate\", \"deltaDate\", \"hash\"]\r\n",
+					"    otras_columnas = [col for col in todas_las_columnas if col not in columnas_al_principio + columnas_al_final]\r\n",
+					"    nuevo_orden_columnas = columnas_al_principio + otras_columnas + columnas_al_final\r\n",
+					"    sdf = sdf.select(*nuevo_orden_columnas)\r\n",
 					"\r\n",
-					"    # Obtener la última surrogate key para crear nuevas\r\n",
-					"    last_surrogate_key = delta_table.toDF().agg(F.max(\"surrogate_key\")).collect()[0][0] or 0\r\n",
-					"    next_surrogate_key = last_surrogate_key + 1\r\n",
+					"    # Obtener el valor máximo de skWarehouse\r\n",
 					"    \r\n",
-					"    # Merge new data into existing table con lógica SCD Tipo 2\r\n",
+					"\r\n",
+					"    # Realiza el MERGE\r\n",
 					"    delta_table.alias(\"existing\").merge(\r\n",
 					"        source=sdf.alias(\"updates\"),\r\n",
-					"        condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])\r\n",
+					"        condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])  # claves para la coincidencia\r\n",
 					"    ).whenMatchedUpdate(\r\n",
-					"        condition=\"existing.isCurrent = 1 AND existing.hash != updates.hash\",\r\n",
+					"        condition=\"existing.isCurrent = 1 AND existing.hash != updates.hash\",  # solo actualizar si es actual y hay un cambio\r\n",
 					"        set={\r\n",
-					"            \"toDate\": F.current_date(),\r\n",
-					"            \"isCurrent\": F.lit(0)\r\n",
+					"            \"toDate\": F.current_date(),  # Establecer la fecha de fin\r\n",
+					"            \"isCurrent\": F.lit(0)  # Marcar como no actual\r\n",
+					"        }\r\n",
+					"    ).whenMatchedInsert(\r\n",
+					"        values={\r\n",
+					"            **{col: F.col(f\"updates.{col}\") for col in sdf.columns},  # Insertar todas las columnas del nuevo registro\r\n",
 					"        }\r\n",
 					"    ).whenNotMatchedInsert(\r\n",
 					"        values={\r\n",
-					"            \"surrogate_key\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
-					"            **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
+					"            **{col: F.col(f\"updates.{col}\") for col in sdf.columns},  # Insertar todas las columnas del nuevo registro\r\n",
 					"        }\r\n",
 					"    ).execute()\r\n",
 					"\r\n",
-					"else:\r\n",
-					"    # Crear nueva tabla Delta\r\n",
-					"    last_surrogate_key = 0  # Iniciar con 0 si la tabla no existe\r\n",
-					"    sdf = sdf.withColumn(\"surrogate_key\", F.monotonically_increasing_id() + last_surrogate_key + 1)  # Asigna un valor único a cada fila.\r\n",
-					"    \r\n",
-					"    # Añadir las columnas necesarias\r\n",
-					"    sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit('1990-01-01 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
-					"    sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
-					"    sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
-					"\r\n",
-					"    # Crear la tabla Delta\r\n",
-					"    sdf.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
-					"\r\n",
-					"    spark.sql(f'CREATE TABLE IF NOT EXISTS gold.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
-					"    spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
-					"    spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name')\")\r\n",
-					"\r\n",
-					"    # Almacenar archivo procesado correctamente\r\n",
-					"    file_result['status'] = 'Correcto'\r\n",
-					"    file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
-					"    file_result['updated_rows'] = 0\r\n",
-					"    correct_files.append(file['name'])\r\n",
+					"    # Asegúrate de que los nuevos registros se insertan correctamente después del MERGE\r\n",
+					"    delta_table.alias(\"existing\").merge(\r\n",
+					"        source=sdf.alias(\"updates\"),\r\n",
+					"        condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])  # claves para la coincidencia\r\n",
+					"    ).whenMatchedUpdate(\r\n",
+					"        condition=\"existing.isCurrent = 0 AND existing.hash != updates.hash\",  # actualizar si el registro ya no es actual\r\n",
+					"        set={\r\n",
+					"            \"toDate\": F.current_date(),  # Fecha de fin para el registro existente\r\n",
+					"            \"isCurrent\": F.lit(0)  # Marcar como no actual\r\n",
+					"        }\r\n",
+					"    ).whenNotMatchedInsert(\r\n",
+					"        values={\r\n",
+					"            **{col: F.col(f\"updates.{col}\") for col in sdf.columns}  # Insertar todas las columnas del nuevo registro\r\n",
+					"        }\r\n",
+					"    ).execute()\r\n",
 					""
 				],
-				"execution_count": 34
+				"execution_count": 4
 			},
 			{
 				"cell_type": "code",
@@ -455,9 +491,9 @@
 				"source": [
 					"from pyspark.sql import functions as F\r\n",
 					"from delta.tables import DeltaTable\r\n",
-					"spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")\r\n",
+					"#spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")\r\n",
 					"# Variable para la fecha de carga\r\n",
-					"fecha_delta = '20241012'\r\n",
+					"#fecha_delta = '20241012'\r\n",
 					"\r\n",
 					"# Inicializar listas para almacenar resultados\r\n",
 					"results = []\r\n",
@@ -476,6 +512,12 @@
 					"\r\n",
 					"    try:\r\n",
 					"        table_name = file[\"name\"].split('_')[0]\r\n",
+					"        ource_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
+					"        key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
+					"\r\n",
+					"        key_columns = key_columns_str.split(',')\r\n",
+					"        conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+					"\r\n",
 					"        delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/{table_name}\"\r\n",
 					"\r\n",
 					"        # Leer archivo(s) en DataFrame de Spark\r\n",
@@ -503,7 +545,7 @@
 					"            existing_columns = delta_table.toDF().columns\r\n",
 					"            \r\n",
 					"            # Obtener la última surrogate key para crear nuevas\r\n",
-					"            last_surrogate_key = delta_table.toDF().agg(F.max(\"surrogate_key\")).collect()[0][0] or 0\r\n",
+					"            last_surrogate_key = delta_table.toDF().agg(F.max(f\"sk{table_name}\")).collect()[0][0] or 0\r\n",
 					"            next_surrogate_key = last_surrogate_key + 1\r\n",
 					"            \r\n",
 					"            # Merge new data into existing table con lógica SCD Tipo 2\r\n",
@@ -516,16 +558,21 @@
 					"                    \"toDate\": F.current_date(),\r\n",
 					"                    \"isCurrent\": F.lit(0)\r\n",
 					"                }\r\n",
+					"            ).whenMatchedInsert(\r\n",
+					"                values={\r\n",
+					"                    f\"sk{table_name}\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
+					"                    **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
+					"                }\r\n",
 					"            ).whenNotMatchedInsert(\r\n",
 					"                values={\r\n",
-					"                    \"surrogate_key\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
+					"                    f\"sk{table_name}\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
 					"                    **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
 					"                }\r\n",
 					"            ).execute()\r\n",
 					"\r\n",
 					"            # Almacenar conteos de filas\r\n",
 					"            file_result['status'] = 'Correcto'\r\n",
-					"            history_df = spark.sql(f\"DESCRIBE HISTORY gold.{table_name}\")\r\n",
+					"            history_df = spark.sql(f\"DESCRIBE HISTORY gold.dim_{table_name}\")\r\n",
 					"            last_merge_operation = history_df.filter(history_df.operation == 'MERGE').orderBy(F.desc(\"timestamp\")).limit(1)\r\n",
 					"            last_result = last_merge_operation.collect()\r\n",
 					"\r\n",
@@ -534,33 +581,42 @@
 					"\r\n",
 					"            correct_files.append(file['name'])\r\n",
 					"\r\n",
-					"        else:\r\n",
-					"\r\n",
-					"            spark.sql(f'DROP TABLE IF EXISTS gold.{table_name}')\r\n",
-					"\r\n",
-					"            # Crear nueva tabla Delta\r\n",
+					"        else: # Crear nueva tabla Delta\r\n",
+					"      \r\n",
 					"            last_surrogate_key = 0  # Iniciar con 0 si la tabla no existe\r\n",
-					"            sdf = sdf.withColumn(\"surrogate_key\", F.monotonically_increasing_id() + last_surrogate_key + 1)  # Asigna un valor único a cada fila.\r\n",
-					"            #sdf.write.format('delta').save(delta_table_path)\r\n",
-					"\r\n",
-					"\r\n",
+					"            #sdf = sdf.withColumn(f\"sk{table_name}\", F.monotonically_increasing_id() + last_surrogate_key + 1)  # Asigna un valor único a cada fila.\r\n",
+					"            sdf = sdf.withColumn(f\"sk{table_name}\", F.col(f\"id{table_name}\"))\r\n",
+					"            # Añadir las columnas necesarias\r\n",
 					"            sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit('1990-01-01 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
-					"\r\n",
-					"            #sdf = sdf.withColumn(\"toDate\", lit(fecha_delta))  # Establecer fechaDelta\r\n",
 					"            sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
-					"\r\n",
-					"            #sdf = sdf.withColumn(\"isCurrent\", lit(fecha_delta))  # Establecer fechaDelta\r\n",
 					"            sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
 					"\r\n",
-					"            columns_to_hash = [col for col in sdf.columns if col not in ('surrogate_key,fechaCarga', 'fechaDelta','fromDate', 'toDate', 'isCurrent')]\r\n",
+					"            # Hash\r\n",
+					"            columns_to_hash = [col for col in sdf.columns if col not in (f\"sk{table_name}\" ,'fechaCarga', 'fechaDelta','fromDate', 'toDate', 'isCurrent')]\r\n",
 					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
-					"            sdf.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
 					"\r\n",
+					"            # Reorganizar la estructura de la tabla\r\n",
+					"            todas_las_columnas = sdf.columns\r\n",
+					"            columnas_al_principio = [f\"sk{table_name}\", f\"id{table_name}\"]\r\n",
+					"            columnas_al_final = [\"fromDate\", \"toDate\", \"isCurrent\", \"loadDate\", \"deltaDate\", \"hash\"]\r\n",
+					"            otras_columnas = [col for col in todas_las_columnas if col not in columnas_al_principio + columnas_al_final]\r\n",
+					"            nuevo_orden_columnas = columnas_al_principio + otras_columnas + columnas_al_final\r\n",
+					"            sdf_reordenado = sdf.select(*nuevo_orden_columnas)\r\n",
+					"            \r\n",
+					"            # Crear la tabla Delta\r\n",
+					"            sdf_reordenado.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
+					"            \r\n",
 					"\r\n",
+					"            #sdf.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
 					"\r\n",
-					"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
-					"            spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
-					"            spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name')\")\r\n",
+					"            #sdf.repartition(4).write.mode('overwrite').saveAsTable(f\"gold.{table_name}\")\r\n",
+					"\r\n",
+					"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.dim_{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+					"            spark.sql(f\"ALTER TABLE gold.dim_{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+					"            #spark.sql(f\"ALTER TABLE gold.dim_{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name', 'delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+					"            spark.sql(f\"ALTER TABLE gold.dim_{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+					"\r\n",
+					"            #spark.sql(f\"ALTER TABLE gold.dim_{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name')\")\r\n",
 					"\r\n",
 					"            # Almacenar archivo procesado correctamente\r\n",
 					"            file_result['status'] = 'Correcto'\r\n",
@@ -600,7 +656,7 @@
 					"print(\"Archivos incorrectos:\", incorrect_files_variable)\r\n",
 					""
 				],
-				"execution_count": 36
+				"execution_count": 5
 			},
 			{
 				"cell_type": "code",
@@ -616,27 +672,9 @@
 					}
 				},
 				"source": [
-					"print(delta_table_path)"
+					"spark.sql(f\"ALTER TABLE gold.dim_warehouse SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name')\")"
 				],
-				"execution_count": 6
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"spark.sql(\"DROP TABLE gold.warehouse\")"
-				],
-				"execution_count": 9
+				"execution_count": 45
 			},
 			{
 				"cell_type": "code",

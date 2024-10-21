@@ -2198,7 +2198,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "50893bd6-1b4c-4563-b7e4-a3cc38047646"
+						"spark.autotune.trackingId": "df3b73e3-0196-418d-9916-fc3ab8c5b294"
 					}
 				},
 				"metadata": {
@@ -2223,13 +2223,15 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"# Import modules\r\n",
 							"from delta.tables import DeltaTable\r\n",
@@ -2240,7 +2242,7 @@
 							""
 						],
 						"outputs": [],
-						"execution_count": 29
+						"execution_count": 30
 					},
 					{
 						"cell_type": "code",
@@ -2256,10 +2258,10 @@
 							}
 						},
 						"source": [
-							"spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")"
+							"#spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")"
 						],
 						"outputs": [],
-						"execution_count": 22
+						"execution_count": 31
 					},
 					{
 						"cell_type": "code",
@@ -2275,11 +2277,32 @@
 							}
 						},
 						"source": [
-							"table_name = 'Client'\r\n",
+							"df = spark.sql('select * from gold.warehouse')\r\n",
+							"\r\n",
+							"df.show(20,False)"
+						],
+						"outputs": [],
+						"execution_count": 69
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"table_name = 'Tariff'\r\n",
 							"delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/{table_name}\""
 						],
 						"outputs": [],
-						"execution_count": 23
+						"execution_count": 65
 					},
 					{
 						"cell_type": "code",
@@ -2304,7 +2327,7 @@
 							""
 						],
 						"outputs": [],
-						"execution_count": 25
+						"execution_count": 66
 					},
 					{
 						"cell_type": "code",
@@ -3326,8 +3349,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "integer"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Nombre",
@@ -3339,8 +3361,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "codigoAlmacen",
@@ -3352,8 +3373,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "idPais",
@@ -3364,8 +3384,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "integer"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Ciudad",
@@ -3377,8 +3396,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Direccion",
@@ -3390,8 +3408,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Descripcion",
@@ -3403,8 +3420,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "fechaCarga",
@@ -3415,8 +3431,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "integer"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "fechaDelta",
@@ -3428,8 +3443,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									}
 								],
 								"Format": {
@@ -3497,8 +3511,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "integer"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Nombre",
@@ -3510,8 +3523,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "codigoAlmacen",
@@ -3523,8 +3535,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "idPais",
@@ -3535,8 +3546,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "integer"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Ciudad",
@@ -3548,8 +3558,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Direccion",
@@ -3561,8 +3570,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "Descripcion",
@@ -3574,8 +3582,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "fechaCarga",
@@ -3586,8 +3593,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "integer"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									},
 									{
 										"Name": "fechaDelta",
@@ -3599,8 +3605,7 @@
 											"Properties": {
 												"HIVE_TYPE_STRING": "string"
 											}
-										},
-										"DeltaFormatInvalidMessages": []
+										}
 									}
 								],
 								"Format": {

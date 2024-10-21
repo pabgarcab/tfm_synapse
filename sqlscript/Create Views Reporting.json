@@ -1,0 +1,17 @@
+{
+	"name": "Create Views Reporting",
+	"properties": {
+		"content": {
+			"query": "-- ==============================================================================\n-- Vistas de la capa Gold para el informe\n-- ==============================================================================\n\n-- CREATE OR ALTER VIEW fact.Sales AS \n-- SELECT *\n-- FROM gold.dbo.fact_Sales\n\nCREATE OR ALTER VIEW dim.Articles AS\nSELECT  skarticles, \n        idarticles, \n        name, \n        description, \n        externalCode, \n        size, \n        numSize, \n        colour, \n        category, \n        codLine, \n        line, \n        season\nFROM gold.dbo.dim_articles\n\nCREATE OR ALTER VIEW dim.Client AS\nSELECT *\nFROM gold.dbo.dim_client\n\nCREATE OR ALTER VIEW dim.Currency AS\nSELECT *\nFROM gold.dbo.dim_currency\n\nCREATE OR ALTER VIEW dim.Date AS\nSELECT *\nFROM gold.dbo.dim_date\n\nCREATE OR ALTER VIEW dim.Hours AS\nSELECT *\nFROM gold.dbo.dim_hours\n\nCREATE OR ALTER VIEW dim.OperationType AS\nSELECT *\nFROM gold.dbo.dim_operationtype\n\nCREATE OR ALTER VIEW dim.PostalCode AS\nSELECT *\nFROM gold.dbo.dim_postalcode\n\nCREATE OR ALTER VIEW dim.Tariff AS\nSELECT *\nFROM gold.dbo.dim_tariff\n\nCREATE OR ALTER VIEW dim.Warehouse AS\nSELECT *\nFROM gold.dbo.dim_warehouse",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "ReportingDB",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

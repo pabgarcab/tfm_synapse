@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "719e8400-b5b9-4200-807d-f28f89a6d5c5"
+				"spark.autotune.trackingId": "84e12230-3bc0-4728-a1bc-5a318c1440b3"
 			}
 		},
 		"metadata": {
@@ -59,7 +59,7 @@
 					"from pyspark.sql import functions as F\r\n",
 					""
 				],
-				"execution_count": 2
+				"execution_count": 4
 			},
 			{
 				"cell_type": "code",
@@ -72,16 +72,55 @@
 						"transient": {
 							"deleting": false
 						}
-					},
-					"microsoft": {
-						"language": "python"
 					}
 				},
 				"source": [
-					"%%pyspark\r\n",
-					"spark.sql(\"DROP DATABASE IF EXISTS gold CASCADE\")"
+					"spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")"
 				],
-				"execution_count": 4
+				"execution_count": 22
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"table_name = 'Client'\r\n",
+					"delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/{table_name}\""
+				],
+				"execution_count": 23
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#spark.sql(\"DROP DATABASE IF EXISTS gold CASCADE\")\r\n",
+					"\r\n",
+					"\r\n",
+					"spark.sql(f'CREATE TABLE IF NOT EXISTS gold.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+					"spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+					"spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name', 'delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+					""
+				],
+				"execution_count": 25
 			},
 			{
 				"cell_type": "code",
@@ -323,7 +362,7 @@
 					"\r\n",
 					""
 				],
-				"execution_count": 16
+				"execution_count": 26
 			},
 			{
 				"cell_type": "code",
@@ -373,8 +412,6 @@
 					"        key_columns = key_columns_str.split(',')\r\n",
 					"        conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
 					"        #conditions_list = key_columns\r\n",
-					"\r\n",
-					"        #key_columns = key_columns_str.split(',')\r\n",
 					"\r\n",
 					"        # # Convert array with keys to where-clause for merge statement\r\n",
 					"        #conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
@@ -456,7 +493,7 @@
 					"            #file_result['updated_rows'] = merge_result.get('numTargetRowsUpdated', 0)  # Filas actualizadas\r\n",
 					"            #file_result['updated_rows'] = merge_result.numTargetRowsUpdated # Filas actualizadas\r\n",
 					"\r\n",
-					"            history_df = spark.sql(f\"DESCRIBE HISTORY default.{table_name}\")\r\n",
+					"            history_df = spark.sql(f\"DESCRIBE HISTORY gold.{table_name}\")\r\n",
 					"\r\n",
 					"            # Filtrar solo las operaciones de tipo MERGE y seleccionar las métricas\r\n",
 					"            merge_operations = history_df.filter(history_df.operation == 'MERGE').select(\r\n",
@@ -571,7 +608,7 @@
 					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
 					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
 				],
-				"execution_count": 47
+				"execution_count": 28
 			},
 			{
 				"cell_type": "code",

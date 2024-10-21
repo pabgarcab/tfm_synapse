@@ -8,9 +8,6 @@
 		"asa-tfm-pgc-WorkspaceDefaultSqlServer_connectionString": {
 			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:asa-tfm-pgc.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
 		},
-		"ls_ADLG2_Bronze_Landing_accountKey": {
-			"value": ""
-		},
 		"ls_COLI_ERP_password": {
 			"value": ""
 		},

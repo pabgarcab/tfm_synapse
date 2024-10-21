@@ -2178,6 +2178,26 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 2')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) * FROM [gold].[dbo].[client]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "gold",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/LoadSCD2AndFact')]",
 			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
@@ -2198,7 +2218,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "df3b73e3-0196-418d-9916-fc3ab8c5b294"
+						"spark.autotune.trackingId": "edaca146-8240-45f9-a302-7bf2ff5732e0"
 					}
 				},
 				"metadata": {
@@ -2242,26 +2262,7 @@
 							""
 						],
 						"outputs": [],
-						"execution_count": 30
-					},
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
-							"#spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")"
-						],
-						"outputs": [],
-						"execution_count": 31
+						"execution_count": 10
 					},
 					{
 						"cell_type": "code",
@@ -2282,7 +2283,7 @@
 							"df.show(20,False)"
 						],
 						"outputs": [],
-						"execution_count": 69
+						"execution_count": 37
 					},
 					{
 						"cell_type": "code",
@@ -2327,7 +2328,7 @@
 							""
 						],
 						"outputs": [],
-						"execution_count": 66
+						"execution_count": 32
 					},
 					{
 						"cell_type": "code",
@@ -2526,7 +2527,7 @@
 							"    "
 						],
 						"outputs": [],
-						"execution_count": 34
+						"execution_count": 35
 					},
 					{
 						"cell_type": "code",
@@ -2571,7 +2572,7 @@
 							""
 						],
 						"outputs": [],
-						"execution_count": 26
+						"execution_count": 14
 					},
 					{
 						"cell_type": "code",
@@ -2587,7 +2588,283 @@
 							}
 						},
 						"source": [
+							"# Supongamos que ya has definido 'sdf' y que contiene tus datos iniciales.\r\n",
 							"\r\n",
+							"# Asegúrate de que la surrogate key se genere correctamente\r\n",
+							"sdf = sdf.withColumn(\"surrogate_key\", F.monotonically_increasing_id())  # Genera surrogate_key\r\n",
+							"\r\n",
+							"# Comprobar si la tabla Delta existe\r\n",
+							"if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+							"    delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+							"    \r\n",
+							"    # Ahora, asegurarte de que surrogate_key está presente\r\n",
+							"    existing_columns = delta_table.toDF().columns\r\n",
+							"\r\n",
+							"    # Obtener la última surrogate key para crear nuevas\r\n",
+							"    last_surrogate_key = delta_table.toDF().agg(F.max(\"surrogate_key\")).collect()[0][0] or 0\r\n",
+							"    next_surrogate_key = last_surrogate_key + 1\r\n",
+							"    \r\n",
+							"    # Merge new data into existing table con lógica SCD Tipo 2\r\n",
+							"    delta_table.alias(\"existing\").merge(\r\n",
+							"        source=sdf.alias(\"updates\"),\r\n",
+							"        condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])\r\n",
+							"    ).whenMatchedUpdate(\r\n",
+							"        condition=\"existing.isCurrent = 1 AND existing.hash != updates.hash\",\r\n",
+							"        set={\r\n",
+							"            \"toDate\": F.current_date(),\r\n",
+							"            \"isCurrent\": F.lit(0)\r\n",
+							"        }\r\n",
+							"    ).whenNotMatchedInsert(\r\n",
+							"        values={\r\n",
+							"            \"surrogate_key\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
+							"            **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
+							"        }\r\n",
+							"    ).execute()\r\n",
+							"\r\n",
+							"else:\r\n",
+							"    # Crear nueva tabla Delta\r\n",
+							"    last_surrogate_key = 0  # Iniciar con 0 si la tabla no existe\r\n",
+							"    sdf = sdf.withColumn(\"surrogate_key\", F.monotonically_increasing_id() + last_surrogate_key + 1)  # Asigna un valor único a cada fila.\r\n",
+							"    \r\n",
+							"    # Añadir las columnas necesarias\r\n",
+							"    sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit('1990-01-01 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"    sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"    sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+							"\r\n",
+							"    # Crear la tabla Delta\r\n",
+							"    sdf.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
+							"\r\n",
+							"    spark.sql(f'CREATE TABLE IF NOT EXISTS gold.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+							"    spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+							"    spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name')\")\r\n",
+							"\r\n",
+							"    # Almacenar archivo procesado correctamente\r\n",
+							"    file_result['status'] = 'Correcto'\r\n",
+							"    file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
+							"    file_result['updated_rows'] = 0\r\n",
+							"    correct_files.append(file['name'])\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 34
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"from pyspark.sql import functions as F\r\n",
+							"from delta.tables import DeltaTable\r\n",
+							"spark.sql(\"CREATE DATABASE IF NOT EXISTS gold\")\r\n",
+							"# Variable para la fecha de carga\r\n",
+							"fecha_delta = '20241012'\r\n",
+							"\r\n",
+							"# Inicializar listas para almacenar resultados\r\n",
+							"results = []\r\n",
+							"correct_files = []\r\n",
+							"incorrect_files = []\r\n",
+							"exception = []\r\n",
+							"\r\n",
+							"for file in dimensionsList:\r\n",
+							"    file_result = {\r\n",
+							"        'file_name': file['name'],\r\n",
+							"        'status': 'Incorrecto',\r\n",
+							"        'inserted_rows': 0,\r\n",
+							"        'updated_rows': 0,\r\n",
+							"        'exception': 'N/A'\r\n",
+							"    }\r\n",
+							"\r\n",
+							"    try:\r\n",
+							"        table_name = file[\"name\"].split('_')[0]\r\n",
+							"        delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/{table_name}\"\r\n",
+							"\r\n",
+							"        # Leer archivo(s) en DataFrame de Spark\r\n",
+							"        df = spark.sql(file[\"query\"])\r\n",
+							"        sdf = df.cache()\r\n",
+							"\r\n",
+							"        if sdf.limit(1).count() == 0:\r\n",
+							"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
+							"            file_result['exception'] = \"Fichero vacio\"\r\n",
+							"            results.append(file_result)\r\n",
+							"            correct_files.append(file['name'])\r\n",
+							"            continue\r\n",
+							"\r\n",
+							"        # Añadir las columnas necesarias\r\n",
+							"        sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"        sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"        sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+							"\r\n",
+							"        columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fromDate', 'toDate', 'isCurrent')]\r\n",
+							"        sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"\r\n",
+							"        # Comprobar si la tabla Delta existe\r\n",
+							"        if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+							"            delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+							"            existing_columns = delta_table.toDF().columns\r\n",
+							"            \r\n",
+							"            # Obtener la última surrogate key para crear nuevas\r\n",
+							"            last_surrogate_key = delta_table.toDF().agg(F.max(\"surrogate_key\")).collect()[0][0] or 0\r\n",
+							"            next_surrogate_key = last_surrogate_key + 1\r\n",
+							"            \r\n",
+							"            # Merge new data into existing table con lógica SCD Tipo 2\r\n",
+							"            delta_table.alias(\"existing\").merge(\r\n",
+							"                source=sdf.alias(\"updates\"),\r\n",
+							"                condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])\r\n",
+							"            ).whenMatchedUpdate(\r\n",
+							"                condition=\"existing.isCurrent = 1 AND existing.hash != updates.hash\",\r\n",
+							"                set={\r\n",
+							"                    \"toDate\": F.current_date(),\r\n",
+							"                    \"isCurrent\": F.lit(0)\r\n",
+							"                }\r\n",
+							"            ).whenNotMatchedInsert(\r\n",
+							"                values={\r\n",
+							"                    \"surrogate_key\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
+							"                    **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
+							"                }\r\n",
+							"            ).execute()\r\n",
+							"\r\n",
+							"            # Almacenar conteos de filas\r\n",
+							"            file_result['status'] = 'Correcto'\r\n",
+							"            history_df = spark.sql(f\"DESCRIBE HISTORY gold.{table_name}\")\r\n",
+							"            last_merge_operation = history_df.filter(history_df.operation == 'MERGE').orderBy(F.desc(\"timestamp\")).limit(1)\r\n",
+							"            last_result = last_merge_operation.collect()\r\n",
+							"\r\n",
+							"            file_result['inserted_rows'] = last_result[0].operationMetrics[\"numTargetRowsInserted\"]\r\n",
+							"            file_result['updated_rows'] = last_result[0].operationMetrics[\"numTargetRowsUpdated\"]\r\n",
+							"\r\n",
+							"            correct_files.append(file['name'])\r\n",
+							"\r\n",
+							"        else:\r\n",
+							"\r\n",
+							"            spark.sql(f'DROP TABLE IF EXISTS gold.{table_name}')\r\n",
+							"\r\n",
+							"            # Crear nueva tabla Delta\r\n",
+							"            last_surrogate_key = 0  # Iniciar con 0 si la tabla no existe\r\n",
+							"            sdf = sdf.withColumn(\"surrogate_key\", F.monotonically_increasing_id() + last_surrogate_key + 1)  # Asigna un valor único a cada fila.\r\n",
+							"            #sdf.write.format('delta').save(delta_table_path)\r\n",
+							"\r\n",
+							"\r\n",
+							"            sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit('1990-01-01 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"\r\n",
+							"            #sdf = sdf.withColumn(\"toDate\", lit(fecha_delta))  # Establecer fechaDelta\r\n",
+							"            sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"\r\n",
+							"            #sdf = sdf.withColumn(\"isCurrent\", lit(fecha_delta))  # Establecer fechaDelta\r\n",
+							"            sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+							"\r\n",
+							"            columns_to_hash = [col for col in sdf.columns if col not in ('surrogate_key,fechaCarga', 'fechaDelta','fromDate', 'toDate', 'isCurrent')]\r\n",
+							"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"            sdf.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
+							"\r\n",
+							"\r\n",
+							"\r\n",
+							"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name')\")\r\n",
+							"\r\n",
+							"            # Almacenar archivo procesado correctamente\r\n",
+							"            file_result['status'] = 'Correcto'\r\n",
+							"            file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
+							"            file_result['updated_rows'] = 0\r\n",
+							"            correct_files.append(file['name'])\r\n",
+							"\r\n",
+							"    except Exception as e:\r\n",
+							"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
+							"        file_result['exception'] = f\"{e}\"\r\n",
+							"        results.append(file_result)\r\n",
+							"        incorrect_files.append(file['name'])\r\n",
+							"        continue\r\n",
+							"\r\n",
+							"    results.append(file_result)\r\n",
+							"\r\n",
+							"# Convertir resultados a DataFrame\r\n",
+							"results_df = spark.createDataFrame(results)\r\n",
+							"\r\n",
+							"# Ruta donde quieres guardar el archivo\r\n",
+							"output_path = \"/gold/Logs/log_prueba_20241020.txt\"\r\n",
+							"\r\n",
+							"print(\"======================\")\r\n",
+							"# Imprimir resultados en consola\r\n",
+							"for result in results:\r\n",
+							"    print(f\"Archivo: {result['file_name']}, Estado: {result['status']}, Filas insertadas: {result['inserted_rows']}, Filas actualizadas: {result['updated_rows']}, Excepción: {result['exception']}\")\r\n",
+							"\r\n",
+							"# Confirmación\r\n",
+							"print(f\"Resultados guardados en: {output_path}\")\r\n",
+							"\r\n",
+							"# Guardar nombres de archivos correctos e incorrectos en variables de la pipeline\r\n",
+							"correct_files_variable = correct_files\r\n",
+							"incorrect_files_variable = incorrect_files\r\n",
+							"\r\n",
+							"# Si necesitas ver las variables\r\n",
+							"print(\"Archivos correctos:\", correct_files_variable)\r\n",
+							"print(\"Archivos incorrectos:\", incorrect_files_variable)\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 36
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"print(delta_table_path)"
+						],
+						"outputs": [],
+						"execution_count": 6
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"spark.sql(\"DROP TABLE gold.warehouse\")"
+						],
+						"outputs": [],
+						"execution_count": 9
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# BK\r\n",
 							"#spark.sql(f'DROP TABLE Silver.{table_name}')\r\n",
 							"\r\n",
 							"#fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",

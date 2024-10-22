@@ -3,300 +3,16 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "UPSERT Silver",
-				"type": "ForEach",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
+				"name": "Get Metadata Landing",
+				"type": "GetMetadata",
 				"dependsOn": [
 					{
-						"activity": "Get Metadata Landing",
+						"activity": "ConnectionString",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					}
 				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('Get Metadata Landing').output.childItems",
-						"type": "Expression"
-					},
-					"isSequential": true,
-					"activities": [
-						{
-							"name": "Clean Landing",
-							"type": "Delete",
-							"dependsOn": [
-								{
-									"activity": "LandingToProcessed",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"dataset": {
-									"referenceName": "dsParquetRaw",
-									"type": "DatasetReference",
-									"parameters": {
-										"NombreFichero": {
-											"value": "@item().name",
-											"type": "Expression"
-										}
-									}
-								},
-								"enableLogging": false,
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": false,
-									"enablePartitionDiscovery": false
-								}
-							}
-						},
-						{
-							"name": "LandingToProcessed",
-							"type": "Copy",
-							"dependsOn": [
-								{
-									"activity": "MergeBronzeToSilver",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "ParquetSource",
-									"storeSettings": {
-										"type": "AzureBlobFSReadSettings",
-										"recursive": false,
-										"enablePartitionDiscovery": false
-									},
-									"formatSettings": {
-										"type": "ParquetReadSettings"
-									}
-								},
-								"sink": {
-									"type": "ParquetSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "ParquetWriteSettings"
-									}
-								},
-								"enableStaging": false,
-								"parallelCopies": 1,
-								"dataIntegrationUnits": 4,
-								"translator": {
-									"type": "TabularTranslator",
-									"typeConversion": true,
-									"typeConversionSettings": {
-										"allowDataTruncation": true,
-										"treatBooleanAsNumber": false
-									}
-								}
-							},
-							"inputs": [
-								{
-									"referenceName": "dsParquetRaw",
-									"type": "DatasetReference",
-									"parameters": {
-										"NombreFichero": {
-											"value": "@item().name",
-											"type": "Expression"
-										}
-									}
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "dsParquetProcessed",
-									"type": "DatasetReference",
-									"parameters": {
-										"NombreFichero": {
-											"value": "@item().name",
-											"type": "Expression"
-										},
-										"NombreCarpeta": {
-											"value": "@concat(\n    substring(item().name, 0, indexOf(item().name, '_')), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 1), 4), \n    '/', \n    substring(item().name, add(indexOf(item().name, '_'), 5), 2), \n    '/'\n)\n",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						},
-						{
-							"name": "MergeBronzeToSilver",
-							"type": "SynapseNotebook",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"notebook": {
-									"referenceName": "MergeLandingFilesToSilver",
-									"type": "NotebookReference"
-								},
-								"parameters": {
-									"data_lake_container": {
-										"value": {
-											"value": "@pipeline().parameters.ADLG2",
-											"type": "Expression"
-										},
-										"type": "string"
-									},
-									"bronze_folder": {
-										"value": {
-											"value": "@pipeline().parameters.BronzeFolderPending",
-											"type": "Expression"
-										},
-										"type": "string"
-									},
-									"table_name": {
-										"value": {
-											"value": "@substring(item().name, 0, indexOf(item().name, '_'))",
-											"type": "Expression"
-										},
-										"type": "string"
-									},
-									"silver_folder": {
-										"value": {
-											"value": "@pipeline().parameters.SilverFolder",
-											"type": "Expression"
-										},
-										"type": "string"
-									},
-									"source_wildcard": {
-										"value": {
-											"value": "@concat(substring(item().name, 0, indexOf(item().name, '_')), '*.parquet')",
-											"type": "Expression"
-										},
-										"type": "string"
-									},
-									"key_columns_str": {
-										"value": {
-											"value": "@concat('id',substring(item().name, 0, indexOf(item().name, '_')))",
-											"type": "Expression"
-										},
-										"type": "string"
-									}
-								},
-								"snapshot": true,
-								"sparkPool": {
-									"referenceName": "sparkTFM",
-									"type": "BigDataPoolReference"
-								},
-								"executorSize": "Small",
-								"conf": {
-									"spark.dynamicAllocation.enabled": false,
-									"spark.dynamicAllocation.minExecutors": 2,
-									"spark.dynamicAllocation.maxExecutors": 2
-								},
-								"driverSize": "Small",
-								"numExecutors": 2
-							}
-						},
-						{
-							"name": "PendingToError",
-							"type": "Copy",
-							"dependsOn": [
-								{
-									"activity": "MergeBronzeToSilver",
-									"dependencyConditions": [
-										"Failed"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"source": {
-									"type": "ParquetSource",
-									"storeSettings": {
-										"type": "AzureBlobFSReadSettings",
-										"recursive": false,
-										"enablePartitionDiscovery": false
-									},
-									"formatSettings": {
-										"type": "ParquetReadSettings"
-									}
-								},
-								"sink": {
-									"type": "ParquetSink",
-									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
-									},
-									"formatSettings": {
-										"type": "ParquetWriteSettings"
-									}
-								},
-								"enableStaging": false,
-								"parallelCopies": 1,
-								"dataIntegrationUnits": 4,
-								"translator": {
-									"type": "TabularTranslator",
-									"typeConversion": true,
-									"typeConversionSettings": {
-										"allowDataTruncation": true,
-										"treatBooleanAsNumber": false
-									}
-								}
-							},
-							"inputs": [
-								{
-									"referenceName": "dsParquetRaw",
-									"type": "DatasetReference",
-									"parameters": {
-										"NombreFichero": "@item().name"
-									}
-								}
-							],
-							"outputs": [
-								{
-									"referenceName": "dsParquetError",
-									"type": "DatasetReference",
-									"parameters": {
-										"NombreFichero": "@item().name",
-										"NombreCarpeta": "@concat(     substring(item().name, 0, indexOf(item().name, '_')),      '/',      substring(item().name, add(indexOf(item().name, '_'), 1), 4),      '/',      substring(item().name, add(indexOf(item().name, '_'), 5), 2),      '/' )"
-									}
-								}
-							]
-						}
-					]
-				}
-			},
-			{
-				"name": "Get Metadata Landing",
-				"type": "GetMetadata",
-				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -328,14 +44,7 @@
 				"type": "Delete",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "UPSERT Silver",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -387,7 +96,10 @@
 					},
 					"parameters": {
 						"data_lake_container": {
-							"value": "@pipeline().parameters.ADLG2"
+							"value": {
+								"value": "@pipeline().parameters.ADLG2",
+								"type": "Expression"
+							}
 						},
 						"bronze_folder": {
 							"value": {
@@ -401,6 +113,18 @@
 						"silver_folder": {
 							"value": {
 								"value": "@pipeline().parameters.SilverFolder",
+								"type": "Expression"
+							}
+						},
+						"LandingFiles": {
+							"value": {
+								"value": "@variables('LandingFiles')",
+								"type": "Expression"
+							}
+						},
+						"connection_string": {
+							"value": {
+								"value": "@variables('connString')",
 								"type": "Expression"
 							}
 						}
@@ -437,7 +161,63 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "ParquetFiles",
+					"variableName": "LandingFiles",
+					"value": {
+						"value": "[\"@activity('Get Metadata Landing').output.childItems\"]",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get ConnectionString",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFileName": "*",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "dsConfiguration",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ConnectionString",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get ConnectionString",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LandingFiles",
 					"value": {
 						"value": "[\"@activity('Get Metadata Landing').output.childItems\"]",
 						"type": "Expression"
@@ -464,7 +244,10 @@
 				"type": "String",
 				"defaultValue": "_SUCCESS"
 			},
-			"ParquetFiles": {
+			"LandingFiles": {
+				"type": "String"
+			},
+			"connString": {
 				"type": "String"
 			}
 		},

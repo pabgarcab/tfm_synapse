@@ -99,31 +99,36 @@
 							"value": {
 								"value": "@pipeline().parameters.ADLG2",
 								"type": "Expression"
-							}
+							},
+							"type": "string"
 						},
 						"bronze_folder": {
 							"value": {
 								"value": "@pipeline().parameters.BronzeFolderPending",
 								"type": "Expression"
-							}
+							},
+							"type": "string"
 						},
 						"silver_folder": {
 							"value": {
 								"value": "@pipeline().parameters.SilverFolder",
 								"type": "Expression"
-							}
+							},
+							"type": "string"
 						},
 						"LandingFiles": {
 							"value": {
 								"value": "@variables('LandingFiles')",
 								"type": "Expression"
-							}
+							},
+							"type": "string"
 						},
 						"connection_string": {
 							"value": {
 								"value": "@variables('connString')",
 								"type": "Expression"
-							}
+							},
+							"type": "string"
 						}
 					},
 					"snapshot": true,
@@ -242,8 +247,10 @@
 				"defaultValue": "_SUCCESS"
 			},
 			"LandingFiles": {
-				"type": "String",
-				"defaultValue": "a"
+				"type": "Array",
+				"defaultValue": [
+					"a"
+				]
 			},
 			"connString": {
 				"type": "String",

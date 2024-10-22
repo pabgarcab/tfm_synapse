@@ -107,9 +107,6 @@
 								"type": "Expression"
 							}
 						},
-						"table_name": {
-							"value": ""
-						},
 						"silver_folder": {
 							"value": {
 								"value": "@pipeline().parameters.SilverFolder",

@@ -103,6 +103,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"pipeline": {
+						"referenceName": "3 - Load SCD2 and Fact",
+						"type": "PipelineReference"
+					},
 					"waitOnCompletion": true
 				}
 			}

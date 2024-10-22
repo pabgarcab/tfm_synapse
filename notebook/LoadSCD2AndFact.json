@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6f434cf2-a064-454d-860b-cab4ea86e55a"
+				"spark.autotune.trackingId": "75e26c83-cfa4-4f35-91bc-d34fc6e084bf"
 			}
 		},
 		"metadata": {
@@ -480,6 +480,8 @@
 					"        delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Dimensions/{table_name}\"\r\n",
 					"\r\n",
 					"        # Leer archivo(s) en DataFrame de Spark\r\n",
+					"        # Meter filtro deltaDate\r\n",
+					"\r\n",
 					"        df = spark.sql(file[\"query\"])\r\n",
 					"        sdf = df.cache()\r\n",
 					"\r\n",
@@ -759,6 +761,24 @@
 					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
 				],
 				"execution_count": 9
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				],
+				"execution_count": null
 			},
 			{
 				"cell_type": "code",

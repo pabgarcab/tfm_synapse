@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "d7489a6a-b9ed-4ad3-97c0-100b6d9e2bd0"
+				"spark.autotune.trackingId": "1d0306a5-09a8-49a6-82f8-eb0cbb131773"
 			}
 		},
 		"metadata": {
@@ -51,20 +51,20 @@
 			{
 				"cell_type": "code",
 				"source": [
-					"# # path of the data lake container (bronze and silver for this example)\r\n",
-					"# data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
-					"# # The ingestion folder where your parquet file are located\r\n",
-					"# bronze_folder = 'bronze/Landing'\r\n",
-					"# # The silver folder where your Delta Tables will be stored\r\n",
-					"# silver_folder = 'silver'\r\n",
-					"# # The name of the table\r\n",
-					"# table_name = 'color'\r\n",
-					"# # The wildcard filter used within the bronze folder to find files\r\n",
-					"# source_wildcard = 'color*.parquet'\r\n",
-					"# # A comma separated string of one or more key columns (for the merge)\r\n",
-					"# key_columns_str = 'idColor'"
+					"# path of the data lake container (bronze and silver for this example)\r\n",
+					"data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
+					"# The ingestion folder where your parquet file are located\r\n",
+					"bronze_folder = 'bronze/Landing/Pending'\r\n",
+					"# The silver folder where your Delta Tables will be stored\r\n",
+					"silver_folder = 'silver/DeltaTables'\r\n",
+					"# The name of the table\r\n",
+					"#table_name = 'color'\r\n",
+					"# The wildcard filter used within the bronze folder to find files\r\n",
+					"#source_wildcard = 'color*.parquet'\r\n",
+					"# A comma separated string of one or more key columns (for the merge)\r\n",
+					"#key_columns_str = 'idColor'"
 				],
-				"execution_count": 1
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -77,17 +77,21 @@
 						"transient": {
 							"deleting": false
 						}
-					}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
 				},
 				"source": [
-					"# %%sql\r\n",
-					"# USE default;\r\n",
-					"# DROP DATABASE  silver CASCADE ;\r\n",
-					"# USE default;\r\n",
-					"# CREATE DATABASE IF NOT EXISTS silver;\r\n",
-					"# USE silver;"
+					"%%sql\r\n",
+					"-- USE default;\r\n",
+					"-- DROP DATABASE  silver CASCADE ;\r\n",
+					"-- USE default;\r\n",
+					"-- CREATE DATABASE IF NOT EXISTS silver;\r\n",
+					"-- USE silver;"
 				],
-				"execution_count": null
+				"execution_count": 10
 			},
 			{
 				"cell_type": "markdown",
@@ -124,7 +128,7 @@
 					"from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient\r\n",
 					"import re"
 				],
-				"execution_count": 3
+				"execution_count": 11
 			},
 			{
 				"cell_type": "markdown",
@@ -153,9 +157,83 @@
 					}
 				},
 				"source": [
+					"LandingFiles = [\r\n",
+					"    [\r\n",
+					"        {\r\n",
+					"            \"name\": \"almacenes_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"articulos_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"categoria_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"codigoPostal_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"color_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"divisa_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"fechas_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"horas_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"linea_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"pais_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"talla_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"tarifa_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"tipoOperacion_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        }\r\n",
+					"    ]\r\n",
+					"]\r\n",
+					""
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
 					"# Fecha actual en formato yyyymmdd\r\n",
 					"#fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
-					"fecha_delta = '20241010'\r\n",
+					"fecha_delta = '20241008'\r\n",
 					"\r\n",
 					"# Inicializar listas para almacenar resultados\r\n",
 					"results = []\r\n",
@@ -163,7 +241,7 @@
 					"incorrect_files = []\r\n",
 					"\r\n",
 					"for file in LandingFiles[0]:\r\n",
-					"    file_result = {\r\n",
+					"    file_result = {  # OPCIONAL: añadir timestamp\r\n",
 					"        'file_name': file['name'],\r\n",
 					"        'status': 'Incorrecto',\r\n",
 					"        'inserted_rows': 0,\r\n",
@@ -243,9 +321,11 @@
 					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
 					"            sdf.write.format('delta').save(delta_table_path)\r\n",
 					"\r\n",
-					"            spark.sql(f'CREATE TABLE IF NOT EXISTS Silver.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
-					"            spark.sql(f\"ALTER TABLE silver.{table_name} SET TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported', 'delta.columnMapping.mode' = 'name', 'delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+					"            spark.sql(f'CREATE TABLE IF NOT EXISTS silver.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+					"            spark.sql(f\"ALTER TABLE silver.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+					"            spark.sql(f\"ALTER TABLE silver.{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
 					"\r\n",
+					"        \r\n",
 					"            # Almacenar archivo procesado correctamente\r\n",
 					"            file_result['status'] = 'Correcto'\r\n",
 					"            file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
@@ -268,7 +348,7 @@
 					"output_path = \"/ruta/en/tu/datalake/results.txt\"  # Cambia esta ruta según tu configuración\r\n",
 					"\r\n",
 					"# Escribir los resultados en un archivo TXT\r\n",
-					"results_df.coalesce(1).write.mode('overwrite').text(output_path)\r\n",
+					"#results_df.coalesce(1).write.mode('overwrite').text(output_path)\r\n",
 					"\r\n",
 					"print(f\"Resultados guardados en: {output_path}\")\r\n",
 					"\r\n",
@@ -284,7 +364,7 @@
 					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
 					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
 				],
-				"execution_count": null
+				"execution_count": 13
 			},
 			{
 				"cell_type": "markdown",

@@ -242,10 +242,12 @@
 				"defaultValue": "_SUCCESS"
 			},
 			"LandingFiles": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "a"
 			},
 			"connString": {
-				"type": "String"
+				"type": "String",
+				"defaultValue": "a"
 			}
 		},
 		"annotations": []

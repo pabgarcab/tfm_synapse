@@ -1977,7 +1977,7 @@
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
 				"content": {
-					"query": "-- ==============================================================================\n-- Vistas de la capa Gold para el informe\n-- ==============================================================================\n\n-- CREATE OR ALTER VIEW fact.Sales AS \n-- SELECT *\n-- FROM gold.dbo.fact_Sales\n\nCREATE OR ALTER VIEW dim.Articles AS\nSELECT  skarticles, \n        idarticles, \n        name, \n        description, \n        externalCode, \n        size, \n        numSize, \n        colour, \n        category, \n        codLine, \n        line, \n        season\nFROM gold.dbo.dim_articles\n\nCREATE OR ALTER VIEW dim.Client AS\nSELECT *\nFROM gold.dbo.dim_client\n\nCREATE OR ALTER VIEW dim.Currency AS\nSELECT *\nFROM gold.dbo.dim_currency\n\nCREATE OR ALTER VIEW dim.Date AS\nSELECT *\nFROM gold.dbo.dim_date\n\nCREATE OR ALTER VIEW dim.Hours AS\nSELECT *\nFROM gold.dbo.dim_hours\n\nCREATE OR ALTER VIEW dim.OperationType AS\nSELECT *\nFROM gold.dbo.dim_operationtype\n\nCREATE OR ALTER VIEW dim.PostalCode AS\nSELECT *\nFROM gold.dbo.dim_postalcode\n\nCREATE OR ALTER VIEW dim.Tariff AS\nSELECT *\nFROM gold.dbo.dim_tariff\n\nCREATE OR ALTER VIEW dim.Warehouse AS\nSELECT *\nFROM gold.dbo.dim_warehouse",
+					"query": "-- ==============================================================================\n-- Vistas de la capa Gold para el informe\n-- ==============================================================================\n\n-- Arreglar dateop en noteboobk\n\nCREATE OR ALTER VIEW fact.Sales AS \nSELECT  s.skSales,\n        s.idSales,\n        s.idArticles,\n        COALESCE(a.skArticles, -1) AS skArticles,\n        s.idWarehouse,\n        COALESCE(w.skWarehouse, -1) AS skWarehouse,\n        s.idClient,\n        COALESCE(cl.skClient, -1) AS skClient, \n        s.idPostalCode,\n        COALESCE(p.skPostalCode, -1) AS skPostalCode, \n        s.idCurrency,\n        COALESCE(cu.skCurrency, -1) AS skCurrency,\n        s.idTariff,\n        COALESCE(t.skTariff, -1) AS skTariff, \n        s.idOperationType,\n        COALESCE(o.skOperationType, -1) AS skOperationType,\n        s.idHours,\n        COALESCE(h.skHours, -1) AS skHours,\n        s.idDate,\n        COALESCE(d.skDate, -1) AS skDate,\n        s.date,\n        s.dateOp,\n        s.ticketNumber,\n        s.quantity,\n        s.unitPrice,\n        s.unitCost,\n        s.amtTotalEuros,\n        s.amtNetEuros,\n        s.amtTotalEurosDiscount,\n        s.amtNetEurosDiscount,\n        s.discountSale,\n        s.amtTotalDiscount,\n        s.amtNetDiscount,\n        s.loadDate,\n        s.deltaDate\nFROM gold.dbo.fact_Sales AS s\nLEFT JOIN [gold].[dbo].[dim_Articles] AS a\n    ON s.idArticles = a.idArticles AND s.dateOp BETWEEN a.fromDate AND a.toDate\nLEFT JOIN [gold].[dbo].[dim_Client] AS cl\n    ON s.idClient = cl.idClient AND s.dateOp BETWEEN cl.fromDate AND cl.toDate\nLEFT JOIN [gold].[dbo].[dim_Currency] AS cu\n    ON s.idCurrency = cu.idCurrency AND s.dateOp BETWEEN cu.fromDate AND cu.toDate\nLEFT JOIN [gold].[dbo].[dim_Date] AS d\n    ON s.idDate = d.idDate AND s.dateOp BETWEEN d.fromDate AND d.toDate\nLEFT JOIN [gold].[dbo].[dim_Hours] AS h\n    ON s.idHours = h.idHours AND s.dateOp BETWEEN h.fromDate AND h.toDate\nLEFT JOIN [gold].[dbo].[dim_OperationType] AS o\n    ON s.idOperationType = o.idOperationType AND s.dateOp BETWEEN o.fromDate AND o.toDate\nLEFT JOIN [gold].[dbo].[dim_PostalCode] AS p\n    ON s.idPostalCode = p.idPostalCode AND s.dateOp BETWEEN p.fromDate AND p.toDate\nLEFT JOIN [gold].[dbo].[dim_Tariff] AS t\n    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate\nLEFT JOIN [gold].[dbo].[dim_Warehouse] AS w\n    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\n\n\nCREATE OR ALTER VIEW dbo.Articles AS\nSELECT  skarticles, \n        idarticles, \n        name, \n        description, \n        externalCode, \n        size, \n        numSize, \n        colour, \n        category, \n        codLine, \n        line, \n        season\nFROM gold.dbo.dbo_articles\n\nCREATE OR ALTER VIEW dbo.Client AS\nSELECT *\nFROM gold.dbo.dbo_client\n\nCREATE OR ALTER VIEW dbo.Currency AS\nSELECT *\nFROM gold.dbo.dbo_currency\n\nCREATE OR ALTER VIEW dbo.Date AS\nSELECT *\nFROM gold.dbo.dbo_date\n\nCREATE OR ALTER VIEW dbo.Hours AS\nSELECT *\nFROM gold.dbo.dbo_hours\n\nCREATE OR ALTER VIEW dbo.OperationType AS\nSELECT *\nFROM gold.dbo.dbo_operationtype\n\nCREATE OR ALTER VIEW dbo.PostalCode AS\nSELECT *\nFROM gold.dbo.dbo_postalcode\n\nCREATE OR ALTER VIEW dbo.Tariff AS\nSELECT *\nFROM gold.dbo.dbo_tariff\n\nCREATE OR ALTER VIEW dbo.Warehouse AS\nSELECT *\nFROM gold.dbo.dbo_warehouse",
 					"metadata": {
 						"language": "sql"
 					},
@@ -2250,7 +2250,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "70022c8d-8c92-4d53-9a98-fd5fde88c130"
+						"spark.autotune.trackingId": "6f434cf2-a064-454d-860b-cab4ea86e55a"
 					}
 				},
 				"metadata": {
@@ -2287,11 +2287,11 @@
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
 							"from pyspark.sql.functions import when, lit, current_date, date_format,concat_ws,xxhash64,current_timestamp\r\n",
-							"from pyspark.sql import SparkSession\r\n",
+							"from pyspark.sql import SparkSession,Window\r\n",
 							"from pyspark.sql import functions as F"
 						],
 						"outputs": [],
-						"execution_count": 33
+						"execution_count": 1
 					},
 					{
 						"cell_type": "code",
@@ -2305,18 +2305,15 @@
 									"deleting": false
 								}
 							},
-							"microsoft": {
-								"language": "sparksql"
-							},
 							"collapsed": false
 						},
 						"source": [
-							"%%sql\r\n",
-							"USE default;\r\n",
-							"DROP DATABASE  gold CASCADE ;\r\n",
-							"USE default;\r\n",
-							"CREATE DATABASE IF NOT EXISTS gold;\r\n",
-							"USE gold;"
+							"# %%sql\r\n",
+							"# USE default;\r\n",
+							"# DROP DATABASE  gold CASCADE ;\r\n",
+							"# USE default;\r\n",
+							"# CREATE DATABASE IF NOT EXISTS gold;\r\n",
+							"# USE gold;"
 						],
 						"outputs": [],
 						"execution_count": 4
@@ -2333,18 +2330,15 @@
 									"deleting": false
 								}
 							},
-							"microsoft": {
-								"language": "sparksql"
-							},
 							"collapsed": false
 						},
 						"source": [
-							"%%sql\r\n",
-							"USE gold;\r\n",
-							"DROP TABLE IF EXISTS dim_warehouse;"
+							"# %%sql\r\n",
+							"# USE gold;\r\n",
+							"# DROP TABLE IF EXISTS fact_Sales;"
 						],
 						"outputs": [],
-						"execution_count": 42
+						"execution_count": 7
 					},
 					{
 						"cell_type": "code",
@@ -2368,14 +2362,15 @@
 							"                        d.idArticulo AS idArticles,\r\n",
 							"                        c.idAlmacen AS idWarehouse,\r\n",
 							"                        c.idCliente AS idClient,\r\n",
-							"                        c.idCodigoPostal AS idPostalCodes,\r\n",
+							"                        c.idCodigoPostal AS idPostalCode,\r\n",
 							"                        c.idDivisa AS idCurrency,\r\n",
 							"                        c.idTarifa AS idTariff,\r\n",
 							"                        c.idTipoOperacion AS idOperationType,\r\n",
 							"                        c.idHora AS idHours,\r\n",
 							"                        c.idFecha AS idDate,\r\n",
 							"                        f.fecha AS  date,\r\n",
-							"                        CAST(CAST(f.fecha AS nvarchar(10)) + ' ' + h.horaCompleta AS datetime2)AS dateOp,\r\n",
+							"                        CAST(CAST(f.fecha AS string) + ' ' + h.horaCompleta AS TIMESTAMP)AS dateOp,\r\n",
+							"                        -- CAST(CONCAT(CAST(f.fecha AS STRING), ' ', CAST(h.horaCompleta AS STRING)) AS TIMESTAMP) AS dateOp\r\n",
 							"                        COALESCE(c.codigoTicket, 'D') AS ticketNumber,\r\n",
 							"                        COALESCE(d.Cantidad, 0) AS quantity,\r\n",
 							"                        COALESCE(d.PrecioUnitario, 0)  AS unitPrice,\r\n",
@@ -2401,14 +2396,14 @@
 							"                    LEFT JOIN default.Fechas  AS f\r\n",
 							"                        On f.idFechas = c.idFecha\r\n",
 							"                    LEFT JOIN default.horas  AS h\r\n",
-							"                        On h.idHoras = c.idHora BY idArticulos\r\n",
+							"                        On h.idHoras = c.idHora\r\n",
 							"                    ORDER BY idDesgloseVenta\r\n",
 							"                     \"\"\"\r\n",
 							"        }\r\n",
 							"    ]"
 						],
 						"outputs": [],
-						"execution_count": null
+						"execution_count": 2
 					},
 					{
 						"cell_type": "code",
@@ -2663,6 +2658,19 @@
 						"execution_count": 11
 					},
 					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"**Load SCD2 Dimensions**"
+						]
+					},
+					{
 						"cell_type": "code",
 						"metadata": {
 							"jupyter": {
@@ -2676,7 +2684,7 @@
 							}
 						},
 						"source": [
-							"# Inicializar listas para almacenar resultados\r\n",
+							"# Carga o Merge Dimensiones\r\n",
 							"results = []\r\n",
 							"correct_files = []\r\n",
 							"incorrect_files = []\r\n",
@@ -2701,7 +2709,7 @@
 							"            continue\r\n",
 							"\r\n",
 							"        table_name = file[\"name\"].split('_')[0]\r\n",
-							"        ource_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
+							"        source_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
 							"        key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
 							"\r\n",
 							"        key_columns = key_columns_str.split(',')\r\n",
@@ -2755,33 +2763,6 @@
 							"                WHERE existing.{key_columns_str} IS NULL OR existing.isCurrent = 0 OR existing.hash != updates.hash\r\n",
 							"            \"\"\")\r\n",
 							"\r\n",
-							"\r\n",
-							"        # # Comprobar si la tabla Delta existe\r\n",
-							"        # if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
-							"        #     delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
-							"        #     existing_columns = delta_table.toDF().columns\r\n",
-							"            \r\n",
-							"        #     # Obtener la última surrogate key para crear nuevas\r\n",
-							"        #     last_surrogate_key = delta_table.toDF().agg(F.max(f\"sk{table_name}\")).collect()[0][0] or 0\r\n",
-							"        #     next_surrogate_key = last_surrogate_key + 1\r\n",
-							"            \r\n",
-							"        #     # Merge new data into existing table con lógica SCD Tipo 2\r\n",
-							"        #     delta_table.alias(\"existing\").merge(\r\n",
-							"        #         source=sdf.alias(\"updates\"),\r\n",
-							"        #         condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])\r\n",
-							"        #     ).whenMatchedUpdate(\r\n",
-							"        #         condition=\"existing.isCurrent = 1 AND existing.hash != updates.hash\",\r\n",
-							"        #         set={\r\n",
-							"        #             \"toDate\": F.current_date(),\r\n",
-							"        #             \"isCurrent\": F.lit(0)\r\n",
-							"        #         }\r\n",
-							"        #     ).whenNotMatchedInsert(\r\n",
-							"        #         values={\r\n",
-							"        #             f\"sk{table_name}\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
-							"        #             **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
-							"        #         }\r\n",
-							"        #     ).execute()\r\n",
-							"\r\n",
 							"            # Almacenar conteos de filas\r\n",
 							"            file_result['status'] = 'Correcto'\r\n",
 							"            history_df = spark.sql(f\"DESCRIBE HISTORY gold.dim_{table_name}\")\r\n",
@@ -2817,11 +2798,6 @@
 							"            \r\n",
 							"            # Crear la tabla Delta\r\n",
 							"            sdf_reordenado.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
-							"            \r\n",
-							"\r\n",
-							"            #sdf.write.format('delta').partitionBy(\"isCurrent\").save(delta_table_path)\r\n",
-							"\r\n",
-							"            #sdf.repartition(4).write.mode('overwrite').saveAsTable(f\"gold.{table_name}\")\r\n",
 							"\r\n",
 							"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.dim_{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
 							"            spark.sql(f\"ALTER TABLE gold.dim_{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
@@ -2870,6 +2846,203 @@
 						],
 						"outputs": [],
 						"execution_count": 32
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"**Load Fact Table**"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Carga FULL tabla/s de hechos\r\n",
+							"\r\n",
+							"# Inicializar listas para almacenar resultados\r\n",
+							"results = []\r\n",
+							"correct_files = []\r\n",
+							"incorrect_files = []\r\n",
+							"exception = []\r\n",
+							"\r\n",
+							"\r\n",
+							"for file in factList:\r\n",
+							"    file_result = {\r\n",
+							"        'file_name': file['name'],\r\n",
+							"        'status': 'Incorrecto',\r\n",
+							"        'inserted_rows': 0,\r\n",
+							"        'updated_rows': 0,\r\n",
+							"        'exception': 'N/A'\r\n",
+							"    }\r\n",
+							"    table_name = file[\"name\"].split('_')[0]\r\n",
+							"\r\n",
+							"    # Definir la ruta de la tabla Delta\r\n",
+							"    delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Fact/{table_name}\"\r\n",
+							"    df = spark.sql(file[\"query\"])\r\n",
+							"    sdf = df.cache()\r\n",
+							"\r\n",
+							"    try:\r\n",
+							"        # Leer el archivo CSV en un DataFrame de Spark\r\n",
+							"        #sdf = spark.read.csv(f\"gs://your-bucket/{file['name']}\", header=True, inferSchema=True)\r\n",
+							"\r\n",
+							"        # Verificar si el DataFrame está vacío\r\n",
+							"        if sdf.count() == 0:\r\n",
+							"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
+							"            file_result['exception'] = \"Fichero vacio\"\r\n",
+							"            results.append(file_result)\r\n",
+							"            correct_files.append(file['name'])\r\n",
+							"            continue\r\n",
+							"\r\n",
+							"        # Añadir columnas necesarias\r\n",
+							"        # sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss')) \\\r\n",
+							"        #          .withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss')) \\\r\n",
+							"        #          .withColumn(\"isCurrent\", F.lit(1))\r\n",
+							"\r\n",
+							"        # Truncar la tabla Delta si existe\r\n",
+							"        if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+							"            delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+							"            delta_table.delete()  # Truncar la tabla Delta\r\n",
+							"\r\n",
+							"            sdf.createOrReplaceTempView(\"temp_view\")\r\n",
+							"            spark.sql(f\"\"\"\r\n",
+							"                    INSERT INTO gold.fact_{table_name}\r\n",
+							"                     SELECT\r\n",
+							"                        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
+							"                        -1, \r\n",
+							"                            CAST('1990-01-01' AS timestamp), CAST('1990-01-01' AS timestamp),\r\n",
+							"                        'D', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
+							"                        19900101,19900101 \r\n",
+							"            \"\"\")\r\n",
+							"            spark.sql(f\"\"\"\r\n",
+							"                INSERT INTO gold.fact_{table_name}  \r\n",
+							"                SELECT ROW_NUMBER() OVER(ORDER BY dateOP), t.* from temp_view as t\r\n",
+							"                \"\"\")\r\n",
+							"        else:\r\n",
+							"\r\n",
+							"            window_spec = Window.orderBy(\"dateOp\", \"idArticles\")\r\n",
+							"            sdf = sdf.withColumn(f\"sk{table_name}\", F.row_number().over(window_spec))\r\n",
+							"            todas_las_columnas = sdf.columns\r\n",
+							"            columnas_al_principio = [f\"sk{table_name}\"]  # Suponiendo que la tabla tiene una columna idWarehouse\r\n",
+							"            otras_columnas = [col for col in todas_las_columnas if col not in columnas_al_principio]\r\n",
+							"            nuevo_orden_columnas = columnas_al_principio + otras_columnas\r\n",
+							"            sdf = sdf.select(*nuevo_orden_columnas)\r\n",
+							"\r\n",
+							"        # Cargar datos en la tabla Delta\r\n",
+							"            sdf.write.format(\"delta\").mode(\"overwrite\").save(delta_table_path)\r\n",
+							"        #sdf.write.format(\"delta\").mode(\"append\").save(delta_table_path)  # valorar carga incremental más adelante\r\n",
+							"\r\n",
+							"            # Crear la tabla Delta en caso de que no exista\r\n",
+							"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.fact_{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.fact_{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.fact_{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+							"            spark.sql(f\"\"\"\r\n",
+							"                    INSERT INTO gold.fact_{table_name}\r\n",
+							"                     SELECT\r\n",
+							"                        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
+							"                        -1,\r\n",
+							"                        CAST('1990-01-01' AS timestamp), CAST('1990-01-01' AS timestamp),\r\n",
+							"                        'D', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
+							"                        19900101,19900101 \r\n",
+							"            \"\"\")\r\n",
+							"        # Almacenar conteos de filas\r\n",
+							"        file_result['status'] = 'Correcto'\r\n",
+							"        file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
+							"        correct_files.append(file['name'])\r\n",
+							"\r\n",
+							"    except Exception as e:\r\n",
+							"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
+							"        file_result['exception'] = f\"{e}\"\r\n",
+							"        results.append(file_result)\r\n",
+							"        incorrect_files.append(file['name'])\r\n",
+							"        continue\r\n",
+							"\r\n",
+							"    results.append(file_result)\r\n",
+							"\r\n",
+							"# Convertir resultados a DataFrame\r\n",
+							"results_df = spark.createDataFrame(results)\r\n",
+							"\r\n",
+							"# Ruta donde quieres guardar el archivo\r\n",
+							"output_path = \"/gold/Logs/log_prueba_truncado_carga.txt\"\r\n",
+							"\r\n",
+							"print(\"======================\")\r\n",
+							"# Imprimir resultados en consola\r\n",
+							"for result in results:\r\n",
+							"    print(f\"Archivo: {result['file_name']}, Estado: {result['status']}, Filas insertadas: {result['inserted_rows']}, Filas actualizadas: {result['updated_rows']}, Excepción: {result['exception']}\")\r\n",
+							"\r\n",
+							"# Confirmación\r\n",
+							"print(f\"Resultados guardados en: {output_path}\")\r\n",
+							"\r\n",
+							"# Guardar nombres de archivos correctos e incorrectos en variables de la pipeline\r\n",
+							"correct_files_variable = correct_files\r\n",
+							"incorrect_files_variable = incorrect_files\r\n",
+							"\r\n",
+							"# Si necesitas ver las variables\r\n",
+							"print(\"Archivos correctos:\", correct_files_variable)\r\n",
+							"print(\"Archivos incorrectos:\", incorrect_files_variable)"
+						],
+						"outputs": [],
+						"execution_count": 9
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"        # # Comprobar si la tabla Delta existe\r\n",
+							"        # if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+							"        #     delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+							"        #     existing_columns = delta_table.toDF().columns\r\n",
+							"            \r\n",
+							"        #     # Obtener la última surrogate key para crear nuevas\r\n",
+							"        #     last_surrogate_key = delta_table.toDF().agg(F.max(f\"sk{table_name}\")).collect()[0][0] or 0\r\n",
+							"        #     next_surrogate_key = last_surrogate_key + 1\r\n",
+							"            \r\n",
+							"        #     # Merge new data into existing table con lógica SCD Tipo 2\r\n",
+							"        #     delta_table.alias(\"existing\").merge(\r\n",
+							"        #         source=sdf.alias(\"updates\"),\r\n",
+							"        #         condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])\r\n",
+							"        #     ).whenMatchedUpdate(\r\n",
+							"        #         condition=\"existing.isCurrent = 1 AND existing.hash != updates.hash\",\r\n",
+							"        #         set={\r\n",
+							"        #             \"toDate\": F.current_date(),\r\n",
+							"        #             \"isCurrent\": F.lit(0)\r\n",
+							"        #         }\r\n",
+							"        #     ).whenNotMatchedInsert(\r\n",
+							"        #         values={\r\n",
+							"        #             f\"sk{table_name}\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
+							"        #             **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
+							"        #         }\r\n",
+							"        #     ).execute()\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": null
 					}
 				]
 			},

@@ -42,7 +42,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "3 - SilverToSCD2",
+						"referenceName": "2 - BronzeToSilver",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true

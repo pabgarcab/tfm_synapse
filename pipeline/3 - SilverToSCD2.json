@@ -5,6 +5,8 @@
 			{
 				"name": "Delete Dimensions Folders",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Load SCD Dimensions",
@@ -37,6 +39,8 @@
 			{
 				"name": "Delete SCD2 Folders",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -62,6 +66,8 @@
 			{
 				"name": "Load SCD Dimensions",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Delete SCD2 Folders",
@@ -92,6 +98,8 @@
 			{
 				"name": "Load Gold Dimensions",
 				"type": "SqlServerStoredProcedure",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Delete Dimensions Folders",
@@ -118,6 +126,42 @@
 						"DBName": "GoldenlessDWH"
 					}
 				}
+			},
+			{
+				"name": "LoadSCDandFact",
+				"type": "SynapseNotebook",
+				"dependsOn": [
+					{
+						"activity": "Lookup deltaDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"snapshot": true
+				}
+			},
+			{
+				"name": "Lookup deltaDate",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": []
 			}
 		],
 		"annotations": [],

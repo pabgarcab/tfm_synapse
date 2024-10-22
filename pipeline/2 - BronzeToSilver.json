@@ -5,6 +5,8 @@
 			{
 				"name": "UPSERT Silver",
 				"type": "ForEach",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Get Metadata Landing",
@@ -324,6 +326,8 @@
 			{
 				"name": "Delete SUCCESS File",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "UPSERT Silver",
@@ -356,6 +360,46 @@
 						"enablePartitionDiscovery": false
 					}
 				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata Landing",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": []
+			},
+			{
+				"name": "Notebook1",
+				"type": "SynapseNotebook",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"snapshot": true
+				}
 			}
 		],
 		"parameters": {
@@ -370,6 +414,9 @@
 			"SilverFolder": {
 				"type": "string",
 				"defaultValue": "silver/DeltaSTG"
+			},
+			"LandingFiles": {
+				"type": "array"
 			}
 		},
 		"variables": {

@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "75e26c83-cfa4-4f35-91bc-d34fc6e084bf"
+				"spark.autotune.trackingId": "ca1c8df2-f648-44bb-b276-c23ba69d9042"
 			}
 		},
 		"metadata": {
@@ -454,11 +454,13 @@
 					"\r\n",
 					"for file in dimensionsList:\r\n",
 					"    file_result = {\r\n",
+					"        'table_name': file[\"name\"].split('_')[0]\r\n",
 					"        'file_name': file['name'],\r\n",
 					"        'status': 'Incorrecto',\r\n",
 					"        'inserted_rows': 0,\r\n",
 					"        'updated_rows': 0,\r\n",
-					"        'exception': 'N/A'\r\n",
+					"        'exception': 'N/A',\r\n",
+					"        'datetime': GETDATE()\r\n",
 					"    }\r\n",
 					"\r\n",
 					"    try:\r\n",

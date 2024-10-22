@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "1d0306a5-09a8-49a6-82f8-eb0cbb131773"
+				"spark.autotune.trackingId": "880cd0d7-4415-4e61-8699-3d5bdb0d7f60"
 			}
 		},
 		"metadata": {
@@ -126,7 +126,8 @@
 					"from pyspark.sql.functions import when, lit, current_date, date_format, concat_ws, xxhash64\r\n",
 					"from pyspark.sql import SparkSession\r\n",
 					"from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient\r\n",
-					"import re"
+					"import re\r\n",
+					"import datetime"
 				],
 				"execution_count": 11
 			},
@@ -239,6 +240,13 @@
 					"results = []\r\n",
 					"correct_files = []\r\n",
 					"incorrect_files = []\r\n",
+					"\r\n",
+					"\r\n",
+					"import datetime;\r\n",
+					"\r\n",
+					"# ct stores current time\r\n",
+					"ct = datetime.datetime.now()\r\n",
+					"print(&quot;current time:-&quot;, ct)\r\n",
 					"\r\n",
 					"for file in LandingFiles[0]:\r\n",
 					"    file_result = {  # OPCIONAL: añadir timestamp\r\n",

@@ -320,7 +320,7 @@
 						"type": "SynapseNotebook",
 						"dependsOn": [
 							{
-								"activity": "Landing Files",
+								"activity": "LandingFiles",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -392,7 +392,7 @@
 						}
 					},
 					{
-						"name": "Landing Files",
+						"name": "LandingFiles",
 						"type": "SetVariable",
 						"dependsOn": [
 							{
@@ -920,7 +920,7 @@
 						"type": "SynapseNotebook",
 						"dependsOn": [
 							{
-								"activity": "Search ActiveForLoad",
+								"activity": "tablesToLoad",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -986,10 +986,38 @@
 								}
 							}
 						}
+					},
+					{
+						"name": "tablesToLoad",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Search ActiveForLoad",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "tablesToLoad",
+							"value": [
+								""
+							]
+						}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"tablesToLoad": {
+						"type": "Array"
+					}
 				},
 				"annotations": []
 			},

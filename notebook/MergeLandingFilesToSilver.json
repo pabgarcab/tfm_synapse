@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "562274f9-b985-4595-949f-6a84d810d1e0"
+				"spark.autotune.trackingId": "f3715e5d-bdf3-4a9e-a0a8-4dc4bd84619f"
 			}
 		},
 		"metadata": {
@@ -264,7 +264,7 @@
 					"\r\n",
 					"# ct stores current time\r\n",
 					"ct = datetime.datetime.now()\r\n",
-					"print(&quot;current time:-&quot;, ct)\r\n",
+					"#print(&quot;current time:-&quot;, ct)\r\n",
 					"\r\n",
 					"for file in LandingFiles:\r\n",
 					"    file_result = {  # OPCIONAL: añadir timestamp\r\n",

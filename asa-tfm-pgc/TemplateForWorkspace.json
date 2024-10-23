@@ -282,7 +282,7 @@
 						"type": "GetMetadata",
 						"dependsOn": [
 							{
-								"activity": "ConnectionString",
+								"activity": "connectionString",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -320,7 +320,7 @@
 						"type": "SynapseNotebook",
 						"dependsOn": [
 							{
-								"activity": "LandingFiles",
+								"activity": "landingFiles",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -363,14 +363,14 @@
 								},
 								"LandingFiles": {
 									"value": {
-										"value": "@string(variables('LandingFiles'))",
+										"value": "@string(variables('landingFiles'))",
 										"type": "Expression"
 									},
 									"type": "string"
 								},
 								"connection_string": {
 									"value": {
-										"value": "@variables('connString')",
+										"value": "@variables('connectionString')",
 										"type": "Expression"
 									},
 									"type": "string"
@@ -392,7 +392,7 @@
 						}
 					},
 					{
-						"name": "LandingFiles",
+						"name": "landingFiles",
 						"type": "SetVariable",
 						"dependsOn": [
 							{
@@ -408,7 +408,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"variableName": "LandingFiles",
+							"variableName": "landingFiles",
 							"value": {
 								"value": "@activity('Get Metadata Landing').output.childItems",
 								"type": "Expression"
@@ -448,7 +448,7 @@
 						}
 					},
 					{
-						"name": "ConnectionString",
+						"name": "connectionString",
 						"type": "SetVariable",
 						"dependsOn": [
 							{
@@ -464,7 +464,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"variableName": "connString",
+							"variableName": "connectionString",
 							"value": {
 								"value": "@activity('Get ConnectionString').output.value[0].conn\n",
 								"type": "Expression"
@@ -490,13 +490,13 @@
 					}
 				},
 				"variables": {
-					"LandingFiles": {
+					"landingFiles": {
 						"type": "Array",
 						"defaultValue": [
 							"a"
 						]
 					},
-					"connString": {
+					"connectionString": {
 						"type": "String",
 						"defaultValue": "a"
 					}

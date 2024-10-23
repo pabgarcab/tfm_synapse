@@ -916,7 +916,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Notebook1",
+						"name": "LoadSCD2DimsAndFact",
 						"type": "SynapseNotebook",
 						"dependsOn": [
 							{
@@ -1144,7 +1144,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Execute Pipeline1",
+						"name": "1",
 						"type": "ExecutePipeline",
 						"dependsOn": [],
 						"policy": {
@@ -1161,11 +1161,11 @@
 						}
 					},
 					{
-						"name": "Execute Pipeline1_copy1",
+						"name": "2",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "Execute Pipeline1",
+								"activity": "1",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -1185,11 +1185,11 @@
 						}
 					},
 					{
-						"name": "Execute Pipeline1_copy3",
+						"name": "3",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "Execute Pipeline1_copy1",
+								"activity": "2",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -3105,7 +3105,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "a7d09eab-3ead-4f8f-8c2e-f772a56445b1"
+						"spark.autotune.trackingId": "00e1a5d0-4c5a-447d-abfc-0cfa7c02934f"
 					}
 				},
 				"metadata": {
@@ -3168,18 +3168,15 @@
 									"deleting": false
 								}
 							},
-							"microsoft": {
-								"language": "sparksql"
-							},
 							"collapsed": false
 						},
 						"source": [
-							"%%sql\r\n",
-							"-- USE default;\r\n",
-							"-- DROP DATABASE  silver CASCADE ;\r\n",
-							"-- USE default;\r\n",
-							"-- CREATE DATABASE IF NOT EXISTS silver;\r\n",
-							"-- USE silver;"
+							"# %%sql\r\n",
+							"# USE default;\r\n",
+							"# DROP DATABASE  silver CASCADE ;\r\n",
+							"# USE default;\r\n",
+							"# CREATE DATABASE IF NOT EXISTS silver;\r\n",
+							"# USE silver;"
 						],
 						"outputs": [],
 						"execution_count": 10

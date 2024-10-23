@@ -40,39 +40,10 @@
 				}
 			},
 			{
-				"name": "Delete SUCCESS File",
-				"type": "Delete",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"dataset": {
-						"referenceName": "dsConfiguration",
-						"type": "DatasetReference"
-					},
-					"enableLogging": false,
-					"storeSettings": {
-						"type": "AzureBlobFSReadSettings",
-						"recursive": true,
-						"wildcardFileName": {
-							"value": "@variables('ficheroEliminar')",
-							"type": "Expression"
-						},
-						"enablePartitionDiscovery": false
-					}
-				}
-			},
-			{
 				"name": "UPSERT to Silver",
 				"type": "SynapseNotebook",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Landing Files",
@@ -165,7 +136,7 @@
 				"typeProperties": {
 					"variableName": "LandingFiles",
 					"value": {
-						"value": "[\"@activity('Get Metadata Landing').output.childItems\"]",
+						"value": "@activity('Get Metadata Landing').output.childItems",
 						"type": "Expression"
 					}
 				}
@@ -188,7 +159,6 @@
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
-							"wildcardFileName": "*",
 							"enablePartitionDiscovery": false
 						},
 						"formatSettings": {
@@ -196,7 +166,7 @@
 						}
 					},
 					"dataset": {
-						"referenceName": "dsConfiguration",
+						"referenceName": "dsConnectionString",
 						"type": "DatasetReference"
 					},
 					"firstRowOnly": false
@@ -219,9 +189,9 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "LandingFiles",
+					"variableName": "connString",
 					"value": {
-						"value": "[\"@activity('Get Metadata Landing').output.childItems\"]",
+						"value": "@activity('Get ConnectionString').output.value[0].conn\n",
 						"type": "Expression"
 					}
 				}
@@ -242,10 +212,6 @@
 			}
 		},
 		"variables": {
-			"ficheroEliminar": {
-				"type": "String",
-				"defaultValue": "_SUCCESS"
-			},
 			"LandingFiles": {
 				"type": "Array",
 				"defaultValue": [

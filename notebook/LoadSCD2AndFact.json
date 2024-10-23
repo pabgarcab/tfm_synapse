@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "ca1c8df2-f648-44bb-b276-c23ba69d9042"
+				"spark.autotune.trackingId": "843d6079-a191-429c-9215-bdd80dd4e170"
 			}
 		},
 		"metadata": {
@@ -376,50 +376,6 @@
 				"execution_count": 6
 			},
 			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"dimensionsList = [ \r\n",
-					"        {\r\n",
-					"            \"name\": \"Warehouse\",\r\n",
-					"            \"query\": \"\"\"\r\n",
-					"                    SELECT  idAlmacenes AS idWarehouse,\r\n",
-					"                            COALESCE(a.Nombre, 'D') AS warehouse,\r\n",
-					"                            COALESCE(a.codigoAlmacen, 'D') AS externalCode,\r\n",
-					"                            COALESCE(p.codigoPais, 'D') AS countryCode, \r\n",
-					"                            COALESCE(p.nombre, 'D') AS country,\r\n",
-					"                            COALESCE(a.ciudad, 'D') AS city,\r\n",
-					"                            COALESCE(a.Direccion, 'D') AS address,\r\n",
-					"                            COALESCE(a.descripcion, 'D') AS description,\r\n",
-					"                            a.fechaCarga AS loadDate,\r\n",
-					"                            a.fechaDelta AS deltaDate\r\n",
-					"                    FROM default.almacenes AS a\r\n",
-					"                    LEFT JOIN default.pais AS p\r\n",
-					"                        ON p.idpais = a.idPais\r\n",
-					"                    --WHERE a.fechaDelta <> 20241011 and \r\n",
-					"                    where idAlmacenes = 4\r\n",
-					"                    --UNION \r\n",
-					"                    --select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
-					"                    UNION \r\n",
-					"                    select 14,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
-					"                    ORDER BY idWarehouse\r\n",
-					"                     \"\"\"\r\n",
-					"        }\r\n",
-					"    ]"
-				],
-				"execution_count": 11
-			},
-			{
 				"cell_type": "markdown",
 				"metadata": {
 					"nteract": {
@@ -687,15 +643,6 @@
 					"\r\n",
 					"            sdf.createOrReplaceTempView(\"temp_view\")\r\n",
 					"            spark.sql(f\"\"\"\r\n",
-					"                    INSERT INTO gold.fact_{table_name}\r\n",
-					"                     SELECT\r\n",
-					"                        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
-					"                        -1, \r\n",
-					"                            CAST('1990-01-01' AS timestamp), CAST('1990-01-01' AS timestamp),\r\n",
-					"                        'D', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
-					"                        19900101,19900101 \r\n",
-					"            \"\"\")\r\n",
-					"            spark.sql(f\"\"\"\r\n",
 					"                INSERT INTO gold.fact_{table_name}  \r\n",
 					"                SELECT ROW_NUMBER() OVER(ORDER BY dateOP), t.* from temp_view as t\r\n",
 					"                \"\"\")\r\n",
@@ -717,15 +664,7 @@
 					"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.fact_{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
 					"            spark.sql(f\"ALTER TABLE gold.fact_{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
 					"            spark.sql(f\"ALTER TABLE gold.fact_{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
-					"            spark.sql(f\"\"\"\r\n",
-					"                    INSERT INTO gold.fact_{table_name}\r\n",
-					"                     SELECT\r\n",
-					"                        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
-					"                        -1,\r\n",
-					"                        CAST('1990-01-01' AS timestamp), CAST('1990-01-01' AS timestamp),\r\n",
-					"                        'D', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,\r\n",
-					"                        19900101,19900101 \r\n",
-					"            \"\"\")\r\n",
+					"            \r\n",
 					"        # Almacenar conteos de filas\r\n",
 					"        file_result['status'] = 'Correcto'\r\n",
 					"        file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
@@ -765,6 +704,19 @@
 				"execution_count": 9
 			},
 			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Loockup sk en Tablas de hechos**"
+				]
+			},
+			{
 				"cell_type": "code",
 				"metadata": {
 					"jupyter": {
@@ -778,7 +730,62 @@
 					}
 				},
 				"source": [
-					""
+					"spark.sql(f\"\"\"\r\n",
+					"SELECT  s.skSales,\r\n",
+					"        s.idSales,\r\n",
+					"        s.idArticles,\r\n",
+					"        COALESCE(a.skArticles, -1) AS skArticles,\r\n",
+					"        s.idWarehouse,\r\n",
+					"        COALESCE(w.skWarehouse, -1) AS skWarehouse,\r\n",
+					"        s.idClient,\r\n",
+					"        COALESCE(cl.skClient, -1) AS skClient, \r\n",
+					"        s.idPostalCode,\r\n",
+					"        COALESCE(p.skPostalCode, -1) AS skPostalCode, \r\n",
+					"        s.idCurrency,\r\n",
+					"        COALESCE(cu.skCurrency, -1) AS skCurrency,\r\n",
+					"        s.idTariff,\r\n",
+					"        COALESCE(t.skTariff, -1) AS skTariff, \r\n",
+					"        s.idOperationType,\r\n",
+					"        COALESCE(o.skOperationType, -1) AS skOperationType,\r\n",
+					"        s.idHours,\r\n",
+					"        COALESCE(h.skHours, -1) AS skHours,\r\n",
+					"        s.idDate,\r\n",
+					"        COALESCE(d.skDate, -1) AS skDate,\r\n",
+					"        s.date,\r\n",
+					"        s.dateOp,\r\n",
+					"        s.ticketNumber,\r\n",
+					"        s.quantity,\r\n",
+					"        s.unitPrice,\r\n",
+					"        s.unitCost,\r\n",
+					"        s.amtTotalEuros,\r\n",
+					"        s.amtNetEuros,\r\n",
+					"        s.amtTotalEurosDiscount,\r\n",
+					"        s.amtNetEurosDiscount,\r\n",
+					"        s.discountSale,\r\n",
+					"        s.amtTotalDiscount,\r\n",
+					"        s.amtNetDiscount,\r\n",
+					"        s.loadDate,\r\n",
+					"        s.deltaDate\r\n",
+					"FROM gold.dbo.fact_Sales AS s\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_Articles] AS a\r\n",
+					"    ON s.idArticles = a.idArticles AND s.dateOp BETWEEN a.fromDate AND a.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_Client] AS cl\r\n",
+					"    ON s.idClient = cl.idClient AND s.dateOp BETWEEN cl.fromDate AND cl.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_Currency] AS cu\r\n",
+					"    ON s.idCurrency = cu.idCurrency AND s.dateOp BETWEEN cu.fromDate AND cu.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_Date] AS d\r\n",
+					"    ON s.idDate = d.idDate AND s.dateOp BETWEEN d.fromDate AND d.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_Hours] AS h\r\n",
+					"    ON s.idHours = h.idHours AND s.dateOp BETWEEN h.fromDate AND h.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_OperationType] AS o\r\n",
+					"    ON s.idOperationType = o.idOperationType AND s.dateOp BETWEEN o.fromDate AND o.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_PostalCode] AS p\r\n",
+					"    ON s.idPostalCode = p.idPostalCode AND s.dateOp BETWEEN p.fromDate AND p.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_Tariff] AS t\r\n",
+					"    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate\r\n",
+					"LEFT JOIN [gold].[dbo].[dim_Warehouse] AS w\r\n",
+					"    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\r\n",
+					"    \"\"\")"
 				],
 				"execution_count": null
 			},

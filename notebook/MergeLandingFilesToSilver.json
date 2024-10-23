@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "880cd0d7-4415-4e61-8699-3d5bdb0d7f60"
+				"spark.autotune.trackingId": "b6bcbf9f-eb75-416a-a6dd-575a6459438c"
 			}
 		},
 		"metadata": {
@@ -127,7 +127,8 @@
 					"from pyspark.sql import SparkSession\r\n",
 					"from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient\r\n",
 					"import re\r\n",
-					"import datetime"
+					"import datetime\r\n",
+					"import json"
 				],
 				"execution_count": 11
 			},
@@ -158,7 +159,7 @@
 					}
 				},
 				"source": [
-					"LandingFiles = [\r\n",
+					"LandingFiles = \r\n",
 					"    [\r\n",
 					"        {\r\n",
 					"            \"name\": \"almacenes_20241008.parquet\",\r\n",
@@ -213,10 +214,35 @@
 					"            \"type\": \"File\"\r\n",
 					"        }\r\n",
 					"    ]\r\n",
-					"]\r\n",
+					"\r\n",
 					""
 				],
 				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"array_as_string = json.dumps(LandingFiles)\r\n",
+					"# print(\"Array como cadena de texto:\")\r\n",
+					"# print(array_as_string)\r\n",
+					"\r\n",
+					"# Convertir la cadena de texto de vuelta a un array\r\n",
+					"LandingFiles = json.loads(array_as_string)\r\n",
+					"# print(\"\\nArray de vuelta al formato original:\")\r\n",
+					"# print(array_back_to_original)"
+				],
+				"execution_count": null
 			},
 			{
 				"cell_type": "code",
@@ -248,7 +274,7 @@
 					"ct = datetime.datetime.now()\r\n",
 					"print(&quot;current time:-&quot;, ct)\r\n",
 					"\r\n",
-					"for file in LandingFiles[0]:\r\n",
+					"for file in LandingFiles:\r\n",
 					"    file_result = {  # OPCIONAL: añadir timestamp\r\n",
 					"        'file_name': file['name'],\r\n",
 					"        'status': 'Incorrecto',\r\n",

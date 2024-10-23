@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "e2d802cd-0c13-4ad7-8548-207f91006eb1"
+				"spark.autotune.trackingId": "0eda4aff-ebb6-49ae-9010-d529a614d990"
 			}
 		},
 		"metadata": {
@@ -85,11 +85,11 @@
 				},
 				"source": [
 					"%%sql\r\n",
-					"USE default;\r\n",
-					"DROP DATABASE  silver CASCADE ;\r\n",
-					"USE default;\r\n",
-					"CREATE DATABASE IF NOT EXISTS silver;\r\n",
-					"USE silver;"
+					"-- USE default;\r\n",
+					"-- DROP DATABASE  silver CASCADE ;\r\n",
+					"-- USE default;\r\n",
+					"-- CREATE DATABASE IF NOT EXISTS silver;\r\n",
+					"-- USE silver;"
 				],
 				"execution_count": 10
 			},
@@ -231,12 +231,12 @@
 					}
 				},
 				"source": [
-					"array_as_string = json.dumps(LandingFiles)\r\n",
+					"LandingFiles = json.loads(LandingFiles)\r\n",
 					"# print(\"Array como cadena de texto:\")\r\n",
 					"# print(array_as_string)\r\n",
 					"\r\n",
 					"# Convertir la cadena de texto de vuelta a un array\r\n",
-					"LandingFiles = json.loads(array_as_string)\r\n",
+					"#LandingFiles = json.loads(array_as_string)\r\n",
 					"# print(\"\\nArray de vuelta al formato original:\")\r\n",
 					"# print(array_back_to_original)"
 				],

@@ -42,8 +42,6 @@
 			{
 				"name": "UPSERT to Silver",
 				"type": "SynapseNotebook",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Landing Files",
@@ -89,7 +87,7 @@
 						},
 						"LandingFiles": {
 							"value": {
-								"value": "@variables('LandingFiles')",
+								"value": "@string(variables('LandingFiles'))",
 								"type": "Expression"
 							},
 							"type": "string"

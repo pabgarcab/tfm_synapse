@@ -44,7 +44,7 @@
 				"type": "SynapseNotebook",
 				"dependsOn": [
 					{
-						"activity": "Landing Files",
+						"activity": "LandingFiles",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -116,7 +116,7 @@
 				}
 			},
 			{
-				"name": "Landing Files",
+				"name": "LandingFiles",
 				"type": "SetVariable",
 				"dependsOn": [
 					{

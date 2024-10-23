@@ -1172,7 +1172,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "1",
+						"name": "Load Bronze",
 						"type": "ExecutePipeline",
 						"dependsOn": [],
 						"policy": {
@@ -1189,11 +1189,11 @@
 						}
 					},
 					{
-						"name": "2",
+						"name": "Load Silver",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "1",
+								"activity": "Load Bronze",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -1205,7 +1205,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"pipeline": {
-								"referenceName": "2 - BronzeToSilver_old",
+								"referenceName": "2 - BronzeToSilver",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
@@ -1213,11 +1213,11 @@
 						}
 					},
 					{
-						"name": "3",
+						"name": "Load and Transform Gold",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "2",
+								"activity": "Load Silver",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -1229,7 +1229,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"pipeline": {
-								"referenceName": "3 - SilverToSCD2_old",
+								"referenceName": "3 - Load SCD2 and Fact",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
@@ -1244,8 +1244,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/pipelines/1 - SqlToLanding')]",
-				"[concat(variables('workspaceId'), '/pipelines/2 - BronzeToSilver_old')]",
-				"[concat(variables('workspaceId'), '/pipelines/3 - SilverToSCD2_old')]"
+				"[concat(variables('workspaceId'), '/pipelines/2 - BronzeToSilver')]",
+				"[concat(variables('workspaceId'), '/pipelines/3 - Load SCD2 and Fact')]"
 			]
 		},
 		{
@@ -2285,7 +2285,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "843d6079-a191-429c-9215-bdd80dd4e170"
+						"spark.autotune.trackingId": "6c87c448-e2a9-4067-ac46-db6d43244527"
 					}
 				},
 				"metadata": {
@@ -2326,7 +2326,7 @@
 							"from pyspark.sql import functions as F"
 						],
 						"outputs": [],
-						"execution_count": 1
+						"execution_count": 4
 					},
 					{
 						"cell_type": "code",
@@ -2351,7 +2351,7 @@
 							"# USE gold;"
 						],
 						"outputs": [],
-						"execution_count": 4
+						"execution_count": 2
 					},
 					{
 						"cell_type": "code",
@@ -2365,15 +2365,18 @@
 									"deleting": false
 								}
 							},
+							"microsoft": {
+								"language": "sparksql"
+							},
 							"collapsed": false
 						},
 						"source": [
-							"# %%sql\r\n",
-							"# USE gold;\r\n",
-							"# DROP TABLE IF EXISTS fact_Sales;"
+							"%%sql\r\n",
+							"USE gold;\r\n",
+							"DROP TABLE IF EXISTS fact_Sales;"
 						],
 						"outputs": [],
-						"execution_count": 7
+						"execution_count": 3
 					},
 					{
 						"cell_type": "code",
@@ -2404,8 +2407,7 @@
 							"                        c.idHora AS idHours,\r\n",
 							"                        c.idFecha AS idDate,\r\n",
 							"                        f.fecha AS  date,\r\n",
-							"                        CAST(CAST(f.fecha AS string) + ' ' + h.horaCompleta AS TIMESTAMP)AS dateOp,\r\n",
-							"                        -- CAST(CONCAT(CAST(f.fecha AS STRING), ' ', CAST(h.horaCompleta AS STRING)) AS TIMESTAMP) AS dateOp\r\n",
+							"                        CAST(CONCAT(DATE_FORMAT(f.fecha, 'yyyy-MM-dd'), ' ', h.horaCompleta) AS TIMESTAMP) AS dateOp,\r\n",
 							"                        COALESCE(c.codigoTicket, 'D') AS ticketNumber,\r\n",
 							"                        COALESCE(d.Cantidad, 0) AS quantity,\r\n",
 							"                        COALESCE(d.PrecioUnitario, 0)  AS unitPrice,\r\n",
@@ -2438,7 +2440,85 @@
 							"    ]"
 						],
 						"outputs": [],
-						"execution_count": 2
+						"execution_count": 5
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"df = spark.sql(f\"\"\"\r\n",
+							"                    SELECT  idDesgloseVenta AS idSales,\r\n",
+							"                        d.idArticulo AS idArticles,\r\n",
+							"                        c.idAlmacen AS idWarehouse,\r\n",
+							"                        c.idCliente AS idClient,\r\n",
+							"                        c.idCodigoPostal AS idPostalCode,\r\n",
+							"                        c.idDivisa AS idCurrency,\r\n",
+							"                        c.idTarifa AS idTariff,\r\n",
+							"                        c.idTipoOperacion AS idOperationType,\r\n",
+							"                        c.idHora AS idHours,\r\n",
+							"                        c.idFecha AS idDate,\r\n",
+							"                        f.fecha AS  date,\r\n",
+							"                        CAST(CONCAT(DATE_FORMAT(f.fecha, 'yyyy-MM-dd'), ' ', h.horaCompleta) AS TIMESTAMP) AS dateOp,\r\n",
+							"                        COALESCE(c.codigoTicket, 'D') AS ticketNumber,\r\n",
+							"                        COALESCE(d.Cantidad, 0) AS quantity,\r\n",
+							"                        COALESCE(d.PrecioUnitario, 0)  AS unitPrice,\r\n",
+							"                        COALESCE(d.CosteUnitario, 0)  AS unitCost,\r\n",
+							"                        COALESCE(d.importeBruto, 0)  AS amtTotalEuros,\r\n",
+							"                        COALESCE(d.importeNeto, 0)  AS amtNetEuros,\r\n",
+							"                        COALESCE(d.importeDescuento, 0)  AS amtTotalEurosDiscount,\r\n",
+							"                        COALESCE(d.importeNetoDescuento, 0) AS amtNetEurosDiscount,\r\n",
+							"                        CASE WHEN idTarifa IN (2,3) THEN 1\r\n",
+							"                            ELSE 0 \r\n",
+							"                        END AS discountSale,\r\n",
+							"                        CASE WHEN idTarifa = 0 THEN 0\r\n",
+							"                            ELSE (d.importeBruto - d.importeDescuento) \r\n",
+							"                        END AS amtTotalDiscount,\r\n",
+							"                        CASE WHEN idTarifa = 0 THEN 0 \r\n",
+							"                            ELSE (d.importeNeto - d.importeNetoDescuento) \r\n",
+							"                        END AS amtNetDiscount,\r\n",
+							"                        d.fechaCarga AS loadDate,\r\n",
+							"                        d.fechaDelta AS deltaDate\r\n",
+							"                    FROM default.desgloseVenta AS d\r\n",
+							"                    INNER JOIN default.cabeceraVenta AS c\r\n",
+							"                        ON d.idcabecerasVentas = c.idcabeceraVenta\r\n",
+							"                    LEFT JOIN default.Fechas  AS f\r\n",
+							"                        On f.idFechas = c.idFecha\r\n",
+							"                    LEFT JOIN default.horas  AS h\r\n",
+							"                        On h.idHoras = c.idHora\r\n",
+							"                    ORDER BY idDesgloseVenta\r\n",
+							"                     \"\"\")"
+						],
+						"outputs": [],
+						"execution_count": 22
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"df.show()"
+						],
+						"outputs": [],
+						"execution_count": 23
 					},
 					{
 						"cell_type": "code",
@@ -2975,7 +3055,7 @@
 							"print(\"Archivos incorrectos:\", incorrect_files_variable)"
 						],
 						"outputs": [],
-						"execution_count": 9
+						"execution_count": 6
 					},
 					{
 						"cell_type": "markdown",
@@ -2989,6 +3069,25 @@
 						"source": [
 							"**Loockup sk en Tablas de hechos**"
 						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"#caragr"
+						],
+						"outputs": [],
+						"execution_count": null
 					},
 					{
 						"cell_type": "code",

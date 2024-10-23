@@ -7,7 +7,7 @@
 				"type": "SynapseNotebook",
 				"dependsOn": [
 					{
-						"activity": "FInd table to Load",
+						"activity": "Search ActiveForLoad",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -42,7 +42,7 @@
 				}
 			},
 			{
-				"name": "FInd table to Load",
+				"name": "Search ActiveForLoad",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -66,8 +66,11 @@
 						}
 					},
 					"dataset": {
-						"referenceName": "dsConfiguration",
-						"type": "DatasetReference"
+						"referenceName": "csvConfiguration",
+						"type": "DatasetReference",
+						"parameters": {
+							"NombreCSV": "*"
+						}
 					}
 				}
 			}

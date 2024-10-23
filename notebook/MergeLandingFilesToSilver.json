@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "f96f5262-f1b2-442a-af7e-147793972cc3"
+				"spark.autotune.trackingId": "e2d802cd-0c13-4ad7-8548-207f91006eb1"
 			}
 		},
 		"metadata": {
@@ -85,11 +85,11 @@
 				},
 				"source": [
 					"%%sql\r\n",
-					"-- USE default;\r\n",
-					"-- DROP DATABASE  silver CASCADE ;\r\n",
-					"-- USE default;\r\n",
-					"-- CREATE DATABASE IF NOT EXISTS silver;\r\n",
-					"-- USE silver;"
+					"USE default;\r\n",
+					"DROP DATABASE  silver CASCADE ;\r\n",
+					"USE default;\r\n",
+					"CREATE DATABASE IF NOT EXISTS silver;\r\n",
+					"USE silver;"
 				],
 				"execution_count": 10
 			},

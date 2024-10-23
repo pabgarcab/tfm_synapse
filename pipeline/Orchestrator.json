@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "1",
+				"name": "Load Bronze",
 				"type": "ExecutePipeline",
 				"dependsOn": [],
 				"policy": {
@@ -19,11 +19,11 @@
 				}
 			},
 			{
-				"name": "2",
+				"name": "Load Silver",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "1",
+						"activity": "Load Bronze",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -35,18 +35,18 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "2 - BronzeToSilver_old",
+						"referenceName": "2 - BronzeToSilver",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
 				}
 			},
 			{
-				"name": "3",
+				"name": "Load and Transform Gold",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "2",
+						"activity": "Load Silver",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -58,7 +58,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "3 - SilverToSCD2_old",
+						"referenceName": "3 - Load SCD2 and Fact",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true

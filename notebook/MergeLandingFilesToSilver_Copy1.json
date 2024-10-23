@@ -1,0 +1,900 @@
+{
+	"name": "MergeLandingFilesToSilver_Copy1",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkTFM",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "a10e3ba1-286d-4453-8f8b-dec0810b74e9"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/7e84f9f8-73c5-4e82-9296-f2f3c4838394/resourceGroups/RG-TFM_MasterVerne_PGC/providers/Microsoft.Synapse/workspaces/asa-tfm-pgc/bigDataPools/sparkTFM",
+				"name": "sparkTFM",
+				"type": "Spark",
+				"endpoint": "https://asa-tfm-pgc.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkTFM",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.4",
+				"nodeCount": 3,
+				"cores": 4,
+				"memory": 28,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"# path of the data lake container (bronze and silver for this example)\r\n",
+					"data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
+					"# The ingestion folder where your parquet file are located\r\n",
+					"bronze_folder = 'bronze/Landing/Pending'\r\n",
+					"# The silver folder where your Delta Tables will be stored\r\n",
+					"silver_folder = 'silver/DeltaTables'\r\n",
+					"# The name of the table\r\n",
+					"#table_name = 'color'\r\n",
+					"# The wildcard filter used within the bronze folder to find files\r\n",
+					"#source_wildcard = 'color*.parquet'\r\n",
+					"# A comma separated string of one or more key columns (for the merge)\r\n",
+					"#key_columns_str = 'idColor'"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"-- USE default;\r\n",
+					"-- DROP DATABASE  silver CASCADE ;\r\n",
+					"-- USE default;\r\n",
+					"-- CREATE DATABASE IF NOT EXISTS silver;\r\n",
+					"-- USE silver;"
+				],
+				"execution_count": 10
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Carga de ficheros parquet Landing sobre tablas Delta capa Silver**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Import modules\r\n",
+					"from delta.tables import DeltaTable\r\n",
+					"from delta.tables import *\r\n",
+					"from pyspark.sql.functions import when, lit, current_date, date_format, concat_ws, xxhash64\r\n",
+					"from pyspark.sql import SparkSession\r\n",
+					"from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient\r\n",
+					"import re\r\n",
+					"import datetime\r\n",
+					"import json"
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Merge **desde** Landing a Silver**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"LandingFiles = \r\n",
+					"    [\r\n",
+					"        {\r\n",
+					"            \"name\": \"almacenes_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"articulos_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"categoria_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"codigoPostal_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"color_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"divisa_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"fechas_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"horas_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"linea_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"pais_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"talla_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"tarifa_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        },\r\n",
+					"        {\r\n",
+					"            \"name\": \"tipoOperacion_20241008.parquet\",\r\n",
+					"            \"type\": \"File\"\r\n",
+					"        }\r\n",
+					"    ]\r\n",
+					"\r\n",
+					""
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"array_as_string = json.dumps(LandingFiles)\r\n",
+					"# print(\"Array como cadena de texto:\")\r\n",
+					"# print(array_as_string)\r\n",
+					"\r\n",
+					"# Convertir la cadena de texto de vuelta a un array\r\n",
+					"LandingFiles = json.loads(array_as_string)\r\n",
+					"# print(\"\\nArray de vuelta al formato original:\")\r\n",
+					"# print(array_back_to_original)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Fecha actual en formato yyyymmdd\r\n",
+					"#fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
+					"fecha_delta = '20241008'\r\n",
+					"\r\n",
+					"# Inicializar listas para almacenar resultados\r\n",
+					"results = []\r\n",
+					"correct_files = []\r\n",
+					"incorrect_files = []\r\n",
+					"\r\n",
+					"\r\n",
+					"import datetime;\r\n",
+					"\r\n",
+					"# ct stores current time\r\n",
+					"ct = datetime.datetime.now()\r\n",
+					"print(&quot;current time:-&quot;, ct)\r\n",
+					"\r\n",
+					"for file in LandingFiles:\r\n",
+					"    file_result = {  # OPCIONAL: añadir timestamp\r\n",
+					"        'file_name': file['name'],\r\n",
+					"        'status': 'Incorrecto',\r\n",
+					"        'inserted_rows': 0,\r\n",
+					"        'updated_rows': 0\r\n",
+					"    }\r\n",
+					"\r\n",
+					"    try:\r\n",
+					"        table_name = file[\"name\"][:file[\"name\"].index('_')]  # Extrae la subcadena\r\n",
+					"        source_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
+					"        key_columns_str = f\"id{table_name}\" \r\n",
+					"\r\n",
+					"        key_columns = key_columns_str\r\n",
+					"        conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+					"\r\n",
+					"        # Determinar ruta de archivos fuente\r\n",
+					"        source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
+					"        delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
+					"\r\n",
+					"        # Leer archivo(s) en DataFrame de Spark\r\n",
+					"        sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
+					"        sdf.cache()\r\n",
+					"        sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")  # Eliminar columnas no deseadas\r\n",
+					"\r\n",
+					"        if sdf.limit(1).count() == 0:\r\n",
+					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
+					"            results.append(file_result)  # Agregar resultado sin procesar\r\n",
+					"            incorrect_files.append(file['name'])  # Agregar a la lista de archivos incorrectos\r\n",
+					"            continue  # Saltar a la siguiente iteración si no hay datos\r\n",
+					"\r\n",
+					"        # Eliminar columna no deseada\r\n",
+					"        sdf = sdf.drop(\"fechaActualizacion\")\r\n",
+					"\r\n",
+					"        # Comprobar si la tabla Delta existe\r\n",
+					"        if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+					"            delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+					"            existing_columns = delta_table.toDF().columns\r\n",
+					"            \r\n",
+					"            # Añadir columna fechaDelta\r\n",
+					"            sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))\r\n",
+					"\r\n",
+					"            columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fechaDelta')]\r\n",
+					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"\r\n",
+					"            # Crear conjunto de actualizaciones excluyendo 'fechaCarga'\r\n",
+					"            update_set = {f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col != 'fechaCarga'}\r\n",
+					"\r\n",
+					"            # Merge new data into existing table y captura el conteo\r\n",
+					"            merge_result = delta_table.alias(\"existing\").merge(\r\n",
+					"                source=sdf.alias(\"updates\"),\r\n",
+					"                condition=\" AND \".join(conditions_list)\r\n",
+					"            ).whenMatchedUpdate(\r\n",
+					"                condition=\" AND \".join(conditions_list + [\"existing.hash != updates.hash\"]),\r\n",
+					"                set={\r\n",
+					"                    \"fechaCarga\": \"updates.fechaCarga\",\r\n",
+					"                    \"fechaDelta\": \"updates.fechaDelta\",\r\n",
+					"                    **{f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}\r\n",
+					"                }\r\n",
+					"            ).whenNotMatchedInsert(\r\n",
+					"                values={\r\n",
+					"                    \"fechaCarga\": \"updates.fechaCarga\",\r\n",
+					"                    \"fechaDelta\": fecha_delta,\r\n",
+					"                    **{f\"{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}\r\n",
+					"                }\r\n",
+					"            ).execute()\r\n",
+					"\r\n",
+					"            # Almacenar conteos de filas\r\n",
+					"            file_result['status'] = 'Correcto'\r\n",
+					"            file_result['inserted_rows'] = merge_result.get('numInserted', 0)  # Filas insertadas\r\n",
+					"            file_result['updated_rows'] = merge_result.get('numUpdated', 0)  # Filas actualizadas\r\n",
+					"            correct_files.append(file['name'])  # Agregar a la lista de archivos correctos\r\n",
+					"\r\n",
+					"        else:\r\n",
+					"            # Crear nueva tabla Delta\r\n",
+					"            sdf = sdf.withColumn(\"fechaCarga\", sdf.fechaCarga)  # Mantener fechaCarga\r\n",
+					"            sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))  # Establecer fechaDelta\r\n",
+					"            columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fechaDelta')]\r\n",
+					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"            sdf.write.format('delta').save(delta_table_path)\r\n",
+					"\r\n",
+					"            spark.sql(f'CREATE TABLE IF NOT EXISTS silver.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
+					"            spark.sql(f\"ALTER TABLE silver.{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+					"            spark.sql(f\"ALTER TABLE silver.{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+					"\r\n",
+					"        \r\n",
+					"            # Almacenar archivo procesado correctamente\r\n",
+					"            file_result['status'] = 'Correcto'\r\n",
+					"            file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
+					"            file_result['updated_rows'] = 0  # Ninguna fila actualizada en la creación\r\n",
+					"            correct_files.append(file['name'])  # Agregar a la lista de archivos correctos\r\n",
+					"\r\n",
+					"    except Exception as e:\r\n",
+					"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
+					"        # Estado ya configurado como 'Incorrecto'\r\n",
+					"        results.append(file_result)  # Agregar resultado de fallo al final\r\n",
+					"        incorrect_files.append(file['name'])  # Agregar a la lista de archivos incorrectos\r\n",
+					"        continue  # Continuar con la siguiente iteración\r\n",
+					"\r\n",
+					"    results.append(file_result)  # Agregar resultado al final del bucle\r\n",
+					"\r\n",
+					"# Convertir resultados a DataFrame\r\n",
+					"results_df = spark.createDataFrame(results)\r\n",
+					"\r\n",
+					"# Ruta donde quieres guardar el archivo\r\n",
+					"output_path = \"/ruta/en/tu/datalake/results.txt\"  # Cambia esta ruta según tu configuración\r\n",
+					"\r\n",
+					"# Escribir los resultados en un archivo TXT\r\n",
+					"#results_df.coalesce(1).write.mode('overwrite').text(output_path)\r\n",
+					"\r\n",
+					"print(f\"Resultados guardados en: {output_path}\")\r\n",
+					"\r\n",
+					"# Imprimir resultados en consola\r\n",
+					"for result in results:\r\n",
+					"    print(f\"Archivo: {result['file_name']}, Estado: {result['status']}, Filas insertadas: {result['inserted_rows']}, Filas actualizadas: {result['updated_rows']}\")\r\n",
+					"\r\n",
+					"# Guardar nombres de archivos correctos e incorrectos en variables de la pipeline\r\n",
+					"correct_files_variable = correct_files\r\n",
+					"incorrect_files_variable = incorrect_files\r\n",
+					"\r\n",
+					"# Si necesitas ver las variables\r\n",
+					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
+					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Movemos ficheros de Pending a Processed o Error**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"\r\n",
+					"# Crear el BlobServiceClient\r\n",
+					"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
+					"\r\n",
+					"# Definir los paths de origen y destino\r\n",
+					"source_container_name = \"etl/bronze/Landing\"\r\n",
+					"#source_container_name = \"etl/bronze/Processed\"\r\n",
+					"destination_container_name = \"etl/bronze/Processed\"\r\n",
+					"#destination_container_name = \"etl/bronze/Landing\"\r\n",
+					"source_blob_name = \"almacenes_20241008.parquet\"\r\n",
+					"destination_blob_name = \"almacenes_20241008.parquet\"\r\n",
+					"\r\n",
+					"# Copiar el archivo al nuevo destino\r\n",
+					"source_blob = blob_service_client.get_blob_client(container=source_container_name, blob=source_blob_name)\r\n",
+					"destination_blob = blob_service_client.get_blob_client(container=destination_container_name, blob=destination_blob_name)\r\n",
+					"\r\n",
+					"# Iniciar la copia del blob\r\n",
+					"#copy_properties = destination_blob.start_copy_from_url(source_blob.url)\r\n",
+					"\r\n",
+					"# Verificar que la copia ha sido completada\r\n",
+					"print(\"Estado de la copia:\", copy_properties[\"copy_status\"])\r\n",
+					"\r\n",
+					"#table_name = source_blob_name.index('_')\r\n",
+					"name_part = source_blob_name.split('_')[0]\r\n",
+					"\r\n",
+					"results = ''\r\n",
+					"error_messages = ''\r\n",
+					"\r\n",
+					"date_match = re.search(r'_(\\d{8})\\.parquet$', source_blob_name)\r\n",
+					"if date_match:\r\n",
+					"    date_str = date_match.group(1)  # '20241008'\r\n",
+					"    year = date_str[:4]  # '2024'\r\n",
+					"    month = date_str[4:6]  # '10'\r\n",
+					"\r\n",
+					"    # Crear la ruta de destino respetando la jerarquía año/mes\r\n",
+					"    destination_blob_name = f\"{name_part}/{year}/{month}/{source_blob_name}\"\r\n",
+					"\r\n",
+					"    # Copiar el archivo al nuevo destino\r\n",
+					"    source_blob = blob_service_client.get_blob_client(container=source_container_name, blob=source_blob_name)\r\n",
+					"    destination_blob = blob_service_client.get_blob_client(container=destination_container_name, blob=destination_blob_name)\r\n",
+					"\r\n",
+					"    # Iniciar la copia del blob\r\n",
+					"    copy_properties = destination_blob.start_copy_from_url(source_blob.url)\r\n",
+					"\r\n",
+					"    # Verificar que la copia ha sido completada\r\n",
+					"    print(f\"Estado de la copia para {source_blob_name}: {copy_properties['copy_status']}\")\r\n",
+					"\r\n",
+					"    # Eliminar el blob original si la copia fue exitosa\r\n",
+					"    if copy_properties[\"copy_status\"] == \"success\":\r\n",
+					"        #source_blob.delete_blob()  # Descomentar para eliminar el blob original\r\n",
+					"        print(f\"Archivo {source_blob_name} movido exitosamente a {destination_blob_name}.\")\r\n",
+					"        results = (f\"Archivo {source_blob_name} movido exitosamente a {destination_blob_name}.\")\r\n",
+					"    else:\r\n",
+					"        print(f\"Error al copiar el archivo {source_blob_name}.\")\r\n",
+					"        error_messages = (f\"No se pudo extraer la fecha del nombre del archivo: {source_blob_name}\")\r\n",
+					"else:\r\n",
+					"    print(f\"No se pudo extraer la fecha del nombre del archivo: {source_blob_name}\")\r\n",
+					"\r\n",
+					"\r\n",
+					"# Combina todos los resultados en un solo texto\r\n",
+					"final_output = \" | \".join(results + error_messages) \r\n",
+					"# Guardar el resultado en un archivo .txt en la carpeta Processed\r\n",
+					"output_blob_name = \"resultado_movimiento.txt\"\r\n",
+					"#utput_blob_name = f\"etl/bronze/Logs/{output_file_name}\"\r\n",
+					"destination_container_name2 = \"etl/bronze/Logs/\"\r\n",
+					"# Crear un BlobClient para el archivo de salida\r\n",
+					"output_blob = blob_service_client.get_blob_client(container=destination_container_name2, blob=output_blob_name)\r\n",
+					"\r\n",
+					"# Subir el contenido al blob\r\n",
+					"output_blob.upload_blob(final_output, overwrite=True)\r\n",
+					"\r\n",
+					"print(f\"Resultados guardados en {output_blob_name}.\")\r\n",
+					"\r\n",
+					"\r\n",
+					"## Revisar lo ultimo del formato del text de log"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"import pandas as pd\r\n",
+					"from azure.storage.blob import BlobServiceClient\r\n",
+					"import io\r\n",
+					"from pyspark.sql.functions import when, lit, current_date, date_format\r\n",
+					"\r\n",
+					"\r\n",
+					"# Configurar la conexión\r\n",
+					"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
+					"\r\n",
+					"# Definir los nombres de los contenedores y blobs\r\n",
+					"container_name = \"etl/bronze/Configuration\"\r\n",
+					"csv_blob_name = \"ConfiguracionOrigenes.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
+					"\r\n",
+					"# Leer el archivo CSV desde el Data Lake\r\n",
+					"blob_client = blob_service_client.get_blob_client(container=container_name, blob=csv_blob_name)\r\n",
+					"\r\n",
+					"\r\n",
+					"try:\r\n",
+					"    # Descargar el blob y leerlo en un DataFrame de pandas\r\n",
+					"    stream = io.BytesIO(blob_client.download_blob().readall())\r\n",
+					"    df = pd.read_csv(stream, sep=';')  # Especifica el separador aquí\r\n",
+					"    print(\"Archivo CSV leído exitosamente.\")\r\n",
+					"except Exception as e:\r\n",
+					"    print(f\"Error al leer el archivo CSV: {e}\")\r\n",
+					"    exit()\r\n",
+					"\r\n",
+					"# Mostrar el contenido original\r\n",
+					"print(\"Contenido original del CSV:\")\r\n",
+					"print(df)\r\n",
+					"\r\n",
+					"# Limpiar nombres de columnas para eliminar espacios en blanco\r\n",
+					"df.columns = df.columns.str.strip()\r\n",
+					"\r\n",
+					"# Verificar si 'TableName' está presente en el DataFrame\r\n",
+					"if 'TableName' in df.columns:\r\n",
+					"    # Editar el DataFrame basándose en la condición\r\n",
+					"    df.loc[df['TableName'] == 'vw_Articulos', 'DataBaseName'] = 'm'  # Cambiar los nombres de las columnas según tu archivo CSV\r\n",
+					"else:\r\n",
+					"    print(\"La columna 'TableName' no se encuentra en el DataFrame.\")\r\n",
+					"\r\n",
+					"# Mostrar el contenido editado\r\n",
+					"print(\"Contenido editado del CSV:\")\r\n",
+					"print(df)\r\n",
+					"\r\n",
+					"# Limpiar filas vacías si existen\r\n",
+					"df.dropna(how='all', inplace=True)  # Eliminar filas completamente vacías\r\n",
+					"\r\n",
+					"# Guardar el DataFrame modificado en un nuevo flujo de bytes\r\n",
+					"output_stream = io.BytesIO()\r\n",
+					"df.to_csv(output_stream, index=False, sep=';', line_terminator='\\n')  # Usar line_terminator para evitar líneas en blanco\r\n",
+					"output_stream.seek(0)  # Regresar al inicio del flujo\r\n",
+					"\r\n",
+					"# Sobrescribir el archivo CSV en el Data Lake\r\n",
+					"try:\r\n",
+					"    blob_client.upload_blob(output_stream.getvalue(), overwrite=True)\r\n",
+					"    print(f\"Archivo CSV sobrescrito exitosamente en {container_name}/{csv_blob_name}.\")\r\n",
+					"except Exception as e:\r\n",
+					"    print(f\"Error al sobrescribir el archivo CSV: {e}\")\r\n",
+					""
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# ### Prueba::\r\n",
+					"\r\n",
+					"# # Supongamos que tienes las variables necesarias\r\n",
+					"# # Fecha actual en formato yyyymmdd\r\n",
+					"# fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
+					"# #fecha_delta = '20241011'\r\n",
+					"# # Convert comma separated string with keys to array\r\n",
+					"# key_columns = key_columns_str.split(',')\r\n",
+					"\r\n",
+					"# # Convert array with keys to where-clause for merge statement\r\n",
+					"# conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+					"\r\n",
+					"# # Determine path of source files from ingest layer\r\n",
+					"# source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
+					"\r\n",
+					"# # Determine path of Delta Lake Table \r\n",
+					"# delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
+					"\r\n",
+					"# # Read file(s) in spark data frame\r\n",
+					"# sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
+					"# sdf.cache()\r\n",
+					"\r\n",
+					"# # Check countRows > 0 - Stop Notebook \r\n",
+					"# # if sdf.count() == 0:\r\n",
+					"# #     print(\"no procesar\")\r\n",
+					"\r\n",
+					"# if sdf.limit(1).count() == 0:\r\n",
+					"#     print(\"no procesar\")\r\n",
+					"\r\n",
+					"# else:\r\n",
+					"#     # Eliminar las columnas que no se desean\r\n",
+					"#     sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")\r\n",
+					"\r\n",
+					"#     # Check if the Delta Table exists\r\n",
+					"#     if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+					"#         # Read the existing Delta Table\r\n",
+					"#         delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+					"\r\n",
+					"#         #ALTER TABLE sales SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true');\r\n",
+					"#         spark.sql(f\"ALTER TABLE default.{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+					"\r\n",
+					"\r\n",
+					"#         # Get the schema of the existing Delta table\r\n",
+					"#         existing_columns = delta_table.toDF().columns\r\n",
+					"        \r\n",
+					"#         # Añadir columna fechaDelta al DataFrame\r\n",
+					"#         sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))\r\n",
+					"\r\n",
+					"#         # Crear el conjunto de actualizaciones excluyendo 'fechaCarga'\r\n",
+					"#         update_set = {f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col != 'fechaCarga'}\r\n",
+					"\r\n",
+					"#         # Merge new data into existing table\r\n",
+					"#         delta_table.alias(\"existing\").merge(\r\n",
+					"#             source=sdf.alias(\"updates\"),\r\n",
+					"#             condition=\" AND \".join(conditions_list)\r\n",
+					"#         ).whenMatchedUpdate(\r\n",
+					"#             condition=\" OR \".join([f\"existing.{col} != updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')]),\r\n",
+					"#             set={\r\n",
+					"#                 \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
+					"#                 \"fechaDelta\": \"updates.fechaDelta\",  # Usar fechaDelta del DataFrame\r\n",
+					"#                 **{f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}  # Incluir otros campos\r\n",
+					"#             }\r\n",
+					"#         ).whenNotMatchedInsert(\r\n",
+					"#             values={\r\n",
+					"#                 \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
+					"#                 \"fechaDelta\": fecha_delta,  # Establecer fechaDelta al insertar\r\n",
+					"#                 **{f\"{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}  # Incluir otros campos\r\n",
+					"#             }\r\n",
+					"#         ).execute()\r\n",
+					"#     else:\r\n",
+					"#         # Crear nueva tabla Delta con nuevos datos, incluyendo la columna fechaDelta\r\n",
+					"#         sdf = sdf.withColumn(\"fechaCarga\", sdf.fechaCarga)  # Mantener fechaCarga del DataFrame\r\n",
+					"#         sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))  # Establecer fechaDelta al crear la tabla\r\n",
+					"#         sdf.write.format('delta').save(delta_table_path)\r\n",
+					"\r\n",
+					"# spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Crear manualmente Delta Tables**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# # path of the data lake container (bronze and silver for this example)\r\n",
+					"# data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
+					"# # The ingestion folder where your parquet file are located\r\n",
+					"# bronze_folder = 'bronze/Landing/'\r\n",
+					"# # The silver folder where your Delta Tables will be stored\r\n",
+					"# silver_folder = 'silver/DeltaSTG'\r\n",
+					"# # The name of the table\r\n",
+					"#table_name = 'lineaventa'\r\n",
+					"# # The wildcard filter used within the bronze folder to find files\r\n",
+					"# #source_wildcard = 'color*.parquet'\r\n",
+					"# # A comma separated string of one or more key columns (for the merge)\r\n",
+					"# #key_columns_str = 'idColor'\r\n",
+					"\r\n",
+					"# #source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
+					"\r\n",
+					"# # Determine path of Delta Lake Table \r\n",
+					"# delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
+					"#spark.sql(f'DROP TABLE default.{table_name}')\r\n",
+					"# spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# ### Copia:\r\n",
+					"\r\n",
+					"# # Supongamos que tienes las variables necesarias\r\n",
+					"# # Fecha actual en formato yyyymmdd\r\n",
+					"# fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
+					"# #fecha_delta = '20241011'\r\n",
+					"# # Convert comma separated string with keys to array\r\n",
+					"# key_columns = key_columns_str.split(',')\r\n",
+					"\r\n",
+					"# # Convert array with keys to where-clause for merge statement\r\n",
+					"# conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+					"\r\n",
+					"# # Determine path of source files from ingest layer\r\n",
+					"# source_path = data_lake_container + '/' + bronze_folder + '/' + source_wildcard\r\n",
+					"\r\n",
+					"# # Determine path of Delta Lake Table \r\n",
+					"# delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
+					"\r\n",
+					"# # Read file(s) in spark data frame\r\n",
+					"# sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
+					"\r\n",
+					"# # Check countRows > 0 - Stop Notebook \r\n",
+					"# # CREAR DELTA TABLE DE COLOR\r\n",
+					"\r\n",
+					"# # Eliminar las columnas que no se desean\r\n",
+					"# sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")\r\n",
+					"\r\n",
+					"# # Check if the Delta Table exists\r\n",
+					"# if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
+					"#     # Read the existing Delta Table\r\n",
+					"#     delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+					"\r\n",
+					"#     # Get the schema of the existing Delta table\r\n",
+					"#     existing_columns = delta_table.toDF().columns\r\n",
+					"    \r\n",
+					"#     # Añadir columna fechaDelta al DataFrame\r\n",
+					"#     sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))\r\n",
+					"\r\n",
+					"#     # Crear el conjunto de actualizaciones excluyendo 'fechaCarga'\r\n",
+					"#     update_set = {f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col != 'fechaCarga'}\r\n",
+					"\r\n",
+					"#     # Merge new data into existing table\r\n",
+					"#     delta_table.alias(\"existing\").merge(\r\n",
+					"#         source=sdf.alias(\"updates\"),\r\n",
+					"#         condition=\" AND \".join(conditions_list)\r\n",
+					"#     ).whenMatchedUpdate(\r\n",
+					"#         condition=\" OR \".join([f\"existing.{col} != updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')]),\r\n",
+					"#         set={\r\n",
+					"#             \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
+					"#             \"fechaDelta\": \"updates.fechaDelta\",  # Usar fechaDelta del DataFrame\r\n",
+					"#             **{f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}  # Incluir otros campos\r\n",
+					"#         }\r\n",
+					"#     ).whenNotMatchedInsert(\r\n",
+					"#         values={\r\n",
+					"#             \"fechaCarga\": \"updates.fechaCarga\",  # Usar fechaCarga del DataFrame\r\n",
+					"#             \"fechaDelta\": fecha_delta,  # Establecer fechaDelta al insertar\r\n",
+					"#             **{f\"{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('fechaCarga', 'fechaDelta')}  # Incluir otros campos\r\n",
+					"#         }\r\n",
+					"#     ).execute()\r\n",
+					"# else:\r\n",
+					"#     # Crear nueva tabla Delta con nuevos datos, incluyendo la columna fechaDelta\r\n",
+					"#     sdf = sdf.withColumn(\"fechaCarga\", sdf.fechaCarga)  # Mantener fechaCarga del DataFrame\r\n",
+					"#     sdf = sdf.withColumn(\"fechaDelta\", lit(fecha_delta))  # Establecer fechaDelta al crear la tabla\r\n",
+					"#     sdf.write.format('delta').save(delta_table_path)\r\n",
+					"\r\n",
+					"# spark.sql(f'CREATE TABLE IF NOT EXISTS default.{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Actualizar CSV Configuracion**"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# cuenta =  'datalake1pgc'\r\n",
+					"# contendor = 'mdw'\r\n",
+					"# archivo = '/bronze/Configuration'\r\n",
+					"# #archivo = \r\n",
+					"# #archivo2 = '/bronze/Configuration/ConfiguracionOrigenes\r\n",
+					"# table_name = 'color'\r\n",
+					"# #ruta = 'abfss://%s@%s.dfs.core.windows.net/%s' % (contendor, cuenta, archivo)\r\n",
+					"# ruta = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
+					"# #ruta2 = f'abfss://{contendor}@{cuenta}.dfs.core.windows.net/{archivo}'\r\n",
+					"# # Leer CSV\r\n",
+					"# #print(ruta)\r\n",
+					"# df = spark.read.option(\"header\", \"true\").option(\"delimiter\", \";\").csv(ruta)\r\n",
+					"# #Generamos fecha en formato 'yyyyMMdd'\r\n",
+					"# fecha_actual = date_format(current_date(), 'yyyy-MM-dd')\r\n",
+					"# fecha_actual = '2022-01-18'\r\n",
+					"# # Modificar CSV\r\n",
+					"# df_modificado = df.withColumn(\r\n",
+					"#     \"UpdateDate\",\r\n",
+					"#     when(df[\"Filename\"] == table_name, fecha_actual).otherwise(df[\"UpdateDate\"])\r\n",
+					"# )\r\n",
+					"# Sobreescrir CSV\r\n",
+					"#df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#df_modificado.show()"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#df_modificado.coalesce(1).write.mode(\"overwrite\").option(\"header\", True).csv(ruta)\r\n",
+					""
+				],
+				"execution_count": 14
+			}
+		]
+	}
+}

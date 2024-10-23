@@ -3105,7 +3105,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "00e1a5d0-4c5a-447d-abfc-0cfa7c02934f"
+						"spark.autotune.trackingId": "f3715e5d-bdf3-4a9e-a0a8-4dc4bd84619f"
 					}
 				},
 				"metadata": {
@@ -3130,15 +3130,13 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# path of the data lake container (bronze and silver for this example)\r\n",
 							"#data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
@@ -3358,7 +3356,7 @@
 							"\r\n",
 							"# ct stores current time\r\n",
 							"ct = datetime.datetime.now()\r\n",
-							"print(&quot;current time:-&quot;, ct)\r\n",
+							"#print(&quot;current time:-&quot;, ct)\r\n",
 							"\r\n",
 							"for file in LandingFiles:\r\n",
 							"    file_result = {  # OPCIONAL: añadir timestamp\r\n",

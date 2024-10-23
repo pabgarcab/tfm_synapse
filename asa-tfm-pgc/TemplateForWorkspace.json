@@ -318,8 +318,6 @@
 					{
 						"name": "UPSERT to Silver",
 						"type": "SynapseNotebook",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Landing Files",
@@ -365,7 +363,7 @@
 								},
 								"LandingFiles": {
 									"value": {
-										"value": "@variables('LandingFiles')",
+										"value": "@string(variables('LandingFiles'))",
 										"type": "Expression"
 									},
 									"type": "string"
@@ -3107,7 +3105,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "0e138a27-1b97-451a-9197-05e1df96363a"
+						"spark.autotune.trackingId": "a7d09eab-3ead-4f8f-8c2e-f772a56445b1"
 					}
 				},
 				"metadata": {
@@ -3177,11 +3175,11 @@
 						},
 						"source": [
 							"%%sql\r\n",
-							"USE default;\r\n",
-							"DROP DATABASE  silver CASCADE ;\r\n",
-							"USE default;\r\n",
-							"CREATE DATABASE IF NOT EXISTS silver;\r\n",
-							"USE silver;"
+							"-- USE default;\r\n",
+							"-- DROP DATABASE  silver CASCADE ;\r\n",
+							"-- USE default;\r\n",
+							"-- CREATE DATABASE IF NOT EXISTS silver;\r\n",
+							"-- USE silver;"
 						],
 						"outputs": [],
 						"execution_count": 10
@@ -3326,12 +3324,12 @@
 							}
 						},
 						"source": [
-							"array_as_string = json.dumps(LandingFiles)\r\n",
+							"LandingFiles = json.loads(LandingFiles)\r\n",
 							"# print(\"Array como cadena de texto:\")\r\n",
 							"# print(array_as_string)\r\n",
 							"\r\n",
 							"# Convertir la cadena de texto de vuelta a un array\r\n",
-							"LandingFiles = json.loads(array_as_string)\r\n",
+							"#LandingFiles = json.loads(array_as_string)\r\n",
 							"# print(\"\\nArray de vuelta al formato original:\")\r\n",
 							"# print(array_back_to_original)"
 						],

@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "44b990ba-c423-47ea-9aa4-fa85a917ca3b"
+				"spark.autotune.trackingId": "0488bed8-63d5-4b0d-8f47-3820fce6774d"
 			}
 		},
 		"metadata": {
@@ -578,6 +578,8 @@
 					"# Configurar la conexión\r\n",
 					"\r\n",
 					"fechaDelta = '2024-09-08'\r\n",
+					"#delta_date_string = fechaDelta\r\n",
+					"\r\n",
 					"for file in landing_files:\r\n",
 					"    blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 					"\r\n",

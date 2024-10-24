@@ -26,10 +26,7 @@
 						"type": "DelimitedTextSource",
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
-							"fileListPath": {
-								"value": "@activity('Get CSV name').output",
-								"type": "Expression"
-							},
+							"recursive": true,
 							"enablePartitionDiscovery": false
 						},
 						"formatSettings": {
@@ -37,8 +34,11 @@
 						}
 					},
 					"dataset": {
-						"referenceName": "dsConfiguration",
-						"type": "DatasetReference"
+						"referenceName": "csvConfiguration",
+						"type": "DatasetReference",
+						"parameters": {
+							"NombreCSV": "ConfiguracionOrigenes.csv"
+						}
 					},
 					"firstRowOnly": false
 				}
@@ -143,28 +143,6 @@
 												}
 											}
 										]
-									},
-									{
-										"name": "Save Metadata",
-										"type": "SqlServerStoredProcedure",
-										"state": "Inactive",
-										"onInactiveMarkAs": "Succeeded",
-										"dependsOn": [
-											{
-												"activity": "Load Landing",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"timeout": "0.12:00:00",
-											"retry": 0,
-											"retryIntervalInSeconds": 30,
-											"secureOutput": false,
-											"secureInput": false
-										},
-										"userProperties": []
 									}
 								]
 							}
@@ -175,6 +153,8 @@
 			{
 				"name": "Get CSV name",
 				"type": "GetMetadata",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -186,8 +166,11 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "dsConfiguration",
-						"type": "DatasetReference"
+						"referenceName": "csvConfiguration",
+						"type": "DatasetReference",
+						"parameters": {
+							"NombreCSV": "ConfiguracionOrigenes.csv"
+						}
 					},
 					"fieldList": [
 						"childItems"

@@ -113,9 +113,10 @@
 						"referenceName": "csvConfiguration",
 						"type": "DatasetReference",
 						"parameters": {
-							"NombreCSV": "*"
+							"NombreCSV": "ConfiguracionReporting.csv"
 						}
-					}
+					},
+					"firstRowOnly": false
 				}
 			},
 			{
@@ -136,9 +137,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "tablesToLoad",
-					"value": [
-						""
-					]
+					"value": {
+						"value": "@activity('Search ActiveForLoad').output.value",
+						"type": "Expression"
+					}
 				}
 			},
 			{

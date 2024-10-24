@@ -5,8 +5,6 @@
 			{
 				"name": "LoadSCD2DimsAndFact",
 				"type": "SynapseNotebook",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "tablesToLoad",
@@ -64,9 +62,23 @@
 							},
 							"type": "string"
 						},
-						"tables_load": {
+						"tables_to_load": {
 							"value": {
 								"value": "@string(variables('tablesToLoad'))",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"golden_folder_dimensions": {
+							"value": {
+								"value": "@pipeline().parameters.GoldenFolderDimensions",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"golden_folder_fact": {
+							"value": {
+								"value": "@pipeline().parameters.GoldenFolderfact",
 								"type": "Expression"
 							},
 							"type": "string"
@@ -224,6 +236,14 @@
 			"MetadataFolder": {
 				"type": "string",
 				"defaultValue": "mdw/bronze/Configuration"
+			},
+			"GoldenFolderDimensions": {
+				"type": "string",
+				"defaultValue": "gold/Dimensions"
+			},
+			"GoldenFolderfact": {
+				"type": "string",
+				"defaultValue": "gold/Fact"
 			}
 		},
 		"variables": {

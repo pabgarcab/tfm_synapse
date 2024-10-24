@@ -1,5 +1,5 @@
 {
-	"name": "LoadSCD2AndFact",
+	"name": "test_notebook",
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -13,11 +13,12 @@
 			"executorMemory": "28g",
 			"executorCores": 4,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "291ce77c-d6bb-42f7-9f9c-2c423cb9a2b5"
+				"spark.autotune.trackingId": "3cceeb1a-a6b3-4ea0-9f29-a90b4987b105"
 			}
 		},
 		"metadata": {
@@ -49,14 +50,27 @@
 		},
 		"cells": [
 			{
-				"cell_type": "markdown",
+				"cell_type": "code",
 				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
+					"tags": [
+						"parameters_overwritten"
+					]
 				},
+				"source": [
+					"# This cell is generated from runtime parameters. Learn more: https://go.microsoft.com/fwlink/?linkid=2161015\n",
+					"data_lake_container = \"abfss://mdw@datalake1pgc.dfs.core.windows.net\"\n",
+					"gold_folder_logs = \"gold/Logs\"\n",
+					"container_name = \"mdw\"\n",
+					"metadata_folder = \"mdw/bronze/Configuration\"\n",
+					"tables_to_load = \"[{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,Articles,2024-09-08,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,Client,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,Currency,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,Date,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,Hours,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,OperationType,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,PostalCode,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,Tariff,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"dim,Warehouse,1990-01-01,Y\\\"},{\\\"SchemaName,TableName,UpdateDate,Load\\\":\\\"fact,Sales,2024-09-08,Y\\\"}]\"\n",
+					"golden_folder_dimensions = \"gold/Dimensions\"\n",
+					"golden_folder_fact = \"gold/Fact\"\n",
+					""
+				],
+				"execution_count": 114
+			},
+			{
+				"cell_type": "markdown",
 				"source": [
 					"**Import modules**"
 				]
@@ -77,22 +91,10 @@
 					"import pandas as pd\r\n",
 					"import csv"
 				],
-				"execution_count": 3
+				"execution_count": 115
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					},
-					"collapsed": false
-				},
 				"source": [
 					"# %%sql\r\n",
 					"# USE default;\r\n",
@@ -101,42 +103,19 @@
 					"# CREATE DATABASE IF NOT EXISTS gold;\r\n",
 					"# USE gold;"
 				],
-				"execution_count": 2
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					},
-					"collapsed": false
-				},
 				"source": [
 					"# %%sql\r\n",
 					"# USE gold;\r\n",
 					"# DROP TABLE IF EXISTS fact_Sales;"
 				],
-				"execution_count": 2
+				"execution_count": 4
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"factList = [ \r\n",
 					"        {\r\n",
@@ -185,21 +164,10 @@
 					"        }\r\n",
 					"    ]"
 				],
-				"execution_count": 3
+				"execution_count": 116
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"dimensionsList = [ \r\n",
 					"        {\r\n",
@@ -392,47 +360,58 @@
 					"                    WHERE GREATEST(a.fechaDelta, p.fechaDelta) >= \r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
+					"\r\n",
+					"        ,        {\r\n",
+					"            \"name\": \"Inventada\",\r\n",
+					"            \"query\": \"\"\"\r\n",
+					"                    SELECT  idAlmacenes                          AS idWarehouse,\r\n",
+					"                            COALESCE(a.Nombre, 'D')              AS warehouse,\r\n",
+					"                            COALESCE(a.codigoAlmacen, 'D')       AS externalCode,\r\n",
+					"                            COALESCE(p.codigoPais, 'D')          AS countryCode, \r\n",
+					"                            COALESCE(p.nombre, 'D')              AS country,\r\n",
+					"                            COALESCE(a.ciudad, 'D')              AS city,\r\n",
+					"                            COALESCE(a.Direccion, 'D')           AS address,\r\n",
+					"                            COALESCE(a.descripcion, 'D')         AS description,\r\n",
+					"                            GREATEST(a.fechaCarga, p.fechaCarga) AS loadDate,\r\n",
+					"                            GREATEST(a.fechaDelta, p.fechaDelta) AS deltaDate\r\n",
+					"                    FROM default.almacenes AS a\r\n",
+					"                    LEFT JOIN default.pais AS p\r\n",
+					"                        ON p.idpais = a.idPais\r\n",
+					"                    --WHERE a.fechaDelta <> 20241011\r\n",
+					"                    --UNION \r\n",
+					"                    --select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
+					"                    --UNION \r\n",
+					"                    --select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
+					"                    WHERE GREATEST(a.fechaDelta, p.fechaDelta) >= \r\n",
+					"                     \"\"\"\r\n",
+					"        }\r\n",
 					"    ]"
 				],
-				"execution_count": 6
+				"execution_count": 117
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Configuration**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
-					"# parameter string to array\r\n",
+					"#blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
+					"#fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
+					"#fecha_delta = '20241008'\r\n",
+					"#tables_to_load = json.loads(tables_to_load)  # Convertimos en array la variable\r\n",
+					"\r\n",
 					"tables_to_load = json.loads(tables_to_load)\r\n",
 					"\r\n",
-					"today_datetime = datetime.now()\r\n",
+					"fecha_hoy = datetime.now()\r\n",
+					"# Formato cadena 'yyyy-mm-dd'\r\n",
+					"delta_date_filter = (fecha_hoy.strftime('%Y%m%d'))\r\n",
+					"#fecha_delta = '20241008'\r\n",
 					"\r\n",
-					"delta_date_filter = (today_datetime.strftime('%Y%m%d')) # 'yyyyMMdd'\r\n",
-					"#delta_date_filter = '20241008'\r\n",
-					"\r\n",
-					"delta_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-					"#delta_date_string = '2024-10-08'\r\n",
+					"# Formato cadena 'yyyy-mm-dd'\r\n",
+					"delta_date_string = fecha_hoy.strftime('%Y-%m-%d')\r\n",
 					"\r\n",
 					"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 					"dict_tables_to_load = []\r\n",
@@ -464,46 +443,31 @@
 					"\r\n",
 					"\r\n",
 					"load_y_tables = {table['TableName'] for table in dim_tables if table['Load'] == 'Y'}\r\n",
+					"#print(load_y_tables)\r\n",
 					"# Filtrar el dimensionsList para obtener solo las tablas con Load='Y' y devolver una lista de diccionarios\r\n",
 					"filtered_dimensionsList = [\r\n",
 					"    dim for dim in dimensionsList if dim[\"name\"] in load_y_tables\r\n",
 					"]\r\n",
+					"\r\n",
 					"\r\n",
 					"load_y_tables2 = {table['TableName'] for table in fact_tables if table['Load'] == 'Y'}\r\n",
 					"#print(load_y_tables2)\r\n",
 					"# Filtrar el dimensionsList para obtener solo las tablas con Load='Y' y devolver una lista de diccionarios\r\n",
 					"filtered_factList = [\r\n",
 					"    dim for dim in factList if dim[\"name\"] in load_y_tables2\r\n",
-					"]"
+					"]\r\n",
+					""
 				],
-				"execution_count": 14
+				"execution_count": 118
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Load SCD2 Dimensions**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Carga o Merge Dimensiones\r\n",
 					"results = []\r\n",
@@ -511,7 +475,7 @@
 					"\r\n",
 					"for file in dimensionsList:\r\n",
 					"    file_result = {\r\n",
-					"        'table': f\"fact_{file['name']}\",\r\n",
+					"        'table': f\"dim_{file['name']}\",\r\n",
 					"        'status': 'Incorrect',\r\n",
 					"        'inserted_rows': 0,\r\n",
 					"        'updated_rows': 0,\r\n",
@@ -641,34 +605,16 @@
 					"\r\n",
 					"    results.append(file_result)"
 				],
-				"execution_count": 32
+				"execution_count": 10
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Load Fact Table**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Carga FULL tabla/s de hechos\r\n",
 					"\r\n",
@@ -677,7 +623,7 @@
 					"# exception = []\r\n",
 					"\r\n",
 					"\r\n",
-					"for file in factList:\r\n",
+					"for file in filtered_factList:\r\n",
 					"    file_result = {\r\n",
 					"        'table': f\"fact_{file['name']}\",\r\n",
 					"        'status': 'Incorrect',\r\n",
@@ -817,34 +763,16 @@
 					"\r\n",
 					"    results.append(file_result)"
 				],
-				"execution_count": 21
+				"execution_count": 11
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Guardar ficheros Logs**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Obtener la fecha actual\r\n",
 					"fecha_actual = datetime.now()\r\n",
@@ -870,34 +798,16 @@
 					"# Crear un cliente del blob de destino\r\n",
 					"destination_blob = blob_service_client.get_blob_client(container=container_name, blob=destination_blob_name)"
 				],
-				"execution_count": null
+				"execution_count": 12
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Actualizar fichero metadata**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Configurar la conexión\r\n",
 					"\r\n",
@@ -935,21 +845,10 @@
 					"\r\n",
 					"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 				],
-				"execution_count": 18
+				"execution_count": 113
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"        # # Comprobar si la tabla Delta existe\r\n",
 					"        # if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",
@@ -978,7 +877,7 @@
 					"        #     ).execute()\r\n",
 					""
 				],
-				"execution_count": null
+				"execution_count": 14
 			}
 		]
 	}

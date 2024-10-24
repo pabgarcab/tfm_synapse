@@ -133,6 +133,13 @@
 								"type": "Expression"
 							},
 							"type": "string"
+						},
+						"bronze_pending": {
+							"value": {
+								"value": "@pipeline().parameters.BronzeFolderPending",
+								"type": "Expression"
+							},
+							"type": "string"
 						}
 					},
 					"snapshot": true,

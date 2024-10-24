@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "76f963f5-a7e2-498d-81a6-55841daa4823"
+				"spark.autotune.trackingId": "44b990ba-c423-47ea-9aa4-fa85a917ca3b"
 			}
 		},
 		"metadata": {
@@ -100,7 +100,7 @@
 					}
 				},
 				"source": [
-					"**Carga de ficheros parquet Landing sobre tablas Delta capa Silver**"
+					"**Import modules**"
 				]
 			},
 			{
@@ -141,91 +141,6 @@
 					}
 				},
 				"source": [
-					"**Merge **desde** Landing a Silver**"
-				]
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"# landing_files = \r\n",
-					"#     [\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"almacenes_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"articulos_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"categoria_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"codigoPostal_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"color_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"divisa_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"fechas_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"horas_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"linea_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"pais_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"talla_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"tarifa_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         },\r\n",
-					"#         {\r\n",
-					"#             \"name\": \"tipoOperacion_20241008.parquet\",\r\n",
-					"#             \"type\": \"File\"\r\n",
-					"#         }\r\n",
-					"#     ]"
-				],
-				"execution_count": 12
-			},
-			{
-				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
 					"**Configuration**"
 				]
 			},
@@ -245,8 +160,6 @@
 				"source": [
 					"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 					"# Fecha actual en formato yyyymmdd\r\n",
-					"#delta_date_filter = date_format(current_date(), 'yyyyMMdd')\r\n",
-					"delta_date_filter = '20241008'\r\n",
 					"\r\n",
 					"fecha_hoy = datetime.now()\r\n",
 					"# Formato cadena 'yyyy-mm-dd'\r\n",
@@ -256,7 +169,6 @@
 					"# Formato cadena 'yyyy-mm-dd'\r\n",
 					"delta_date_string = fecha_hoy.strftime('%Y-%m-%d')\r\n",
 					"\r\n",
-					"\r\n",
 					"landing_files = json.loads(landing_files)  # Convertimos en array la variable\r\n",
 					"\r\n",
 					"# Inicializar listas para almacenar resultados\r\n",
@@ -265,6 +177,19 @@
 					"incorrect_files = []"
 				],
 				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Load/Merge parquet Landing files to silver**"
+				]
 			},
 			{
 				"cell_type": "code",
@@ -280,22 +205,6 @@
 					}
 				},
 				"source": [
-					"# Fecha actual en formato yyyymmdd\r\n",
-					"#delta_date_filter = date_format(current_date(), 'yyyyMMdd')\r\n",
-					"\r\n",
-					"# landing_files = json.loads(landing_files)  # Convertimos en array la variable\r\n",
-					"\r\n",
-					"# delta_date_filter = '20241008'\r\n",
-					"\r\n",
-					"# # Inicializar listas para almacenar resultados\r\n",
-					"# results = []\r\n",
-					"# correct_files = []\r\n",
-					"# incorrect_files = []\r\n",
-					"\r\n",
-					"# ct stores current time\r\n",
-					"#ct = datetime.datetime.now()\r\n",
-					"#print(&quot;current time:-&quot;, ct)\r\n",
-					"\r\n",
 					"for file in landing_files:\r\n",
 					"    file_result = {  # OPCIONAL: añadir timestamp\r\n",
 					"        'table': file[\"name\"][:file[\"name\"].index('_')]  \r\n",
@@ -429,7 +338,7 @@
 					}
 				},
 				"source": [
-					"**Guardamos log de la carga**"
+					"**Save log merge/load**"
 				]
 			},
 			{
@@ -476,7 +385,7 @@
 					}
 				},
 				"source": [
-					"**Movemos ficheros de Pending a Processed o Error**"
+					"**Move files from Pending to Processed or Error**"
 				]
 			},
 			{
@@ -602,7 +511,7 @@
 					}
 				},
 				"source": [
-					"**Guardamos logs de los ficheros procesados**"
+					"**Save logs files**"
 				]
 			},
 			{
@@ -649,7 +558,7 @@
 					}
 				},
 				"source": [
-					"**Actualizamos csv configuracion**"
+					"**Update Configuratin CSV**"
 				]
 			},
 			{

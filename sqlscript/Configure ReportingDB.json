@@ -5,12 +5,12 @@
 			"name": "Configuration"
 		},
 		"content": {
-			"query": "--CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity'\nGO\n\n--CREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'User identity'\nGO\n\nSELECT * FROM sys.database_scoped_credentials;\n\n\n--GRANT ALTER ANY CREDENTIAL TO [dbo];\n\nGRANT CONTROL ON DATABASE::[SilverlessSTG]  TO [asa-tfm-pgc]\nGRANT CONTROL ON DATABASE::[SilverlessSTG]  TO [dbo]\n\n\n\n--GRANT CONTROL ON DATABASE SCOPED CREDENTIAL::[SilverlessSTG]  TO [asa-tfm-pgc]\n\nGO\nCREATE USER [asa-tfm-pgc] FROM EXTERNAL PROVIDER;\nGO\nALTER ROLE db_datareader ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_datawriter ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_owner ADD MEMBER [asa-tfm-pgc];\nGO\n\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\n\n\n\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA etl AUTHORIZATION dbo;\nGO\nCREATE SCHEMA silver AUTHORIZATION dbo;\nGO\nCREATE SCHEMA scd AUTHORIZATION dbo;\n\n",
+			"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity'\nGO\nSELECT * FROM sys.database_scoped_credentials;\n\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA dim AUTHORIZATION dbo;\nGO\nCREATE SCHEMA fact AUTHORIZATION dbo;\nGO",
 			"metadata": {
 				"language": "sql"
 			},
 			"currentConnection": {
-				"databaseName": "SilverlessSTG",
+				"databaseName": "ReportingDB",
 				"poolName": "Built-in"
 			},
 			"resultLimit": 5000

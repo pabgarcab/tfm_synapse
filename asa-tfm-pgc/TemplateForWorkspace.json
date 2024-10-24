@@ -1963,7 +1963,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "9e2fce63-0763-4bb1-9143-9c90f95c8444"
+						"spark.autotune.trackingId": "1e1d8cec-ddc1-4087-a2e0-4d4bba48fb1d"
 					}
 				},
 				"metadata": {
@@ -1988,13 +1988,15 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"# Import modules\r\n",
 							"from delta.tables import DeltaTable\r\n",
@@ -2357,8 +2359,6 @@
 						"source": [
 							"# Carga o Merge Dimensiones\r\n",
 							"results = []\r\n",
-							"correct_files = []\r\n",
-							"incorrect_files = []\r\n",
 							"exception = []\r\n",
 							"\r\n",
 							"for file in dimensionsList:\r\n",
@@ -2378,7 +2378,6 @@
 							"            file_result['status'] = 'Correct'\r\n",
 							"            file_result['exception'] = \"There is no new data\"\r\n",
 							"            results.append(file_result)\r\n",
-							"            correct_files.append(file['name'])\r\n",
 							"            continue\r\n",
 							"\r\n",
 							"        table_name = file[\"name\"].split('_')[0]\r\n",
@@ -2447,7 +2446,6 @@
 							"            file_result['inserted_rows'] = last_result[0].operationMetrics[\"numTargetRowsInserted\"]\r\n",
 							"            file_result['updated_rows'] = last_result[0].operationMetrics[\"numTargetRowsUpdated\"]\r\n",
 							"\r\n",
-							"            correct_files.append(file['name'])\r\n",
 							"\r\n",
 							"        else: # Crear nueva tabla Delta\r\n",
 							"      \r\n",
@@ -2485,39 +2483,15 @@
 							"            file_result['status'] = 'Correct'\r\n",
 							"            file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
 							"            file_result['updated_rows'] = 0\r\n",
-							"            correct_files.append(file['name'])\r\n",
+							"\r\n",
 							"\r\n",
 							"    except Exception as e:\r\n",
 							"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
 							"        file_result['exception'] = f\"{e}\"\r\n",
 							"        results.append(file_result)\r\n",
-							"        incorrect_files.append(file['name'])\r\n",
 							"        continue\r\n",
 							"\r\n",
-							"    results.append(file_result)\r\n",
-							"\r\n",
-							"# Convertir resultados a DataFrame\r\n",
-							"results_df = spark.createDataFrame(results)\r\n",
-							"\r\n",
-							"# Ruta donde quieres guardar el archivo\r\n",
-							"output_path = \"/gold/Logs/log_prueba_20241020.txt\"\r\n",
-							"\r\n",
-							"print(\"======================\")\r\n",
-							"# Imprimir resultados en consola\r\n",
-							"for result in results:\r\n",
-							"    print(f\"Archivo: {result['file_name']}, Estado: {result['status']}, Filas insertadas: {result['inserted_rows']}, Filas actualizadas: {result['updated_rows']}, Excepción: {result['exception']}\")\r\n",
-							"\r\n",
-							"# Confirmación\r\n",
-							"print(f\"Resultados guardados en: {output_path}\")\r\n",
-							"\r\n",
-							"# Guardar nombres de archivos Corrects e inCorrects en variables de la pipeline\r\n",
-							"correct_files_variable = correct_files\r\n",
-							"incorrect_files_variable = incorrect_files\r\n",
-							"\r\n",
-							"# Si necesitas ver las variables\r\n",
-							"print(\"Archivos Corrects:\", correct_files_variable)\r\n",
-							"print(\"Archivos inCorrects:\", incorrect_files_variable)\r\n",
-							""
+							"    results.append(file_result)"
 						],
 						"outputs": [],
 						"execution_count": 32
@@ -2553,8 +2527,6 @@
 							"\r\n",
 							"# Inicializar listas para almacenar resultados\r\n",
 							"# results = []\r\n",
-							"# correct_files = []\r\n",
-							"# incorrect_files = []\r\n",
 							"# exception = []\r\n",
 							"\r\n",
 							"\r\n",
@@ -2584,7 +2556,6 @@
 							"            file_result['status'] = 'Correct'\r\n",
 							"            file_result['exception'] = \"There is no new data\"\r\n",
 							"            results.append(file_result)\r\n",
-							"            correct_files.append(file['name'])\r\n",
 							"            continue\r\n",
 							"\r\n",
 							"        # Añadir columnas necesarias\r\n",
@@ -2687,39 +2658,30 @@
 							"        # Almacenar conteos de filas\r\n",
 							"        file_result['status'] = 'Correct'\r\n",
 							"        file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
-							"        correct_files.append(file['name'])\r\n",
 							"\r\n",
 							"    except Exception as e:\r\n",
 							"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
 							"        file_result['exception'] = f\"{e}\"\r\n",
 							"        results.append(file_result)\r\n",
-							"        incorrect_files.append(file['name'])\r\n",
 							"        continue\r\n",
 							"\r\n",
 							"    results.append(file_result)\r\n",
 							"\r\n",
-							"# Convertir resultados a DataFrame\r\n",
-							"results_df = spark.createDataFrame(results)\r\n",
+							"# # Convertir resultados a DataFrame\r\n",
+							"# results_df = spark.createDataFrame(results)\r\n",
 							"\r\n",
-							"# Ruta donde quieres guardar el archivo\r\n",
-							"output_path = \"/gold/Logs/log_prueba_truncado_carga.txt\"\r\n",
+							"# # Ruta donde quieres guardar el archivo\r\n",
+							"# output_path = \"/gold/Logs/log_prueba_truncado_carga.txt\"\r\n",
 							"\r\n",
-							"print(\"======================\")\r\n",
-							"# Imprimir resultados en consola\r\n",
-							"for result in results:\r\n",
-							"    print(f\"Table: {result['table']}, Status: {result['status']}, Inserted Rows: {result['inserted_rows']}, Updated Rows: {result['updated_rows']}, Exception: {result['exception']}, datetime: {result['datetime']}\")\r\n",
+							"# print(\"======================\")\r\n",
+							"# # Imprimir resultados en consola\r\n",
+							"# for result in results:\r\n",
+							"#     print(f\"Table: {result['table']}, Status: {result['status']}, Inserted Rows: {result['inserted_rows']}, Updated Rows: {result['updated_rows']}, Exception: {result['exception']}, datetime: {result['datetime']}\")\r\n",
 							"\r\n",
 							"\r\n",
-							"# Confirmación\r\n",
-							"print(f\"Resultados guardados en: {output_path}\")\r\n",
-							"\r\n",
-							"# Guardar nombres de archivos Corrects e inCorrects en variables de la pipeline\r\n",
-							"correct_files_variable = correct_files\r\n",
-							"incorrect_files_variable = incorrect_files\r\n",
-							"\r\n",
-							"# Si necesitas ver las variables\r\n",
-							"print(\"Archivos Corrects:\", correct_files_variable)\r\n",
-							"print(\"Archivos inCorrects:\", incorrect_files_variable)"
+							"# # Confirmación\r\n",
+							"# print(f\"Resultados guardados en: {output_path}\")\r\n",
+							""
 						],
 						"outputs": [],
 						"execution_count": 21
@@ -2893,7 +2855,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "a8ec342b-dfc0-46ff-b02c-872dbe3b16e3"
+						"spark.autotune.trackingId": "8583e7ac-52b9-40bd-847e-e057e0ce947e"
 					}
 				},
 				"metadata": {
@@ -2918,15 +2880,13 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# path of the data lake container (bronze and silver for this example)\r\n",
 							"#data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
@@ -3269,6 +3229,7 @@
 							"    except Exception as e:\r\n",
 							"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
 							"        # Estado ya configurado como 'Incorrecto'\r\n",
+							"        file_result['exception'] = f\"{e}\"\r\n",
 							"        results.append(file_result)  # Agregar resultado de fallo al final\r\n",
 							"        incorrect_files.append(file['name'])  # Agregar a la lista de archivos incorrectos\r\n",
 							"        continue  # Continuar con la siguiente iteración\r\n",

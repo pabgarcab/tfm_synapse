@@ -26,6 +26,30 @@
 						"referenceName": "LoadSCD2AndFact",
 						"type": "NotebookReference"
 					},
+					"parameters": {
+						"data_lake_container": {
+							"value": "@pipeline().parameters.ADLG2",
+							"type": "string"
+						},
+						"connection_string": {
+							"value": "@variables('connectionString')",
+							"type": "string"
+						},
+						"gold_folder_logs": {
+							"value": {
+								"value": "@pipeline().parameters.GoldFolderLogs",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"container_name": {
+							"value": {
+								"value": "@pipeline().parameters.ContainerName",
+								"type": "Expression"
+							},
+							"type": "string"
+						}
+					},
 					"snapshot": true,
 					"sparkPool": {
 						"referenceName": "sparkTFM",
@@ -44,7 +68,14 @@
 			{
 				"name": "Search ActiveForLoad",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "connectionString",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -96,11 +127,87 @@
 						""
 					]
 				}
+			},
+			{
+				"name": "Get ConnectionString",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "dsConnectionString",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "connectionString",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get ConnectionString",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "connectionString",
+					"value": {
+						"value": "@activity('Get ConnectionString').output.value[0].conn\n",
+						"type": "Expression"
+					}
+				}
 			}
 		],
+		"parameters": {
+			"ADLG2": {
+				"type": "string",
+				"defaultValue": "abfss://mdw@datalake1pgc.dfs.core.windows.net"
+			},
+			"GoldFolderLogs": {
+				"type": "string",
+				"defaultValue": "gold/Logs"
+			},
+			"ContainerName": {
+				"type": "string",
+				"defaultValue": "mdw"
+			}
+		},
 		"variables": {
 			"tablesToLoad": {
-				"type": "Array"
+				"type": "Array",
+				"defaultValue": [
+					"a"
+				]
+			},
+			"connectionString": {
+				"type": "String",
+				"defaultValue": "a"
 			}
 		},
 		"annotations": []

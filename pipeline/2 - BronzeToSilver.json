@@ -40,7 +40,7 @@
 				}
 			},
 			{
-				"name": "UPSERT to Silver",
+				"name": "UPSERT Silver",
 				"type": "SynapseNotebook",
 				"dependsOn": [
 					{
@@ -71,7 +71,7 @@
 							},
 							"type": "string"
 						},
-						"bronze_folder": {
+						"bronze_landing": {
 							"value": {
 								"value": "@pipeline().parameters.BronzeFolderPending",
 								"type": "Expression"
@@ -85,7 +85,7 @@
 							},
 							"type": "string"
 						},
-						"LandingFiles": {
+						"landing_files": {
 							"value": {
 								"value": "@string(variables('landingFiles'))",
 								"type": "Expression"
@@ -95,6 +95,41 @@
 						"connection_string": {
 							"value": {
 								"value": "@variables('connectionString')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"bronze_error": {
+							"value": {
+								"value": "@pipeline().parameters.BronzeFolderError",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"bronze_processed": {
+							"value": {
+								"value": "@pipeline().parameters.BronzeFolderProcessed",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"bronze_logs": {
+							"value": {
+								"value": "@pipeline().parameters.BronzeFolderLogs",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"silver_logs": {
+							"value": {
+								"value": "@pipeline().parameters.SilverFolderLogs",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"container_name": {
+							"value": {
+								"value": "@pipeline().parameters.ContainerName",
 								"type": "Expression"
 							},
 							"type": "string"
@@ -207,6 +242,26 @@
 			"SilverFolder": {
 				"type": "string",
 				"defaultValue": "silver/DeltaTables"
+			},
+			"BronzeFolderError": {
+				"type": "string",
+				"defaultValue": "bronze/Landing/Error"
+			},
+			"BronzeFolderProcessed": {
+				"type": "string",
+				"defaultValue": "bronze/Processed"
+			},
+			"BronzeFolderLogs": {
+				"type": "string",
+				"defaultValue": "bronze/Logs"
+			},
+			"SilverFolderLogs": {
+				"type": "string",
+				"defaultValue": "silver/Logs"
+			},
+			"ContainerName": {
+				"type": "string",
+				"defaultValue": "mdw"
 			}
 		},
 		"variables": {

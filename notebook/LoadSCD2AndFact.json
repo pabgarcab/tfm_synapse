@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6c87c448-e2a9-4067-ac46-db6d43244527"
+				"spark.autotune.trackingId": "9e2fce63-0763-4bb1-9143-9c90f95c8444"
 			}
 		},
 		"metadata": {
@@ -56,9 +56,13 @@
 					"from delta.tables import *\r\n",
 					"from pyspark.sql.functions import when, lit, current_date, date_format,concat_ws,xxhash64,current_timestamp\r\n",
 					"from pyspark.sql import SparkSession,Window\r\n",
-					"from pyspark.sql import functions as F"
+					"from pyspark.sql import functions as F\r\n",
+					"import json\r\n",
+					"import re\r\n",
+					"from datetime import datetime\r\n",
+					"from azure.storage.blob import BlobServiceClient"
 				],
-				"execution_count": 4
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -96,17 +100,14 @@
 							"deleting": false
 						}
 					},
-					"microsoft": {
-						"language": "sparksql"
-					},
 					"collapsed": false
 				},
 				"source": [
-					"%%sql\r\n",
-					"USE gold;\r\n",
-					"DROP TABLE IF EXISTS fact_Sales;"
+					"# %%sql\r\n",
+					"# USE gold;\r\n",
+					"# DROP TABLE IF EXISTS fact_Sales;"
 				],
-				"execution_count": 3
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -169,83 +170,7 @@
 					"        }\r\n",
 					"    ]"
 				],
-				"execution_count": 5
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"df = spark.sql(f\"\"\"\r\n",
-					"                    SELECT  idDesgloseVenta AS idSales,\r\n",
-					"                        d.idArticulo AS idArticles,\r\n",
-					"                        c.idAlmacen AS idWarehouse,\r\n",
-					"                        c.idCliente AS idClient,\r\n",
-					"                        c.idCodigoPostal AS idPostalCode,\r\n",
-					"                        c.idDivisa AS idCurrency,\r\n",
-					"                        c.idTarifa AS idTariff,\r\n",
-					"                        c.idTipoOperacion AS idOperationType,\r\n",
-					"                        c.idHora AS idHours,\r\n",
-					"                        c.idFecha AS idDate,\r\n",
-					"                        f.fecha AS  date,\r\n",
-					"                        CAST(CONCAT(DATE_FORMAT(f.fecha, 'yyyy-MM-dd'), ' ', h.horaCompleta) AS TIMESTAMP) AS dateOp,\r\n",
-					"                        COALESCE(c.codigoTicket, 'D') AS ticketNumber,\r\n",
-					"                        COALESCE(d.Cantidad, 0) AS quantity,\r\n",
-					"                        COALESCE(d.PrecioUnitario, 0)  AS unitPrice,\r\n",
-					"                        COALESCE(d.CosteUnitario, 0)  AS unitCost,\r\n",
-					"                        COALESCE(d.importeBruto, 0)  AS amtTotalEuros,\r\n",
-					"                        COALESCE(d.importeNeto, 0)  AS amtNetEuros,\r\n",
-					"                        COALESCE(d.importeDescuento, 0)  AS amtTotalEurosDiscount,\r\n",
-					"                        COALESCE(d.importeNetoDescuento, 0) AS amtNetEurosDiscount,\r\n",
-					"                        CASE WHEN idTarifa IN (2,3) THEN 1\r\n",
-					"                            ELSE 0 \r\n",
-					"                        END AS discountSale,\r\n",
-					"                        CASE WHEN idTarifa = 0 THEN 0\r\n",
-					"                            ELSE (d.importeBruto - d.importeDescuento) \r\n",
-					"                        END AS amtTotalDiscount,\r\n",
-					"                        CASE WHEN idTarifa = 0 THEN 0 \r\n",
-					"                            ELSE (d.importeNeto - d.importeNetoDescuento) \r\n",
-					"                        END AS amtNetDiscount,\r\n",
-					"                        d.fechaCarga AS loadDate,\r\n",
-					"                        d.fechaDelta AS deltaDate\r\n",
-					"                    FROM default.desgloseVenta AS d\r\n",
-					"                    INNER JOIN default.cabeceraVenta AS c\r\n",
-					"                        ON d.idcabecerasVentas = c.idcabeceraVenta\r\n",
-					"                    LEFT JOIN default.Fechas  AS f\r\n",
-					"                        On f.idFechas = c.idFecha\r\n",
-					"                    LEFT JOIN default.horas  AS h\r\n",
-					"                        On h.idHoras = c.idHora\r\n",
-					"                    ORDER BY idDesgloseVenta\r\n",
-					"                     \"\"\")"
-				],
-				"execution_count": 22
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"df.show()"
-				],
-				"execution_count": 23
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -290,8 +215,8 @@
 					"                        ON ca.idCategoria = a.idCategoria\r\n",
 					"                    LEFT JOIN default.Linea AS l\r\n",
 					"                        ON l.idLinea = a.idLinea\r\n",
+					"                    WHERE fechaDelta >= \r\n",
 					"                    -- where  a.fechaCarga  < '20241009'\r\n",
-					"                    ORDER BY idArticulos\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -323,7 +248,7 @@
 					"                        FROM default.cliente AS c\r\n",
 					"                        LEFT JOIN default.pais AS p ON c.idPais = p.idPais\r\n",
 					"                        INNER JOIN default.codigoPostal AS cp ON cp.idCodigoPostal = c.idCodigoPostal AND cp.codigoPais = p.codigoPais\r\n",
-					"                        ORDER BY idCliente\r\n",
+					"                        WHERE fechaDelta >= \r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"        ,\r\n",
@@ -336,7 +261,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
 					"                    FROM default.divisa\r\n",
-					"                    ORDER BY idDivisa\r\n",
+					"                    WHERE fechaDelta >=\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -369,7 +294,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
 					"                    FROM default.fechas\r\n",
-					"                    ORDER BY idFechas\r\n",
+					"                    WHERE fechaDelta >=\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -382,7 +307,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
 					"                    FROM default.horas\r\n",
-					"                    ORDER BY idHoras\r\n",
+					"                    WHERE fechaDelta >=\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -393,7 +318,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate\r\n",
 					"                    FROM default.tipoOperacion\r\n",
-					"                    ORDER BY idTipoOperacion\r\n",
+					"                    WHERE fechaDelta >=\r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -409,7 +334,7 @@
 					"                    FROM default.codigoPostal AS c\r\n",
 					"                    LEFT JOIN default.pais AS p\r\n",
 					"                        ON p.codigoPais = c.codigoPais\r\n",
-					"                    ORDER BY idCodigoPostal\r\n",
+					"                    WHERE fechaDelta >= \r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
 					"        {\r\n",
@@ -420,7 +345,7 @@
 					"                            fechaCarga AS loadDate,\r\n",
 					"                            fechaDelta AS deltaDate       \r\n",
 					"                    FROM default.tarifa\r\n",
-					"                    ORDER BY idTarifa\r\n",
+					"                    WHERE fechaDelta >= \r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"        ,\r\n",
@@ -440,12 +365,12 @@
 					"                    FROM default.almacenes AS a\r\n",
 					"                    LEFT JOIN default.pais AS p\r\n",
 					"                        ON p.idpais = a.idPais\r\n",
-					"                    WHERE a.fechaDelta <> 20241011\r\n",
-					"                    UNION \r\n",
-					"                    select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
+					"                    --WHERE a.fechaDelta <> 20241011\r\n",
+					"                    --UNION \r\n",
+					"                    --select 4,'Almacen Este','IT8','ES','Spain','Valencia','Calle Este 321','Almacén especializado en logística',20241010,20241010\r\n",
 					"                    --UNION \r\n",
 					"                    --select 20,'Almacen Sureste','I21','ES','Spain','Badajoz','Calle Alfaro','Almacén especializado',20241011,20241011\r\n",
-					"                    ORDER BY idWarehouse\r\n",
+					"                    WHERE fechaDelta >= \r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"    ]\r\n",
@@ -488,20 +413,20 @@
 					"\r\n",
 					"for file in dimensionsList:\r\n",
 					"    file_result = {\r\n",
-					"        'table_name': file[\"name\"].split('_')[0]\r\n",
-					"        'file_name': file['name'],\r\n",
-					"        'status': 'Incorrecto',\r\n",
+					"        'table': f\"fact_{file['name']}\",\r\n",
+					"        'status': 'Incorrect',\r\n",
 					"        'inserted_rows': 0,\r\n",
 					"        'updated_rows': 0,\r\n",
 					"        'exception': 'N/A',\r\n",
-					"        'datetime': GETDATE()\r\n",
+					"        'datetime': str(datetime.now()) \r\n",
 					"    }\r\n",
 					"\r\n",
 					"    try:\r\n",
 					"\r\n",
 					"        if sdf.limit(1).count() == 0:\r\n",
 					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
-					"            file_result['exception'] = \"Fichero vacio\"\r\n",
+					"            file_result['status'] = 'Correct'\r\n",
+					"            file_result['exception'] = \"There is no new data\"\r\n",
 					"            results.append(file_result)\r\n",
 					"            correct_files.append(file['name'])\r\n",
 					"            continue\r\n",
@@ -564,7 +489,7 @@
 					"            \"\"\")\r\n",
 					"\r\n",
 					"            # Almacenar conteos de filas\r\n",
-					"            file_result['status'] = 'Correcto'\r\n",
+					"            file_result['status'] = 'Correct'\r\n",
 					"            history_df = spark.sql(f\"DESCRIBE HISTORY gold.dim_{table_name}\")\r\n",
 					"            last_merge_operation = history_df.filter(history_df.operation == 'MERGE').orderBy(F.desc(\"timestamp\")).limit(1)\r\n",
 					"            last_result = last_merge_operation.collect()\r\n",
@@ -607,7 +532,7 @@
 					"            #spark.sql(f\"ALTER TABLE gold.dim_{table_name} SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name')\")\r\n",
 					"\r\n",
 					"            # Almacenar archivo procesado correctamente\r\n",
-					"            file_result['status'] = 'Correcto'\r\n",
+					"            file_result['status'] = 'Correct'\r\n",
 					"            file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
 					"            file_result['updated_rows'] = 0\r\n",
 					"            correct_files.append(file['name'])\r\n",
@@ -635,13 +560,13 @@
 					"# Confirmación\r\n",
 					"print(f\"Resultados guardados en: {output_path}\")\r\n",
 					"\r\n",
-					"# Guardar nombres de archivos correctos e incorrectos en variables de la pipeline\r\n",
+					"# Guardar nombres de archivos Corrects e inCorrects en variables de la pipeline\r\n",
 					"correct_files_variable = correct_files\r\n",
 					"incorrect_files_variable = incorrect_files\r\n",
 					"\r\n",
 					"# Si necesitas ver las variables\r\n",
-					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
-					"print(\"Archivos incorrectos:\", incorrect_files_variable)\r\n",
+					"print(\"Archivos Corrects:\", correct_files_variable)\r\n",
+					"print(\"Archivos inCorrects:\", incorrect_files_variable)\r\n",
 					""
 				],
 				"execution_count": 32
@@ -676,19 +601,20 @@
 					"# Carga FULL tabla/s de hechos\r\n",
 					"\r\n",
 					"# Inicializar listas para almacenar resultados\r\n",
-					"results = []\r\n",
-					"correct_files = []\r\n",
-					"incorrect_files = []\r\n",
-					"exception = []\r\n",
+					"# results = []\r\n",
+					"# correct_files = []\r\n",
+					"# incorrect_files = []\r\n",
+					"# exception = []\r\n",
 					"\r\n",
 					"\r\n",
 					"for file in factList:\r\n",
 					"    file_result = {\r\n",
-					"        'file_name': file['name'],\r\n",
-					"        'status': 'Incorrecto',\r\n",
+					"        'table': f\"fact_{file['name']}\",\r\n",
+					"        'status': 'Incorrect',\r\n",
 					"        'inserted_rows': 0,\r\n",
 					"        'updated_rows': 0,\r\n",
-					"        'exception': 'N/A'\r\n",
+					"        'exception': 'N/A',\r\n",
+					"        'datetime': str(datetime.now())  \r\n",
 					"    }\r\n",
 					"    table_name = file[\"name\"].split('_')[0]\r\n",
 					"\r\n",
@@ -704,7 +630,8 @@
 					"        # Verificar si el DataFrame está vacío\r\n",
 					"        if sdf.count() == 0:\r\n",
 					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
-					"            file_result['exception'] = \"Fichero vacio\"\r\n",
+					"            file_result['status'] = 'Correct'\r\n",
+					"            file_result['exception'] = \"There is no new data\"\r\n",
 					"            results.append(file_result)\r\n",
 					"            correct_files.append(file['name'])\r\n",
 					"            continue\r\n",
@@ -719,24 +646,87 @@
 					"            delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
 					"            delta_table.delete()  # Truncar la tabla Delta\r\n",
 					"\r\n",
-					"            sdf.createOrReplaceTempView(\"temp_view\")\r\n",
+					"            #last_row number para incremental\r\n",
+					"\r\n",
+					"            sdf.createOrReplaceTempView(\"temp_sales_view\")\r\n",
 					"            spark.sql(f\"\"\"\r\n",
 					"                INSERT INTO gold.fact_{table_name}  \r\n",
-					"                SELECT ROW_NUMBER() OVER(ORDER BY dateOP), t.* from temp_view as t\r\n",
+					"                SELECT ROW_NUMBER() OVER(ORDER BY s.dateOP) AS skSales, s.*, \r\n",
+					"                        COALESCE(a.skArticles, -1) AS skArticles,\r\n",
+					"                        COALESCE(w.skWarehouse, -1) AS skWarehouse,\r\n",
+					"                        COALESCE(cl.skClient, -1) AS skClient, \r\n",
+					"                        COALESCE(p.skPostalCode, -1) AS skPostalCode, \r\n",
+					"                        COALESCE(cu.skCurrency, -1) AS skCurrency,\r\n",
+					"                        COALESCE(t.skTariff, -1) AS skTariff, \r\n",
+					"                        COALESCE(o.skOperationType, -1) AS skOperationType,                       \r\n",
+					"                        COALESCE(h.skHours, -1) AS skHours,                     \r\n",
+					"                        COALESCE(d.skDate, -1) AS skDate\r\n",
+					"                FROM temp_sales_view as s\r\n",
+					"                LEFT JOIN gold.dim_Articles AS a\r\n",
+					"                    ON s.idArticles = a.idArticles AND s.dateOp BETWEEN a.fromDate AND a.toDate\r\n",
+					"                LEFT JOIN gold.dim_Client AS cl\r\n",
+					"                    ON s.idClient = cl.idClient AND s.dateOp BETWEEN cl.fromDate AND cl.toDate\r\n",
+					"                LEFT JOIN gold.dim_Currency AS cu\r\n",
+					"                    ON s.idCurrency = cu.idCurrency AND s.dateOp BETWEEN cu.fromDate AND cu.toDate\r\n",
+					"                LEFT JOIN gold.dim_Date AS d\r\n",
+					"                    ON s.idDate = d.idDate AND s.dateOp BETWEEN d.fromDate AND d.toDate\r\n",
+					"                LEFT JOIN gold.dim_Hours AS h\r\n",
+					"                    ON s.idHours = h.idHours AND s.dateOp BETWEEN h.fromDate AND h.toDate\r\n",
+					"                LEFT JOIN gold.dim_OperationType AS o\r\n",
+					"                    ON s.idOperationType = o.idOperationType AND s.dateOp BETWEEN o.fromDate AND o.toDate\r\n",
+					"                LEFT JOIN gold.dim_PostalCode AS p\r\n",
+					"                    ON s.idPostalCode = p.idPostalCode AND s.dateOp BETWEEN p.fromDate AND p.toDate\r\n",
+					"                LEFT JOIN gold.dim_Tariff AS t\r\n",
+					"                    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate\r\n",
+					"                LEFT JOIN gold.dim_Warehouse AS w\r\n",
+					"                    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\r\n",
 					"                \"\"\")\r\n",
 					"        else:\r\n",
 					"\r\n",
 					"            window_spec = Window.orderBy(\"dateOp\", \"idArticles\")\r\n",
-					"            sdf = sdf.withColumn(f\"sk{table_name}\", F.row_number().over(window_spec))\r\n",
-					"            todas_las_columnas = sdf.columns\r\n",
-					"            columnas_al_principio = [f\"sk{table_name}\"]  # Suponiendo que la tabla tiene una columna idWarehouse\r\n",
-					"            otras_columnas = [col for col in todas_las_columnas if col not in columnas_al_principio]\r\n",
-					"            nuevo_orden_columnas = columnas_al_principio + otras_columnas\r\n",
-					"            sdf = sdf.select(*nuevo_orden_columnas)\r\n",
+					"            #sdf = sdf.withColumn(f\"sk{table_name}\", F.row_number().over(window_spec))\r\n",
+					"            #todas_las_columnas = sdf.columns\r\n",
+					"            #columnas_al_principio = [f\"sk{table_name}\"]  # Suponiendo que la tabla tiene una columna idWarehouse\r\n",
+					"            #otras_columnas = [col for col in todas_las_columnas if col not in columnas_al_principio]\r\n",
+					"            #nuevo_orden_columnas = columnas_al_principio + otras_columnas\r\n",
+					"            #sdf = sdf.select(*nuevo_orden_columnas)\r\n",
+					"\r\n",
+					"            sdf.createOrReplaceTempView(\"temp_sales_view\")\r\n",
+					"            sdf = spark.sql(f\"\"\" \r\n",
+					"                SELECT ROW_NUMBER() OVER(ORDER BY s.dateOP) AS skSales, s.*, \r\n",
+					"                        COALESCE(a.skArticles, -1) AS skArticles,\r\n",
+					"                        COALESCE(w.skWarehouse, -1) AS skWarehouse,\r\n",
+					"                        COALESCE(cl.skClient, -1) AS skClient, \r\n",
+					"                        COALESCE(p.skPostalCode, -1) AS skPostalCode, \r\n",
+					"                        COALESCE(cu.skCurrency, -1) AS skCurrency,\r\n",
+					"                        COALESCE(t.skTariff, -1) AS skTariff, \r\n",
+					"                        COALESCE(o.skOperationType, -1) AS skOperationType,                       \r\n",
+					"                        COALESCE(h.skHours, -1) AS skHours,                     \r\n",
+					"                        COALESCE(d.skDate, -1) AS skDate\r\n",
+					"                FROM temp_sales_view AS s\r\n",
+					"                LEFT JOIN gold.dim_Articles AS a\r\n",
+					"                    ON s.idArticles = a.idArticles AND s.dateOp BETWEEN a.fromDate AND a.toDate\r\n",
+					"                LEFT JOIN gold.dim_Client AS cl\r\n",
+					"                    ON s.idClient = cl.idClient AND s.dateOp BETWEEN cl.fromDate AND cl.toDate\r\n",
+					"                LEFT JOIN gold.dim_Currency AS cu\r\n",
+					"                    ON s.idCurrency = cu.idCurrency AND s.dateOp BETWEEN cu.fromDate AND cu.toDate\r\n",
+					"                LEFT JOIN gold.dim_Date AS d\r\n",
+					"                    ON s.idDate = d.idDate AND s.dateOp BETWEEN d.fromDate AND d.toDate\r\n",
+					"                LEFT JOIN gold.dim_Hours AS h\r\n",
+					"                    ON s.idHours = h.idHours AND s.dateOp BETWEEN h.fromDate AND h.toDate\r\n",
+					"                LEFT JOIN gold.dim_OperationType AS o\r\n",
+					"                    ON s.idOperationType = o.idOperationType AND s.dateOp BETWEEN o.fromDate AND o.toDate\r\n",
+					"                LEFT JOIN gold.dim_PostalCode AS p\r\n",
+					"                    ON s.idPostalCode = p.idPostalCode AND s.dateOp BETWEEN p.fromDate AND p.toDate\r\n",
+					"                LEFT JOIN gold.dim_Tariff AS t\r\n",
+					"                    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate\r\n",
+					"                LEFT JOIN gold.dim_Warehouse AS w\r\n",
+					"                    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\r\n",
+					"                \"\"\")\r\n",
 					"\r\n",
 					"        # Cargar datos en la tabla Delta\r\n",
 					"            sdf.write.format(\"delta\").mode(\"overwrite\").save(delta_table_path)\r\n",
-					"        #sdf.write.format(\"delta\").mode(\"append\").save(delta_table_path)  # valorar carga incremental más adelante\r\n",
+					"            #sdf.write.format(\"delta\").mode(\"append\").save(delta_table_path)  # valorar carga incremental más adelante\r\n",
 					"\r\n",
 					"            # Crear la tabla Delta en caso de que no exista\r\n",
 					"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.fact_{table_name} USING DELTA LOCATION \\'{delta_table_path}\\'')\r\n",
@@ -744,7 +734,7 @@
 					"            spark.sql(f\"ALTER TABLE gold.fact_{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
 					"            \r\n",
 					"        # Almacenar conteos de filas\r\n",
-					"        file_result['status'] = 'Correcto'\r\n",
+					"        file_result['status'] = 'Correct'\r\n",
 					"        file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
 					"        correct_files.append(file['name'])\r\n",
 					"\r\n",
@@ -766,20 +756,21 @@
 					"print(\"======================\")\r\n",
 					"# Imprimir resultados en consola\r\n",
 					"for result in results:\r\n",
-					"    print(f\"Archivo: {result['file_name']}, Estado: {result['status']}, Filas insertadas: {result['inserted_rows']}, Filas actualizadas: {result['updated_rows']}, Excepción: {result['exception']}\")\r\n",
+					"    print(f\"Table: {result['table']}, Status: {result['status']}, Inserted Rows: {result['inserted_rows']}, Updated Rows: {result['updated_rows']}, Exception: {result['exception']}, datetime: {result['datetime']}\")\r\n",
+					"\r\n",
 					"\r\n",
 					"# Confirmación\r\n",
 					"print(f\"Resultados guardados en: {output_path}\")\r\n",
 					"\r\n",
-					"# Guardar nombres de archivos correctos e incorrectos en variables de la pipeline\r\n",
+					"# Guardar nombres de archivos Corrects e inCorrects en variables de la pipeline\r\n",
 					"correct_files_variable = correct_files\r\n",
 					"incorrect_files_variable = incorrect_files\r\n",
 					"\r\n",
 					"# Si necesitas ver las variables\r\n",
-					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
-					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
+					"print(\"Archivos Corrects:\", correct_files_variable)\r\n",
+					"print(\"Archivos inCorrects:\", incorrect_files_variable)"
 				],
-				"execution_count": 6
+				"execution_count": 21
 			},
 			{
 				"cell_type": "markdown",
@@ -791,7 +782,7 @@
 					}
 				},
 				"source": [
-					"**Loockup sk en Tablas de hechos**"
+					"**Guardar ficheros Logs**"
 				]
 			},
 			{
@@ -808,9 +799,45 @@
 					}
 				},
 				"source": [
-					"#caragr"
+					"# Obtener la fecha actual\r\n",
+					"fecha_actual = datetime.now()\r\n",
+					"year = fecha_actual.strftime('%Y')  # Año actual (por ejemplo, '2024')\r\n",
+					"month = fecha_actual.strftime('%m')  # Mes actual (por ejemplo, '10')\r\n",
+					"day = fecha_actual.strftime('%d')  # Día actual (por ejemplo, '24')\r\n",
+					"hora = fecha_actual.strftime('%H%M%S')  # Hora actual en formato HHMMSS (por ejemplo, '235959')\r\n",
+					"\r\n",
+					"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
+					"archivo_nombre = f\"Log_{day}_{hora}.json\"\r\n",
+					"\r\n",
+					"# Reemplaza con tu cadena de conexión a Azure\r\n",
+					"\r\n",
+					"# Cliente de servicio de blobs\r\n",
+					"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
+					"\r\n",
+					"# Convetimos el diccionario a formato json\r\n",
+					"json_data = json.dumps(results, indent=4, ensure_ascii=False)\r\n",
+					"\r\n",
+					"# Crear la ruta de destino con la jerarquía Año/Mes y el nombre del archivo\r\n",
+					"destination_blob_name = f\"{gold_folder_logs}/{year}/{month}/{archivo_nombre}\"\r\n",
+					"\r\n",
+					"# Crear un cliente del blob de destino\r\n",
+					"destination_blob = blob_service_client.get_blob_client(container=container_name, blob=destination_blob_name)\r\n",
+					""
 				],
 				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"**Actualizar fichero metadata**"
+				]
 			},
 			{
 				"cell_type": "code",
@@ -826,64 +853,22 @@
 					}
 				},
 				"source": [
-					"spark.sql(f\"\"\"\r\n",
-					"SELECT  s.skSales,\r\n",
-					"        s.idSales,\r\n",
-					"        s.idArticles,\r\n",
-					"        COALESCE(a.skArticles, -1) AS skArticles,\r\n",
-					"        s.idWarehouse,\r\n",
-					"        COALESCE(w.skWarehouse, -1) AS skWarehouse,\r\n",
-					"        s.idClient,\r\n",
-					"        COALESCE(cl.skClient, -1) AS skClient, \r\n",
-					"        s.idPostalCode,\r\n",
-					"        COALESCE(p.skPostalCode, -1) AS skPostalCode, \r\n",
-					"        s.idCurrency,\r\n",
-					"        COALESCE(cu.skCurrency, -1) AS skCurrency,\r\n",
-					"        s.idTariff,\r\n",
-					"        COALESCE(t.skTariff, -1) AS skTariff, \r\n",
-					"        s.idOperationType,\r\n",
-					"        COALESCE(o.skOperationType, -1) AS skOperationType,\r\n",
-					"        s.idHours,\r\n",
-					"        COALESCE(h.skHours, -1) AS skHours,\r\n",
-					"        s.idDate,\r\n",
-					"        COALESCE(d.skDate, -1) AS skDate,\r\n",
-					"        s.date,\r\n",
-					"        s.dateOp,\r\n",
-					"        s.ticketNumber,\r\n",
-					"        s.quantity,\r\n",
-					"        s.unitPrice,\r\n",
-					"        s.unitCost,\r\n",
-					"        s.amtTotalEuros,\r\n",
-					"        s.amtNetEuros,\r\n",
-					"        s.amtTotalEurosDiscount,\r\n",
-					"        s.amtNetEurosDiscount,\r\n",
-					"        s.discountSale,\r\n",
-					"        s.amtTotalDiscount,\r\n",
-					"        s.amtNetDiscount,\r\n",
-					"        s.loadDate,\r\n",
-					"        s.deltaDate\r\n",
-					"FROM gold.dbo.fact_Sales AS s\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_Articles] AS a\r\n",
-					"    ON s.idArticles = a.idArticles AND s.dateOp BETWEEN a.fromDate AND a.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_Client] AS cl\r\n",
-					"    ON s.idClient = cl.idClient AND s.dateOp BETWEEN cl.fromDate AND cl.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_Currency] AS cu\r\n",
-					"    ON s.idCurrency = cu.idCurrency AND s.dateOp BETWEEN cu.fromDate AND cu.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_Date] AS d\r\n",
-					"    ON s.idDate = d.idDate AND s.dateOp BETWEEN d.fromDate AND d.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_Hours] AS h\r\n",
-					"    ON s.idHours = h.idHours AND s.dateOp BETWEEN h.fromDate AND h.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_OperationType] AS o\r\n",
-					"    ON s.idOperationType = o.idOperationType AND s.dateOp BETWEEN o.fromDate AND o.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_PostalCode] AS p\r\n",
-					"    ON s.idPostalCode = p.idPostalCode AND s.dateOp BETWEEN p.fromDate AND p.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_Tariff] AS t\r\n",
-					"    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate\r\n",
-					"LEFT JOIN [gold].[dbo].[dim_Warehouse] AS w\r\n",
-					"    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\r\n",
-					"    \"\"\")"
+					""
 				],
 				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
 			},
 			{
 				"cell_type": "code",

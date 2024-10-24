@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "ffea26c8-e79a-4040-a166-b3964e3b6726"
+				"spark.autotune.trackingId": "d56fe839-0ea6-4d79-9a04-a70d447e11bf"
 			}
 		},
 		"metadata": {
@@ -60,9 +60,11 @@
 					"import json\r\n",
 					"import re\r\n",
 					"from datetime import datetime\r\n",
-					"from azure.storage.blob import BlobServiceClient"
+					"from azure.storage.blob import BlobServiceClient\r\n",
+					"import io\r\n",
+					"import pandas as pd"
 				],
-				"execution_count": 2
+				"execution_count": 7
 			},
 			{
 				"cell_type": "code",
@@ -712,23 +714,7 @@
 					"        results.append(file_result)\r\n",
 					"        continue\r\n",
 					"\r\n",
-					"    results.append(file_result)\r\n",
-					"\r\n",
-					"# # Convertir resultados a DataFrame\r\n",
-					"# results_df = spark.createDataFrame(results)\r\n",
-					"\r\n",
-					"# # Ruta donde quieres guardar el archivo\r\n",
-					"# output_path = \"/gold/Logs/log_prueba_truncado_carga.txt\"\r\n",
-					"\r\n",
-					"# print(\"======================\")\r\n",
-					"# # Imprimir resultados en consola\r\n",
-					"# for result in results:\r\n",
-					"#     print(f\"Table: {result['table']}, Status: {result['status']}, Inserted Rows: {result['inserted_rows']}, Updated Rows: {result['updated_rows']}, Exception: {result['exception']}, datetime: {result['datetime']}\")\r\n",
-					"\r\n",
-					"\r\n",
-					"# # Confirmación\r\n",
-					"# print(f\"Resultados guardados en: {output_path}\")\r\n",
-					""
+					"    results.append(file_result)"
 				],
 				"execution_count": 21
 			},
@@ -813,9 +799,39 @@
 					}
 				},
 				"source": [
-					""
+					"# Configurar la conexión\r\n",
+					"\r\n",
+					"fechaDelta = '2024-09-08'\r\n",
+					"\r\n",
+					"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
+					"\r\n",
+					"# Definir los nombres de los contenedores y blobs\r\n",
+					"#container_name = \"etl/bronze/Configuration\"\r\n",
+					"metadata_folder = \"mdw/bronze/Configuration\"\r\n",
+					"container_name = metadata_folder\r\n",
+					"csv_blob_name = \"ConfiguracionReporting.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
+					"\r\n",
+					"# Leer el archivo CSV desde el Data Lake\r\n",
+					"blob_client = blob_service_client.get_blob_client(container=container_name, blob=csv_blob_name)\r\n",
+					"\r\n",
+					"\r\n",
+					"stream = io.BytesIO(blob_client.download_blob().readall())\r\n",
+					"df = pd.read_csv(stream, sep=',')  # Especifica el separador aquí\r\n",
+					"\r\n",
+					"# Limpiar nombres de columnas para eliminar espacios en blanco\r\n",
+					"df.columns = df.columns.str.strip()\r\n",
+					"\r\n",
+					"df.loc[df['TableName'] == 'Sales', 'UpdateDate'] = f'{fechaDelta}'  # Cambiar los nombres de las columnas según tu archivo CSV\r\n",
+					"\r\n",
+					"\r\n",
+					"# Guardar el DataFrame modificado en un nuevo flujo de bytes\r\n",
+					"output_stream = io.BytesIO()\r\n",
+					"df.to_csv(output_stream, index=False, sep=',', line_terminator='\\n')  # Usar line_terminator para evitar líneas en blanco\r\n",
+					"output_stream.seek(0)  # Regresar al inicio del flujo\r\n",
+					"\r\n",
+					"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 18
 			},
 			{
 				"cell_type": "markdown",

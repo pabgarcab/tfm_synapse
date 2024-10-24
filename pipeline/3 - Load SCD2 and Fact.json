@@ -28,11 +28,17 @@
 					},
 					"parameters": {
 						"data_lake_container": {
-							"value": "@pipeline().parameters.ADLG2",
+							"value": {
+								"value": "@pipeline().parameters.ADLG2",
+								"type": "Expression"
+							},
 							"type": "string"
 						},
 						"connection_string": {
-							"value": "@variables('connectionString')",
+							"value": {
+								"value": "@variables('connectionString')",
+								"type": "Expression"
+							},
 							"type": "string"
 						},
 						"gold_folder_logs": {
@@ -45,6 +51,13 @@
 						"container_name": {
 							"value": {
 								"value": "@pipeline().parameters.ContainerName",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"metadata_folder": {
+							"value": {
+								"value": "@pipeline().parameters.MetadataFolder",
 								"type": "Expression"
 							},
 							"type": "string"
@@ -196,6 +209,10 @@
 			"ContainerName": {
 				"type": "string",
 				"defaultValue": "mdw"
+			},
+			"MetadataFolder": {
+				"type": "string",
+				"defaultValue": "mdw/bronze/Configuration"
 			}
 		},
 		"variables": {

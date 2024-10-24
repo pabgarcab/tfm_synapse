@@ -5,6 +5,8 @@
 			{
 				"name": "LoadSCD2DimsAndFact",
 				"type": "SynapseNotebook",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "tablesToLoad",
@@ -58,6 +60,13 @@
 						"metadata_folder": {
 							"value": {
 								"value": "@pipeline().parameters.MetadataFolder",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"tables_load": {
+							"value": {
+								"value": "@string(variables('tablesToLoad'))",
 								"type": "Expression"
 							},
 							"type": "string"

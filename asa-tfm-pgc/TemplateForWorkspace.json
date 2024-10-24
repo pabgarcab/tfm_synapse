@@ -630,6 +630,13 @@
 										"type": "Expression"
 									},
 									"type": "string"
+								},
+								"metadata_folder": {
+									"value": {
+										"value": "@pipeline().parameters.MetadataFolder",
+										"type": "Expression"
+									},
+									"type": "string"
 								}
 							},
 							"snapshot": true,
@@ -782,6 +789,10 @@
 					"ContainerName": {
 						"type": "string",
 						"defaultValue": "mdw"
+					},
+					"MetadataFolder": {
+						"type": "string",
+						"defaultValue": "mdw/bronze/Configuration"
 					}
 				},
 				"variables": {
@@ -1963,7 +1974,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "1e1d8cec-ddc1-4087-a2e0-4d4bba48fb1d"
+						"spark.autotune.trackingId": "d56fe839-0ea6-4d79-9a04-a70d447e11bf"
 					}
 				},
 				"metadata": {
@@ -1988,15 +1999,13 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Import modules\r\n",
 							"from delta.tables import DeltaTable\r\n",
@@ -2007,10 +2016,12 @@
 							"import json\r\n",
 							"import re\r\n",
 							"from datetime import datetime\r\n",
-							"from azure.storage.blob import BlobServiceClient"
+							"from azure.storage.blob import BlobServiceClient\r\n",
+							"import io\r\n",
+							"import pandas as pd"
 						],
 						"outputs": [],
-						"execution_count": 2
+						"execution_count": 7
 					},
 					{
 						"cell_type": "code",
@@ -2665,23 +2676,7 @@
 							"        results.append(file_result)\r\n",
 							"        continue\r\n",
 							"\r\n",
-							"    results.append(file_result)\r\n",
-							"\r\n",
-							"# # Convertir resultados a DataFrame\r\n",
-							"# results_df = spark.createDataFrame(results)\r\n",
-							"\r\n",
-							"# # Ruta donde quieres guardar el archivo\r\n",
-							"# output_path = \"/gold/Logs/log_prueba_truncado_carga.txt\"\r\n",
-							"\r\n",
-							"# print(\"======================\")\r\n",
-							"# # Imprimir resultados en consola\r\n",
-							"# for result in results:\r\n",
-							"#     print(f\"Table: {result['table']}, Status: {result['status']}, Inserted Rows: {result['inserted_rows']}, Updated Rows: {result['updated_rows']}, Exception: {result['exception']}, datetime: {result['datetime']}\")\r\n",
-							"\r\n",
-							"\r\n",
-							"# # Confirmación\r\n",
-							"# print(f\"Resultados guardados en: {output_path}\")\r\n",
-							""
+							"    results.append(file_result)"
 						],
 						"outputs": [],
 						"execution_count": 21
@@ -2768,10 +2763,40 @@
 							}
 						},
 						"source": [
-							""
+							"# Configurar la conexión\r\n",
+							"\r\n",
+							"fechaDelta = '2024-09-08'\r\n",
+							"\r\n",
+							"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
+							"\r\n",
+							"# Definir los nombres de los contenedores y blobs\r\n",
+							"#container_name = \"etl/bronze/Configuration\"\r\n",
+							"metadata_folder = \"mdw/bronze/Configuration\"\r\n",
+							"container_name = metadata_folder\r\n",
+							"csv_blob_name = \"ConfiguracionReporting.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
+							"\r\n",
+							"# Leer el archivo CSV desde el Data Lake\r\n",
+							"blob_client = blob_service_client.get_blob_client(container=container_name, blob=csv_blob_name)\r\n",
+							"\r\n",
+							"\r\n",
+							"stream = io.BytesIO(blob_client.download_blob().readall())\r\n",
+							"df = pd.read_csv(stream, sep=',')  # Especifica el separador aquí\r\n",
+							"\r\n",
+							"# Limpiar nombres de columnas para eliminar espacios en blanco\r\n",
+							"df.columns = df.columns.str.strip()\r\n",
+							"\r\n",
+							"df.loc[df['TableName'] == 'Sales', 'UpdateDate'] = f'{fechaDelta}'  # Cambiar los nombres de las columnas según tu archivo CSV\r\n",
+							"\r\n",
+							"\r\n",
+							"# Guardar el DataFrame modificado en un nuevo flujo de bytes\r\n",
+							"output_stream = io.BytesIO()\r\n",
+							"df.to_csv(output_stream, index=False, sep=',', line_terminator='\\n')  # Usar line_terminator para evitar líneas en blanco\r\n",
+							"output_stream.seek(0)  # Regresar al inicio del flujo\r\n",
+							"\r\n",
+							"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 						],
 						"outputs": [],
-						"execution_count": null
+						"execution_count": 18
 					},
 					{
 						"cell_type": "markdown",
@@ -2855,7 +2880,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "8583e7ac-52b9-40bd-847e-e057e0ce947e"
+						"spark.autotune.trackingId": "b33303d3-df19-4eae-b993-f628820fa49e"
 					}
 				},
 				"metadata": {
@@ -2880,13 +2905,15 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"# path of the data lake container (bronze and silver for this example)\r\n",
 							"#data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
@@ -3292,7 +3319,7 @@
 							"json_data = json.dumps(results, indent=4, ensure_ascii=False)\r\n",
 							"\r\n",
 							"# Crear la ruta de destino con la jerarquía Año/Mes y el nombre del archivo\r\n",
-							"destination_blob_name = f\"{bronze_logs}/{year}/{month}/{archivo_nombre}\"\r\n",
+							"destination_blob_name = f\"{silver_logs}/{year}/{month}/{archivo_nombre}\"\r\n",
 							"\r\n",
 							"# Crear un cliente del blob de destino\r\n",
 							"destination_blob = blob_service_client.get_blob_client(container=container_name, blob=destination_blob_name)"
@@ -3328,16 +3355,23 @@
 						},
 						"source": [
 							"# Definir los paths de origen y destino\r\n",
-							"source_container_name = \"mdw/bronze/Landing\"\r\n",
+							"#source_container_name = \"mdw/bronze/Landing\"\r\n",
+							"\r\n",
+							"source_container_name = bronze_landing\r\n",
+							"\r\n",
 							"#source_container_name = \"etl/bronze/Processed\"\r\n",
-							"destination_container_name = \"mdw/bronze/Processed\"\r\n",
+							"#destination_container_name = \"mdw/bronze/Processed\"\r\n",
+							"destination_container_name_processed = bronze_processed\r\n",
+							"destination_container_name_error = bronze_error\r\n",
+							"\r\n",
 							"#destination_container_name = \"etl/bronze/Landing\"\r\n",
 							"source_blob_name = \"almacenes_20241008.parquet\"\r\n",
 							"destination_blob_name = \"almacenes_20241008.parquet\"\r\n",
 							"\r\n",
 							"# Copiar el archivo al nuevo destino\r\n",
 							"source_blob = blob_service_client.get_blob_client(container=source_container_name, blob=source_blob_name)\r\n",
-							"destination_blob = blob_service_client.get_blob_client(container=destination_container_name, blob=destination_blob_name)\r\n",
+							"destination_blob_processed = blob_service_client.get_blob_client(container=destination_container_name_processed, blob=destination_blob_name)\r\n",
+							"destination_blob_error = blob_service_client.get_blob_client(container=destination_container_name_error, blob=destination_blob_name)\r\n",
 							"\r\n",
 							"# Iniciar la copia del blob\r\n",
 							"#copy_properties = destination_blob.start_copy_from_url(source_blob.url)\r\n",
@@ -3479,56 +3513,35 @@
 						"source": [
 							"# Configurar la conexión\r\n",
 							"\r\n",
-							"# Definir los nombres de los contenedores y blobs\r\n",
-							"container_name = \"etl/bronze/Configuration\"\r\n",
-							"csv_blob_name = \"ConfiguracionOrigenes.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
+							"fechaDelta = '2024-09-08'\r\n",
+							"for file in landing_files:\r\n",
+							"    blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 							"\r\n",
-							"# Leer el archivo CSV desde el Data Lake\r\n",
-							"blob_client = blob_service_client.get_blob_client(container=container_name, blob=csv_blob_name)\r\n",
+							"    # Definir los nombres de los contenedores y blobs\r\n",
+							"    #container_name = \"etl/bronze/Configuration\"\r\n",
+							"    metadata_folder = \"mdw/bronze/Configuration\"\r\n",
+							"    container_name = metadata_folder\r\n",
+							"    csv_blob_name = \"ConfiguracionOrigenes.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
+							"\r\n",
+							"    # Leer el archivo CSV desde el Data Lake\r\n",
+							"    blob_client = blob_service_client.get_blob_client(container=container_name, blob=csv_blob_name)\r\n",
 							"\r\n",
 							"\r\n",
-							"try:\r\n",
-							"    # Descargar el blob y leerlo en un DataFrame de pandas\r\n",
 							"    stream = io.BytesIO(blob_client.download_blob().readall())\r\n",
-							"    df = pd.read_csv(stream, sep=';')  # Especifica el separador aquí\r\n",
-							"    print(\"Archivo CSV leído exitosamente.\")\r\n",
-							"except Exception as e:\r\n",
-							"    print(f\"Error al leer el archivo CSV: {e}\")\r\n",
-							"    exit()\r\n",
+							"    df = pd.read_csv(stream, sep=',')  # Especifica el separador aquí\r\n",
 							"\r\n",
-							"# Mostrar el contenido original\r\n",
-							"print(\"Contenido original del CSV:\")\r\n",
-							"print(df)\r\n",
+							"    # Limpiar nombres de columnas para eliminar espacios en blanco\r\n",
+							"    df.columns = df.columns.str.strip()\r\n",
 							"\r\n",
-							"# Limpiar nombres de columnas para eliminar espacios en blanco\r\n",
-							"df.columns = df.columns.str.strip()\r\n",
+							"    df.loc[df['TableName'] == 'Sales', 'UpdateDate'] = f'{fechaDelta}'  # Cambiar los nombres de las columnas según tu archivo CSV\r\n",
 							"\r\n",
-							"# Verificar si 'TableName' está presente en el DataFrame\r\n",
-							"if 'TableName' in df.columns:\r\n",
-							"    # Editar el DataFrame basándose en la condición\r\n",
-							"    df.loc[df['TableName'] == 'vw_Articulos', 'DataBaseName'] = 'm'  # Cambiar los nombres de las columnas según tu archivo CSV\r\n",
-							"else:\r\n",
-							"    print(\"La columna 'TableName' no se encuentra en el DataFrame.\")\r\n",
 							"\r\n",
-							"# Mostrar el contenido editado\r\n",
-							"print(\"Contenido editado del CSV:\")\r\n",
-							"print(df)\r\n",
+							"    # Guardar el DataFrame modificado en un nuevo flujo de bytes\r\n",
+							"    output_stream = io.BytesIO()\r\n",
+							"    df.to_csv(output_stream, index=False, sep=',', line_terminator='\\n')  # Usar line_terminator para evitar líneas en blanco\r\n",
+							"    output_stream.seek(0)  # Regresar al inicio del flujo\r\n",
 							"\r\n",
-							"# Limpiar filas vacías si existen\r\n",
-							"df.dropna(how='all', inplace=True)  # Eliminar filas completamente vacías\r\n",
-							"\r\n",
-							"# Guardar el DataFrame modificado en un nuevo flujo de bytes\r\n",
-							"output_stream = io.BytesIO()\r\n",
-							"df.to_csv(output_stream, index=False, sep=';', line_terminator='\\n')  # Usar line_terminator para evitar líneas en blanco\r\n",
-							"output_stream.seek(0)  # Regresar al inicio del flujo\r\n",
-							"\r\n",
-							"# Sobrescribir el archivo CSV en el Data Lake\r\n",
-							"try:\r\n",
-							"    blob_client.upload_blob(output_stream.getvalue(), overwrite=True)\r\n",
-							"    print(f\"Archivo CSV sobrescrito exitosamente en {container_name}/{csv_blob_name}.\")\r\n",
-							"except Exception as e:\r\n",
-							"    print(f\"Error al sobrescribir el archivo CSV: {e}\")\r\n",
-							""
+							"    blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 						],
 						"outputs": [],
 						"execution_count": null

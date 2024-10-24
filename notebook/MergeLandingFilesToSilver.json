@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "04c05466-af45-4fa1-8ae8-0b5e08f23f46"
+				"spark.autotune.trackingId": "8583e7ac-52b9-40bd-847e-e057e0ce947e"
 			}
 		},
 		"metadata": {
@@ -387,6 +387,7 @@
 					"    except Exception as e:\r\n",
 					"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
 					"        # Estado ya configurado como 'Incorrecto'\r\n",
+					"        file_result['exception'] = f\"{e}\"\r\n",
 					"        results.append(file_result)  # Agregar resultado de fallo al final\r\n",
 					"        incorrect_files.append(file['name'])  # Agregar a la lista de archivos incorrectos\r\n",
 					"        continue  # Continuar con la siguiente iteración\r\n",

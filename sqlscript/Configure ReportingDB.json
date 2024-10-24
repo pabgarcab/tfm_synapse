@@ -1,5 +1,5 @@
 {
-	"name": "Configure SilverlessSTG",
+	"name": "Configure ReportingDB",
 	"properties": {
 		"folder": {
 			"name": "Configuration"

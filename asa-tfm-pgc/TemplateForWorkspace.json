@@ -2983,7 +2983,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "76f963f5-a7e2-498d-81a6-55841daa4823"
+						"spark.autotune.trackingId": "c8bda54f-b8fb-4d28-b1a6-8ff140c8bb79"
 					}
 				},
 				"metadata": {
@@ -3008,13 +3008,15 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"# path of the data lake container (bronze and silver for this example)\r\n",
 							"#data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
@@ -3067,7 +3069,7 @@
 							}
 						},
 						"source": [
-							"**Carga de ficheros parquet Landing sobre tablas Delta capa Silver**"
+							"**Import modules**"
 						]
 					},
 					{
@@ -3109,92 +3111,6 @@
 							}
 						},
 						"source": [
-							"**Merge **desde** Landing a Silver**"
-						]
-					},
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
-							"# landing_files = \r\n",
-							"#     [\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"almacenes_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"articulos_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"categoria_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"codigoPostal_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"color_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"divisa_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"fechas_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"horas_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"linea_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"pais_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"talla_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"tarifa_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         },\r\n",
-							"#         {\r\n",
-							"#             \"name\": \"tipoOperacion_20241008.parquet\",\r\n",
-							"#             \"type\": \"File\"\r\n",
-							"#         }\r\n",
-							"#     ]"
-						],
-						"outputs": [],
-						"execution_count": 12
-					},
-					{
-						"cell_type": "markdown",
-						"metadata": {
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
 							"**Configuration**"
 						]
 					},
@@ -3214,8 +3130,6 @@
 						"source": [
 							"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 							"# Fecha actual en formato yyyymmdd\r\n",
-							"#delta_date_filter = date_format(current_date(), 'yyyyMMdd')\r\n",
-							"delta_date_filter = '20241008'\r\n",
 							"\r\n",
 							"fecha_hoy = datetime.now()\r\n",
 							"# Formato cadena 'yyyy-mm-dd'\r\n",
@@ -3224,7 +3138,6 @@
 							"\r\n",
 							"# Formato cadena 'yyyy-mm-dd'\r\n",
 							"delta_date_string = fecha_hoy.strftime('%Y-%m-%d')\r\n",
-							"\r\n",
 							"\r\n",
 							"landing_files = json.loads(landing_files)  # Convertimos en array la variable\r\n",
 							"\r\n",
@@ -3235,6 +3148,19 @@
 						],
 						"outputs": [],
 						"execution_count": null
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"**Load/Merge parquet Landing files to silver**"
+						]
 					},
 					{
 						"cell_type": "code",
@@ -3250,22 +3176,6 @@
 							}
 						},
 						"source": [
-							"# Fecha actual en formato yyyymmdd\r\n",
-							"#delta_date_filter = date_format(current_date(), 'yyyyMMdd')\r\n",
-							"\r\n",
-							"# landing_files = json.loads(landing_files)  # Convertimos en array la variable\r\n",
-							"\r\n",
-							"# delta_date_filter = '20241008'\r\n",
-							"\r\n",
-							"# # Inicializar listas para almacenar resultados\r\n",
-							"# results = []\r\n",
-							"# correct_files = []\r\n",
-							"# incorrect_files = []\r\n",
-							"\r\n",
-							"# ct stores current time\r\n",
-							"#ct = datetime.datetime.now()\r\n",
-							"#print(&quot;current time:-&quot;, ct)\r\n",
-							"\r\n",
 							"for file in landing_files:\r\n",
 							"    file_result = {  # OPCIONAL: añadir timestamp\r\n",
 							"        'table': file[\"name\"][:file[\"name\"].index('_')]  \r\n",
@@ -3400,7 +3310,7 @@
 							}
 						},
 						"source": [
-							"**Guardamos log de la carga**"
+							"**Save log merge/load**"
 						]
 					},
 					{
@@ -3448,7 +3358,7 @@
 							}
 						},
 						"source": [
-							"**Movemos ficheros de Pending a Processed o Error**"
+							"**Move files from Pending to Processed or Error**"
 						]
 					},
 					{
@@ -3575,7 +3485,7 @@
 							}
 						},
 						"source": [
-							"**Guardamos logs de los ficheros procesados**"
+							"**Save logs files**"
 						]
 					},
 					{
@@ -3623,7 +3533,7 @@
 							}
 						},
 						"source": [
-							"**Actualizamos csv configuracion**"
+							"**Update Configuratin CSV**"
 						]
 					},
 					{
@@ -4617,7 +4527,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "b640b02f-ef58-4dda-9823-5ad90654e73c"
+						"spark.autotune.trackingId": "a0cf62bb-704b-41ab-9208-31be1c1530e3"
 					}
 				},
 				"metadata": {
@@ -4642,8 +4552,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4671,14 +4580,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Import modules**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -4698,7 +4605,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# %%sql\r\n",
 							"# USE default;\r\n",
@@ -4712,7 +4618,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# %%sql\r\n",
 							"# USE gold;\r\n",
@@ -4723,7 +4628,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"factList = [ \r\n",
 							"        {\r\n",
@@ -4777,7 +4681,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dimensionsList = [ \r\n",
 							"        {\r\n",
@@ -5002,14 +4905,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Configuration**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"#blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 							"#fecha_delta = date_format(current_date(), 'yyyyMMdd')\r\n",
@@ -5076,14 +4977,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Load SCD2 Dimensions**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Carga o Merge Dimensiones\r\n",
 							"results = []\r\n",
@@ -5226,14 +5125,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Load Fact Table**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Carga FULL tabla/s de hechos\r\n",
 							"\r\n",
@@ -5387,14 +5284,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Guardar ficheros Logs**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Obtener la fecha actual\r\n",
 							"fecha_actual = datetime.now()\r\n",
@@ -5425,14 +5320,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Actualizar fichero metadata**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Configurar la conexión\r\n",
 							"\r\n",
@@ -5475,7 +5368,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"        # # Comprobar si la tabla Delta existe\r\n",
 							"        # if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",

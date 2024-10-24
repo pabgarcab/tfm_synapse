@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "d56fe839-0ea6-4d79-9a04-a70d447e11bf"
+				"spark.autotune.trackingId": "ea0e6322-396d-4493-b4fc-356edf32d31b"
 			}
 		},
 		"metadata": {
@@ -600,7 +600,7 @@
 					"        #sdf = spark.read.csv(f\"gs://your-bucket/{file['name']}\", header=True, inferSchema=True)\r\n",
 					"\r\n",
 					"        # Verificar si el DataFrame está vacío\r\n",
-					"        if sdf.count() == 0:\r\n",
+					"        if sdf.limit(1).count() == 0:\r\n",
 					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
 					"            file_result['status'] = 'Correct'\r\n",
 					"            file_result['exception'] = \"There is no new data\"\r\n",
@@ -654,7 +654,7 @@
 					"                \"\"\")\r\n",
 					"        else:\r\n",
 					"\r\n",
-					"            window_spec = Window.orderBy(\"dateOp\", \"idArticles\")\r\n",
+					"            #window_spec = Window.orderBy(\"dateOp\", \"idArticles\")\r\n",
 					"            #sdf = sdf.withColumn(f\"sk{table_name}\", F.row_number().over(window_spec))\r\n",
 					"            #todas_las_columnas = sdf.columns\r\n",
 					"            #columnas_al_principio = [f\"sk{table_name}\"]  # Suponiendo que la tabla tiene una columna idWarehouse\r\n",
@@ -832,19 +832,6 @@
 					"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 				],
 				"execution_count": 18
-			},
-			{
-				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					""
-				]
 			},
 			{
 				"cell_type": "code",

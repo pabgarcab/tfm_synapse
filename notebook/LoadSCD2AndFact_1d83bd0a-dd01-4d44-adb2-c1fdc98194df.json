@@ -18,7 +18,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a3f28e9d-626b-4ae3-a056-6d2664a4ed71"
+				"spark.autotune.trackingId": "52a34a39-253f-486a-ac68-b333ab6238a7"
 			}
 		},
 		"metadata": {
@@ -640,8 +640,6 @@
 					"            last_merge_operation = history_df.filter(history_df.operation == 'MERGE').orderBy(F.desc(\"timestamp\")).limit(1)\r\n",
 					"            last_result = last_merge_operation.collect()\r\n",
 					"\r\n",
-					"            #file_result['inserted_rows'] = last_result[0].operationMetrics[\"numTargetRowsInserted\"]\r\n",
-					"            #file_result['updated_rows'] = last_result[0].operationMetrics[\"numTargetRowsUpdated\"]\r\n",
 					"            if last_result:\r\n",
 					"                file_result['inserted_rows'] = last_result[0].operationMetrics.get(\"numTargetRowsInserted\", 0)\r\n",
 					"                file_result['updated_rows'] = last_result[0].operationMetrics.get(\"numTargetRowsUpdated\", 0)\r\n",
@@ -749,15 +747,8 @@
 					"    sdf = df.cache()\r\n",
 					"\r\n",
 					"    try:\r\n",
-					"        # Leer el archivo CSV en un DataFrame de Spark\r\n",
-					"        #sdf = spark.read.csv(f\"gs://your-bucket/{file['name']}\", header=True, inferSchema=True)\r\n",
-					"        #table_name = file[\"name\"].split('_')[0]\r\n",
-					"        #source_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
-					"        #key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
 					"\r\n",
-					"        #key_columns = key_columns_str.split(',')\r\n",
-					"        #conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
-					"        # Verificar si el DataFrame está vacío\r\n",
+					"        # Check empty query\r\n",
 					"        if sdf.limit(1).count() == 0:\r\n",
 					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
 					"            file_result['status'] = 'Correct'\r\n",
@@ -941,26 +932,6 @@
 				"source": [
 					"**Guardar ficheros Logs**"
 				]
-			},
-			{
-				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"existing_columns\r\n",
-					"\r\n",
-					"#temp_sales_df_with_hash.printSchema()"
-				],
-				"execution_count": 43
 			},
 			{
 				"cell_type": "code",

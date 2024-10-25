@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 1",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [skWarehouse]\n,[idWarehouse]\n,[warehouse]\n,[externalCode]\n,[countryCode]\n,[country]\n,[city]\n,[address]\n,[description]\n FROM [dim].[Warehouse]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "ReportingDB",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

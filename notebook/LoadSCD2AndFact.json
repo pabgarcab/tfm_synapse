@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "620257e5-c8ec-491a-a1a2-cd0d63916471"
+				"spark.autotune.trackingId": "c908c245-fba9-4ccb-bd17-c4980bca2071"
 			}
 		},
 		"metadata": {
@@ -607,7 +607,7 @@
 					"                LEFT JOIN gold.dim_{table_name}  \r\n",
 					"                AS existing\r\n",
 					"                ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
-					"                WHERE existing.{key_columns_str} IS NULL OR existing.isCurrent = 0 OR existing.hash != updates.hash\r\n",
+					"                WHERE existing.{key_columns_str} IS NULL OR (existing.{key_columns_str} IS NOT NULL AND existing.isCurrent = 0 AND existing.hash != updates.hash)\r\n",
 					"            \"\"\")\r\n",
 					"\r\n",
 					"            # Almacenar conteos de filas\r\n",

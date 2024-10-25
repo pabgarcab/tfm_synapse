@@ -1860,6 +1860,26 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) [skWarehouse]\n,[idWarehouse]\n,[warehouse]\n,[externalCode]\n,[countryCode]\n,[country]\n,[city]\n,[address]\n,[description]\n FROM [dim].[Warehouse]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "ReportingDB",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/LoadSCD2AndFact')]",
 			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
@@ -1880,7 +1900,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "620257e5-c8ec-491a-a1a2-cd0d63916471"
+						"spark.autotune.trackingId": "2497ef3b-0389-4429-8c4d-8bbaafc137d4"
 					}
 				},
 				"metadata": {
@@ -1905,7 +1925,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -1925,6 +1946,7 @@
 					},
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -2475,7 +2497,7 @@
 							"                LEFT JOIN gold.dim_{table_name}  \r\n",
 							"                AS existing\r\n",
 							"                ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
-							"                WHERE existing.{key_columns_str} IS NULL OR existing.isCurrent = 0 OR existing.hash != updates.hash\r\n",
+							"                WHERE existing.{key_columns_str} IS NULL OR (existing.{key_columns_str} IS NOT NULL AND existing.isCurrent = 0 AND existing.hash != updates.hash)\r\n",
 							"            \"\"\")\r\n",
 							"\r\n",
 							"            # Almacenar conteos de filas\r\n",
@@ -3958,7 +3980,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "01866b7a-1e86-44fa-991e-a1b428910f22"
+						"spark.autotune.trackingId": "b69af1e7-b9aa-495a-adfe-55d9aef2f569"
 					}
 				},
 				"metadata": {
@@ -3983,8 +4005,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},

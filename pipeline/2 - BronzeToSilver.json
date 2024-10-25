@@ -71,13 +71,6 @@
 							},
 							"type": "string"
 						},
-						"bronze_landing": {
-							"value": {
-								"value": "@pipeline().parameters.BronzeFolderPending",
-								"type": "Expression"
-							},
-							"type": "string"
-						},
 						"silver_folder": {
 							"value": {
 								"value": "@pipeline().parameters.SilverFolder",
@@ -137,6 +130,20 @@
 						"bronze_pending": {
 							"value": {
 								"value": "@pipeline().parameters.BronzeFolderPending",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"metadata_folder": {
+							"value": {
+								"value": "@pipeline().parameters.MetadataFolder",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"bronze_landing": {
+							"value": {
+								"value": "@pipeline().parameters.BronzeFolderLanding",
 								"type": "Expression"
 							},
 							"type": "string"
@@ -244,7 +251,7 @@
 			},
 			"BronzeFolderPending": {
 				"type": "string",
-				"defaultValue": "bronze/Landing/Pending"
+				"defaultValue": "mdw/bronze/Landing/Pending"
 			},
 			"SilverFolder": {
 				"type": "string",
@@ -252,23 +259,31 @@
 			},
 			"BronzeFolderError": {
 				"type": "string",
-				"defaultValue": "bronze/Landing/Error"
+				"defaultValue": "mdw/bronze/Landing/Error"
 			},
 			"BronzeFolderProcessed": {
 				"type": "string",
-				"defaultValue": "bronze/Processed"
+				"defaultValue": "mdw/bronze/Processed"
 			},
 			"BronzeFolderLogs": {
 				"type": "string",
-				"defaultValue": "bronze/Logs"
+				"defaultValue": "mdw/bronze/Logs"
 			},
 			"SilverFolderLogs": {
 				"type": "string",
-				"defaultValue": "silver/Logs"
+				"defaultValue": "mdw/silver/Logs"
 			},
 			"ContainerName": {
 				"type": "string",
 				"defaultValue": "mdw"
+			},
+			"MetadataFolder": {
+				"type": "string",
+				"defaultValue": "mdw/bronze/Configuration"
+			},
+			"BronzeFolderLanding": {
+				"type": "string",
+				"defaultValue": "bronze/Landing/Pending"
 			}
 		},
 		"variables": {

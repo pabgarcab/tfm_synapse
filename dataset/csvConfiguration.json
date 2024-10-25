@@ -22,7 +22,7 @@
 				"folderPath": "bronze/Configuration",
 				"fileSystem": "mdw"
 			},
-			"columnDelimiter": ";",
+			"columnDelimiter": ",",
 			"escapeChar": "\\",
 			"firstRowAsHeader": true,
 			"quoteChar": "\""

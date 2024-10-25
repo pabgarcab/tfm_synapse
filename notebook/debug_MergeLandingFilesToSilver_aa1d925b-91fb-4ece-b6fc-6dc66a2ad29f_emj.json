@@ -1,5 +1,5 @@
 {
-	"name": "MergeLandingFilesToSilver",
+	"name": "debug_MergeLandingFilesToSilver_aa1d925b-91fb-4ece-b6fc-6dc66a2ad29f_emj",
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -13,11 +13,12 @@
 			"executorMemory": "28g",
 			"executorCores": 4,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6a09dbdd-df03-4fba-b58f-6aec3f617438"
+				"spark.autotune.trackingId": "5d0a9eac-6b39-4054-891f-464e33704032"
 			}
 		},
 		"metadata": {
@@ -50,6 +51,29 @@
 		"cells": [
 			{
 				"cell_type": "code",
+				"metadata": {
+					"tags": [
+						"parameters_overwritten"
+					]
+				},
+				"source": [
+					"# This cell is generated from runtime parameters. Learn more: https://go.microsoft.com/fwlink/?linkid=2161015\n",
+					"data_lake_container = \"abfss://mdw@datalake1pgc.dfs.core.windows.net\"\n",
+					"bronze_landing = \"bronze/Landing/Pending\"\n",
+					"silver_folder = \"silver/DeltaTables\"\n",
+					"landing_files = \"[{\\\"name\\\":\\\"almacenes_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"articulos_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"categoria_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"codigoPostal_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"color_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"divisa_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"fechas_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"horas_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"linea_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"pais_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"talla_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"tarifa_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"},{\\\"name\\\":\\\"tipoOperacion_20241008.parquet\\\",\\\"type\\\":\\\"File\\\"}]\"\n",
+					"bronze_error = \"mdw/bronze/Landing/Error\"\n",
+					"bronze_processed = \"mdw/bronze/Processed\"\n",
+					"bronze_logs = \"mdw/bronze/Logs\"\n",
+					"silver_logs = \"mdw/silver/Logs\"\n",
+					"container_name = \"mdw\"\n",
+					"bronze_pending = \"mdw/bronze/Landing/Pending\"\n",
+					"metadata_folder = 'mdw/bronze/Configuration'"
+				],
+				"execution_count": 125
+			},
+			{
+				"cell_type": "code",
 				"source": [
 					"# path of the data lake container (bronze and silver for this example)\r\n",
 					"#data_lake_container = 'abfss://mdw@datalake1pgc.dfs.core.windows.net'\r\n",
@@ -69,39 +93,17 @@
 			{
 				"cell_type": "code",
 				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					},
 					"collapsed": false
 				},
 				"source": [
 					"# %%sql\r\n",
-					"# USE default;\r\n",
-					"# DROP DATABASE  silver CASCADE ;\r\n",
-					"# USE default;\r\n",
-					"# CREATE DATABASE IF NOT EXISTS silver;\r\n",
-					"# USE silver;"
+					"#  USE default;\r\n",
+					"#  DROP DATABASE  silver CASCADE ;\r\n",
+					"#  USE default;\r\n",
+					"#  CREATE DATABASE IF NOT EXISTS silver;\r\n",
+					"#  USE silver;"
 				],
-				"execution_count": 10
-			},
-			{
-				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
-				"source": [
-					"**Import modules**"
-				]
+				"execution_count": 108
 			},
 			{
 				"cell_type": "code",
@@ -114,8 +116,24 @@
 						"transient": {
 							"deleting": false
 						}
-					}
+					},
+					"collapsed": false
 				},
+				"source": [
+					"#%%sql\r\n",
+					"#USE silver;\r\n",
+					"#DROP TABLE  silver.fechas"
+				],
+				"execution_count": 103
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"**Import modules**"
+				]
+			},
+			{
+				"cell_type": "code",
 				"source": [
 					"# Import modules\r\n",
 					"from delta.tables import DeltaTable\r\n",
@@ -130,34 +148,16 @@
 					"import io\r\n",
 					"from pyspark.sql import functions as F"
 				],
-				"execution_count": 11
+				"execution_count": 126
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Configuration**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 					"# Fecha actual en formato yyyymmdd\r\n",
@@ -177,34 +177,16 @@
 					"correct_files = []\r\n",
 					"incorrect_files = []"
 				],
-				"execution_count": null
+				"execution_count": 127
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Load/Merge parquet Landing files to silver**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"for file in landing_files:\r\n",
 					"    file_result = {  # OPCIONAL: añadir timestamp\r\n",
@@ -338,34 +320,16 @@
 					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
 					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
 				],
-				"execution_count": 13
+				"execution_count": 128
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Save log merge/load**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Obtener la fecha actual\r\n",
 					"fecha_actual = datetime.now()\r\n",
@@ -387,17 +351,10 @@
 					"\r\n",
 					"destination_blob.upload_blob(json_data, overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 129
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Move files from Pending to Processed or Error**"
 				]
@@ -467,34 +424,16 @@
 					"# Combina todos los resultados en un solo texto\r\n",
 					"final_output = results + error_messages "
 				],
-				"execution_count": null
+				"execution_count": 130
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Save logs files**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"fecha_actual = datetime.now()\r\n",
 					"year = fecha_actual.strftime('%Y')  # Año actual (por ejemplo, '2024')\r\n",
@@ -511,34 +450,16 @@
 					"# Subir el contenido al blob\r\n",
 					"output_blob.upload_blob(final_output, overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 131
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Update Configuration CSV**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Configurar la conexión\r\n",
 					"#delta_date_string = '2024-10-08'\r\n",
@@ -571,7 +492,7 @@
 					"\r\n",
 					"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 132
 			}
 		]
 	}

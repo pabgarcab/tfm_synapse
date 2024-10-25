@@ -851,6 +851,8 @@
 					{
 						"name": "Load Bronze",
 						"type": "ExecutePipeline",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [],
 						"policy": {
 							"secureInput": false
@@ -4443,7 +4445,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "1575552e-2b0e-4de2-9b3c-62414da7ff5c"
+						"spark.autotune.trackingId": "c851b305-0619-4b32-9b9c-ab58a45f8278"
 					}
 				},
 				"metadata": {
@@ -4468,8 +4470,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4497,14 +4498,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Import modules**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -4540,7 +4539,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# %%sql\r\n",
 							"# USE gold;\r\n",
@@ -4551,7 +4549,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# factList = [ \r\n",
 							"#         {\r\n",
@@ -4605,7 +4602,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dimensionsList = [ \r\n",
 							"        {\r\n",
@@ -4804,7 +4800,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Configuration**"
 						]
@@ -4830,7 +4825,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# parameter string to array\r\n",
 							"tables_to_load = json.loads(tables_to_load)\r\n",
@@ -4896,14 +4890,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Load SCD2 Dimensions**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Carga o Merge Dimensiones\r\n",
 							"results = []\r\n",
@@ -5048,14 +5040,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Load Fact Table**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Carga FULL tabla/s de hechos\r\n",
 							"\r\n",
@@ -5209,14 +5199,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Guardar ficheros Logs**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Obtener la fecha actual\r\n",
 							"fecha_actual = datetime.now()\r\n",
@@ -5249,14 +5237,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Actualizar fichero metadata**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Configurar la conexión\r\n",
 							"\r\n",
@@ -5299,7 +5285,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"        # # Comprobar si la tabla Delta existe\r\n",
 							"        # if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",

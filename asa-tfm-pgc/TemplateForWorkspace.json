@@ -2968,7 +2968,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "042f4e5d-982b-4ac5-bcd4-f48897b2e896"
+						"spark.autotune.trackingId": "52a34a39-253f-486a-ac68-b333ab6238a7"
 					}
 				},
 				"metadata": {
@@ -2993,8 +2993,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -3035,7 +3034,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -4072,7 +4070,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "a1da270f-cdac-4062-be3f-7155085be3ac"
+						"spark.autotune.trackingId": "8fc7cc73-2f75-4cf0-a6a2-0c2ddcef9fd9"
 					}
 				},
 				"metadata": {
@@ -4097,7 +4095,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4407,7 +4406,7 @@
 							}
 						},
 						"source": [
-							"**Move files from Pending to Processed or Error**"
+							"**Move files to /Processed or /Error and delete from /Pending**"
 						]
 					},
 					{
@@ -4430,7 +4429,7 @@
 							"    source_blob_name = i\r\n",
 							"    name_part = i.split('_')[0]\r\n",
 							"    \r\n",
-							"    # Extraer fecha\r\n",
+							"    # Extract datetime\r\n",
 							"    date_match = re.search(r'_(\\d{8})\\.parquet$', i)\r\n",
 							"    if date_match:\r\n",
 							"        date_str = date_match.group(1)\r\n",
@@ -4447,7 +4446,7 @@
 							"    # Copy\r\n",
 							"    copy_properties = destination_blob_processed.start_copy_from_url(source_blob.url)\r\n",
 							"    \r\n",
-							"    # Verificar el estado de la copia\r\n",
+							"    # Check and delele\r\n",
 							"    if copy_properties[\"copy_status\"] == \"success\":\r\n",
 							"        source_blob.delete_blob()  # Descomentar para eliminar el blob original\r\n",
 							"        results_dict.append({\r\n",
@@ -4469,9 +4468,9 @@
 							"    # Extraer fecha\r\n",
 							"    date_match = re.search(r'_(\\d{8})\\.parquet$', i)\r\n",
 							"    if date_match:\r\n",
-							"        date_str = date_match.group(1)  # '20241008'\r\n",
-							"        year = date_str[:4]  # '2024'\r\n",
-							"        month = date_str[4:6]  # '10'\r\n",
+							"        date_str = date_match.group(1) \r\n",
+							"        year = date_str[:4]  \r\n",
+							"        month = date_str[4:6] \r\n",
 							"        destination_blob_name = f\"{name_part}/{year}/{month}/{i}\"\r\n",
 							"    else:\r\n",
 							"        destination_blob_name = i  # Si no tiene fecha, dejar el nombre como está\r\n",
@@ -4479,10 +4478,10 @@
 							"    source_blob = blob_service_client.get_blob_client(container=bronze_pending, blob=source_blob_name)\r\n",
 							"    destination_blob_error = blob_service_client.get_blob_client(container=bronze_error, blob=destination_blob_name)\r\n",
 							"\r\n",
-							"    # Iniciar la copia\r\n",
+							"    # Copy\r\n",
 							"    copy_properties = destination_blob_error.start_copy_from_url(source_blob.url)\r\n",
 							"\r\n",
-							"    # Verificar el estado de la copia\r\n",
+							"    # Check and delele\r\n",
 							"    if copy_properties[\"copy_status\"] == \"success\":\r\n",
 							"        source_blob.delete_blob()  # Descomentar para eliminar el blob original\r\n",
 							"        results_dict.append({\r\n",
@@ -4575,15 +4574,10 @@
 							}
 						},
 						"source": [
-							"# Configurar la conexión\r\n",
 							"#delta_date_string = '2024-10-08'\r\n",
 							"\r\n",
 							"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 							"\r\n",
-							"# Definir los nombres de los contenedores y blobs\r\n",
-							"#container_name = \"etl/bronze/Configuration\"\r\n",
-							"#metadata_folder = \"mdw/bronze/Configuration\"\r\n",
-							"#container_name = metadata_folder\r\n",
 							"csv_blob_name = \"ConfiguracionOrigenes.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
 							"\r\n",
 							"# Leer el archivo CSV desde el Data Lake\r\n",
@@ -4599,9 +4593,9 @@
 							"for i in landing_files:\r\n",
 							"    df.loc[df['FileName'] == i[\"name\"][:i[\"name\"].index('_')], 'UpdateDate'] = f'{delta_date_string}'  # Cambiar los nombres de las columnas según tu archivo CSV\r\n",
 							"\r\n",
-							"# Guardar el DataFrame modificado en un nuevo flujo de bytes\r\n",
+							"# Save DataFrame\r\n",
 							"output_stream = io.BytesIO()\r\n",
-							"df.to_csv(output_stream, index=False, sep=',', lineterminator='\\n')  # Usar line_terminator para evitar líneas en blanco\r\n",
+							"df.to_csv(output_stream, index=False, sep=',', lineterminator='\\n')\r\n",
 							"output_stream.seek(0)  # Regresar al inicio del flujo\r\n",
 							"\r\n",
 							"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"

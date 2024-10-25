@@ -3958,7 +3958,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "7ce20eb6-e901-496d-98e7-a7b738394c25"
+						"spark.autotune.trackingId": "01866b7a-1e86-44fa-991e-a1b428910f22"
 					}
 				},
 				"metadata": {
@@ -3983,7 +3983,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4223,8 +4224,8 @@
 							"    print(f\"Archivo: {result['file_name']}, Estado: {result['status']}, Filas insertadas: {result['inserted_rows']}, Filas actualizadas: {result['updated_rows']}\")\r\n",
 							"\r\n",
 							"# Save correct and incorrect file names in pipeline variables\r\n",
-							"# correct_files_variable = correct_files\r\n",
-							"# incorrect_files_variable = incorrect_files\r\n",
+							"correct_files_variable = correct_files\r\n",
+							"incorrect_files_variable = incorrect_files\r\n",
 							"\r\n",
 							"# Print result to debug\r\n",
 							"print(\"Archivos correctos:\", correct_files_variable)\r\n",

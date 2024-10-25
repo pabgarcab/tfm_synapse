@@ -58,14 +58,7 @@
 					{
 						"name": "List of Tables to Load",
 						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Get CSV name",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
+						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -201,41 +194,6 @@
 									}
 								}
 							]
-						}
-					},
-					{
-						"name": "Get CSV name",
-						"type": "GetMetadata",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "csvConfiguration",
-								"type": "DatasetReference",
-								"parameters": {
-									"NombreCSV": "ConfiguracionOrigenes.csv"
-								}
-							},
-							"fieldList": [
-								"childItems"
-							],
-							"storeSettings": {
-								"type": "AzureBlobFSReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							},
-							"formatSettings": {
-								"type": "DelimitedTextReadSettings"
-							}
 						}
 					}
 				],
@@ -851,8 +809,6 @@
 					{
 						"name": "Load Bronze",
 						"type": "ExecutePipeline",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [],
 						"policy": {
 							"secureInput": false
@@ -4070,7 +4026,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "8fc7cc73-2f75-4cf0-a6a2-0c2ddcef9fd9"
+						"spark.autotune.trackingId": "7ce20eb6-e901-496d-98e7-a7b738394c25"
 					}
 				},
 				"metadata": {
@@ -4095,8 +4051,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},

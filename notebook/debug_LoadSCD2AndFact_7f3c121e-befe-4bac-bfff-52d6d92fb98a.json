@@ -1,5 +1,5 @@
 {
-	"name": "LoadSCD2AndFact",
+	"name": "debug_LoadSCD2AndFact_7f3c121e-befe-4bac-bfff-52d6d92fb98a",
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -13,11 +13,12 @@
 			"executorMemory": "28g",
 			"executorCores": 4,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "e43cb201-a7e4-4303-8579-9108605252fe"
+				"spark.autotune.trackingId": "2cb948b1-b1db-4dcf-95db-17dfb6eb8ede"
 			}
 		},
 		"metadata": {
@@ -49,14 +50,27 @@
 		},
 		"cells": [
 			{
-				"cell_type": "markdown",
+				"cell_type": "code",
 				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
+					"tags": [
+						"parameters_overwritten"
+					]
 				},
+				"source": [
+					"# This cell is generated from runtime parameters. Learn more: https://go.microsoft.com/fwlink/?linkid=2161015\n",
+					"data_lake_container = \"abfss://mdw@datalake1pgc.dfs.core.windows.net\"\n",
+					"gold_folder_logs = \"gold/Logs\"\n",
+					"container_name = \"mdw\"\n",
+					"metadata_folder = \"mdw/bronze/Configuration\"\n",
+					"tables_to_load = \"[{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Articles\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Currency\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Date\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Hours\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"OperationType\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"PostalCode\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Tariff\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Warehouse\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"}]\"\n",
+					"golden_folder_dimensions = \"gold/Dimensions\"\n",
+					"golden_folder_fact = \"gold/Fact\"\n",
+					""
+				],
+				"execution_count": 73
+			},
+			{
+				"cell_type": "markdown",
 				"source": [
 					"**Import modules**"
 				]
@@ -77,46 +91,25 @@
 					"import pandas as pd\r\n",
 					"import csv"
 				],
-				"execution_count": 3
+				"execution_count": 63
 			},
 			{
 				"cell_type": "code",
 				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					},
 					"collapsed": false
 				},
 				"source": [
 					"# %%sql\r\n",
 					"# USE default;\r\n",
-					"# DROP DATABASE  gold CASCADE ;\r\n",
+					"# DROP DATABASE IF EXISTS   gold CASCADE ;\r\n",
 					"# USE default;\r\n",
 					"# CREATE DATABASE IF NOT EXISTS gold;\r\n",
 					"# USE gold;"
 				],
-				"execution_count": 2
+				"execution_count": 62
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					},
-					"collapsed": false
-				},
 				"source": [
 					"# %%sql\r\n",
 					"# USE gold;\r\n",
@@ -126,80 +119,58 @@
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
-					"factList = [ \r\n",
-					"        {\r\n",
-					"            \"name\": \"Sales\",\r\n",
-					"            \"query\": \"\"\"\r\n",
-					"                    SELECT  idDesgloseVenta AS idSales,\r\n",
-					"                        d.idArticulo AS idArticles,\r\n",
-					"                        c.idAlmacen AS idWarehouse,\r\n",
-					"                        c.idCliente AS idClient,\r\n",
-					"                        c.idCodigoPostal AS idPostalCode,\r\n",
-					"                        c.idDivisa AS idCurrency,\r\n",
-					"                        c.idTarifa AS idTariff,\r\n",
-					"                        c.idTipoOperacion AS idOperationType,\r\n",
-					"                        c.idHora AS idHours,\r\n",
-					"                        c.idFecha AS idDate,\r\n",
-					"                        f.fecha AS  date,\r\n",
-					"                        CAST(CONCAT(DATE_FORMAT(f.fecha, 'yyyy-MM-dd'), ' ', h.horaCompleta) AS TIMESTAMP) AS dateOp,\r\n",
-					"                        COALESCE(c.codigoTicket, 'D') AS ticketNumber,\r\n",
-					"                        COALESCE(d.Cantidad, 0) AS quantity,\r\n",
-					"                        COALESCE(d.PrecioUnitario, 0)  AS unitPrice,\r\n",
-					"                        COALESCE(d.CosteUnitario, 0)  AS unitCost,\r\n",
-					"                        COALESCE(d.importeBruto, 0)  AS amtTotalEuros,\r\n",
-					"                        COALESCE(d.importeNeto, 0)  AS amtNetEuros,\r\n",
-					"                        COALESCE(d.importeDescuento, 0)  AS amtTotalEurosDiscount,\r\n",
-					"                        COALESCE(d.importeNetoDescuento, 0) AS amtNetEurosDiscount,\r\n",
-					"                        CASE WHEN idTarifa IN (2,3) THEN 1\r\n",
-					"                            ELSE 0 \r\n",
-					"                        END AS discountSale,\r\n",
-					"                        CASE WHEN idTarifa = 0 THEN 0\r\n",
-					"                            ELSE (d.importeBruto - d.importeDescuento) \r\n",
-					"                        END AS amtTotalDiscount,\r\n",
-					"                        CASE WHEN idTarifa = 0 THEN 0 \r\n",
-					"                            ELSE (d.importeNeto - d.importeNetoDescuento) \r\n",
-					"                        END AS amtNetDiscount,\r\n",
-					"                        GREATEST(d.fechaCarga, c.fechaCarga,) AS loadDate,\r\n",
-					"                        GREATEST(d.fechaDelta, c.fechaDelta,) AS deltaDate\r\n",
-					"                    FROM silver.desgloseVenta AS d\r\n",
-					"                    INNER JOIN silver.cabeceraVenta AS c\r\n",
-					"                        ON d.idcabecerasVentas = c.idcabeceraVenta\r\n",
-					"                    LEFT JOIN silver.Fechas  AS f\r\n",
-					"                        On f.idFechas = c.idFecha\r\n",
-					"                    LEFT JOIN silver.horas  AS h\r\n",
-					"                        On h.idHoras = c.idHora\r\n",
-					"                    WHERE GREATEST(d.fechaDelta, c.fechaDelta) >=\r\n",
-					"                     \"\"\"\r\n",
-					"        }\r\n",
-					"    ]"
+					"# factList = [ \r\n",
+					"#         {\r\n",
+					"#             \"name\": \"Sales\",\r\n",
+					"#             \"query\": \"\"\"\r\n",
+					"#                     SELECT  idDesgloseVenta AS idSales,\r\n",
+					"#                         d.idArticulo AS idArticles,\r\n",
+					"#                         c.idAlmacen AS idWarehouse,\r\n",
+					"#                         c.idCliente AS idClient,\r\n",
+					"#                         c.idCodigoPostal AS idPostalCode,\r\n",
+					"#                         c.idDivisa AS idCurrency,\r\n",
+					"#                         c.idTarifa AS idTariff,\r\n",
+					"#                         c.idTipoOperacion AS idOperationType,\r\n",
+					"#                         c.idHora AS idHours,\r\n",
+					"#                         c.idFecha AS idDate,\r\n",
+					"#                         f.fecha AS  date,\r\n",
+					"#                         CAST(CONCAT(DATE_FORMAT(f.fecha, 'yyyy-MM-dd'), ' ', h.horaCompleta) AS TIMESTAMP) AS dateOp,\r\n",
+					"#                         COALESCE(c.codigoTicket, 'D') AS ticketNumber,\r\n",
+					"#                         COALESCE(d.Cantidad, 0) AS quantity,\r\n",
+					"#                         COALESCE(d.PrecioUnitario, 0)  AS unitPrice,\r\n",
+					"#                         COALESCE(d.CosteUnitario, 0)  AS unitCost,\r\n",
+					"#                         COALESCE(d.importeBruto, 0)  AS amtTotalEuros,\r\n",
+					"#                         COALESCE(d.importeNeto, 0)  AS amtNetEuros,\r\n",
+					"#                         COALESCE(d.importeDescuento, 0)  AS amtTotalEurosDiscount,\r\n",
+					"#                         COALESCE(d.importeNetoDescuento, 0) AS amtNetEurosDiscount,\r\n",
+					"#                         CASE WHEN idTarifa IN (2,3) THEN 1\r\n",
+					"#                             ELSE 0 \r\n",
+					"#                         END AS discountSale,\r\n",
+					"#                         CASE WHEN idTarifa = 0 THEN 0\r\n",
+					"#                             ELSE (d.importeBruto - d.importeDescuento) \r\n",
+					"#                         END AS amtTotalDiscount,\r\n",
+					"#                         CASE WHEN idTarifa = 0 THEN 0 \r\n",
+					"#                             ELSE (d.importeNeto - d.importeNetoDescuento) \r\n",
+					"#                         END AS amtNetDiscount,\r\n",
+					"#                         GREATEST(d.fechaCarga, c.fechaCarga,) AS loadDate,\r\n",
+					"#                         GREATEST(d.fechaDelta, c.fechaDelta,) AS deltaDate\r\n",
+					"#                     FROM silver.desgloseVenta AS d\r\n",
+					"#                     INNER JOIN silver.cabeceraVenta AS c\r\n",
+					"#                         ON d.idcabecerasVentas = c.idcabeceraVenta\r\n",
+					"#                     LEFT JOIN silver.Fechas  AS f\r\n",
+					"#                         On f.idFechas = c.idFecha\r\n",
+					"#                     LEFT JOIN silver.horas  AS h\r\n",
+					"#                         On h.idHoras = c.idHora\r\n",
+					"#                     WHERE GREATEST(d.fechaDelta, c.fechaDelta) >=\r\n",
+					"#                      \"\"\"\r\n",
+					"#         }\r\n",
+					"#     ]"
 				],
 				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"dimensionsList = [ \r\n",
 					"        {\r\n",
@@ -233,43 +204,43 @@
 					"                    WHERE GREATEST(a.fechaDelta, t.fechaDelta, co.fechaDelta, ca.fechaDelta, l.fechaDelta) >= \r\n",
 					"                     \"\"\"\r\n",
 					"        },\r\n",
-					"        {\r\n",
-					"            \"name\": \"Client\",\r\n",
-					"            \"query\": \"\"\"              \r\n",
-					"                    SELECT  idCliente                                           AS idClient,\r\n",
-					"                            COALESCE(c.nombre, 'D')                             AS name,\r\n",
-					"                            COALESCE(apellido1, 'D')                            AS lastName1,\r\n",
-					"                            COALESCE(apellido2, 'D')                            AS lastName2, \r\n",
-					"                            COALESCE(email, 'D')                                AS email,\r\n",
-					"                            COALESCE(telefono, 'D')                             AS phoneNumber,\r\n",
-					"                            COALESCE(CAST(cumpleanos AS STRING), '1900-01-01')  AS birthDay,       \r\n",
-					"                            YEAR(current_date()) - YEAR(CAST(cumpleanos AS DATE)) \r\n",
-					"                                - CASE \r\n",
-					"                                    WHEN MONTH(current_date()) < MONTH(CAST(cumpleanos AS DATE)) \r\n",
-					"                                        OR (MONTH(current_date()) = MONTH(CAST(cumpleanos AS DATE)) AND DAY(current_date()) < DAY(CAST(cumpleanos AS DATE)))\r\n",
-					"                                    THEN 1\r\n",
-					"                                    ELSE 0\r\n",
-					"                            END                                                 AS age,\r\n",
-					"                            CASE WHEN hombre = 1 THEN 'Hombre' \r\n",
-					"                                 ELSE 'Mujer' \r\n",
-					"                            END                                                 AS gender,\r\n",
-					"                            COALESCE(p.nombre, 'D')                             AS country,\r\n",
-					"                            COALESCE(p.codigoPais, 'D')                         AS countryCode,\r\n",
-					"                            COALESCE(cp.region, 'D')                            AS region,\r\n",
-					"                            COALESCE(c.Direcion, 'D')                           AS address,  \r\n",
-					"                            COALESCE(codigoPostal, 'D')                         AS postalCode,\r\n",
-					"                            COALESCE(activo, false)                             AS active,  -- Cambiado 0 a false aquí\r\n",
-					"                            GREATEST(c.fechaCarga, p.fechaCarga, cp.fechaCarga) AS loadDate,\r\n",
-					"                            GREATEST(c.fechaDelta, p.fechaDelta, cp.fechaDelta) AS deltaDate\r\n",
-					"                        FROM silver.cliente AS c\r\n",
-					"                            LEFT JOIN silver.pais AS p \r\n",
-					"                                ON c.idPais = p.idPais\r\n",
-					"                            INNER JOIN silver.codigoPostal AS cp \r\n",
-					"                                ON cp.idCodigoPostal = c.idCodigoPostal AND cp.codigoPais = p.codigoPais\r\n",
-					"                        WHERE GREATEST(c.fechaDelta, p.fechaDelta, cp.fechaDelta) >= \r\n",
-					"                     \"\"\"\r\n",
-					"        }\r\n",
-					"        ,\r\n",
+					"        # {\r\n",
+					"        #     \"name\": \"Client\",\r\n",
+					"        #     \"query\": \"\"\"              \r\n",
+					"        #             SELECT  idCliente                                           AS idClient,\r\n",
+					"        #                     COALESCE(c.nombre, 'D')                             AS name,\r\n",
+					"        #                     COALESCE(apellido1, 'D')                            AS lastName1,\r\n",
+					"        #                     COALESCE(apellido2, 'D')                            AS lastName2, \r\n",
+					"        #                     COALESCE(email, 'D')                                AS email,\r\n",
+					"        #                     COALESCE(telefono, 'D')                             AS phoneNumber,\r\n",
+					"        #                     COALESCE(CAST(cumpleanos AS STRING), '1900-01-01')  AS birthDay,       \r\n",
+					"        #                     YEAR(current_date()) - YEAR(CAST(cumpleanos AS DATE)) \r\n",
+					"        #                         - CASE \r\n",
+					"        #                             WHEN MONTH(current_date()) < MONTH(CAST(cumpleanos AS DATE)) \r\n",
+					"        #                                 OR (MONTH(current_date()) = MONTH(CAST(cumpleanos AS DATE)) AND DAY(current_date()) < DAY(CAST(cumpleanos AS DATE)))\r\n",
+					"        #                             THEN 1\r\n",
+					"        #                             ELSE 0\r\n",
+					"        #                     END                                                 AS age,\r\n",
+					"        #                     CASE WHEN hombre = 1 THEN 'Hombre' \r\n",
+					"        #                          ELSE 'Mujer' \r\n",
+					"        #                     END                                                 AS gender,\r\n",
+					"        #                     COALESCE(p.nombre, 'D')                             AS country,\r\n",
+					"        #                     COALESCE(p.codigoPais, 'D')                         AS countryCode,\r\n",
+					"        #                     COALESCE(cp.region, 'D')                            AS region,\r\n",
+					"        #                     COALESCE(c.Direcion, 'D')                           AS address,  \r\n",
+					"        #                     COALESCE(codigoPostal, 'D')                         AS postalCode,\r\n",
+					"        #                     COALESCE(activo, false)                             AS active,  -- Cambiado 0 a false aquí\r\n",
+					"        #                     GREATEST(c.fechaCarga, p.fechaCarga, cp.fechaCarga) AS loadDate,\r\n",
+					"        #                     GREATEST(c.fechaDelta, p.fechaDelta, cp.fechaDelta) AS deltaDate\r\n",
+					"        #                 FROM silver.cliente AS c\r\n",
+					"        #                     LEFT JOIN silver.pais AS p \r\n",
+					"        #                         ON c.idPais = p.idPais\r\n",
+					"        #                     INNER JOIN silver.codigoPostal AS cp \r\n",
+					"        #                         ON cp.idCodigoPostal = c.idCodigoPostal AND cp.codigoPais = p.codigoPais\r\n",
+					"        #                 WHERE GREATEST(c.fechaDelta, p.fechaDelta, cp.fechaDelta) >= \r\n",
+					"        #              \"\"\"\r\n",
+					"        # }\r\n",
+					"        #,\r\n",
 					"        {\r\n",
 					"            \"name\": \"Currency\",\r\n",
 					"            \"query\": \"\"\"\r\n",
@@ -393,17 +364,10 @@
 					"        }\r\n",
 					"    ]"
 				],
-				"execution_count": 6
+				"execution_count": 66
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Configuration**"
 				]
@@ -421,6 +385,13 @@
 						}
 					}
 				},
+				"source": [
+					"factList = []"
+				],
+				"execution_count": 67
+			},
+			{
+				"cell_type": "code",
 				"source": [
 					"# parameter string to array\r\n",
 					"tables_to_load = json.loads(tables_to_load)\r\n",
@@ -481,34 +452,16 @@
 					"    dim for dim in factList if dim[\"name\"] in load_y_tables2\r\n",
 					"]"
 				],
-				"execution_count": 14
+				"execution_count": 68
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Load SCD2 Dimensions**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Carga o Merge Dimensiones\r\n",
 					"results = []\r\n",
@@ -526,13 +479,6 @@
 					"\r\n",
 					"    try:\r\n",
 					"\r\n",
-					"        if sdf.limit(1).count() == 0:\r\n",
-					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
-					"            file_result['status'] = 'Correct'\r\n",
-					"            file_result['exception'] = \"There is no new data\"\r\n",
-					"            results.append(file_result)\r\n",
-					"            continue\r\n",
-					"\r\n",
 					"        table_name = file[\"name\"].split('_')[0]\r\n",
 					"        source_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
 					"        key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
@@ -547,6 +493,15 @@
 					"\r\n",
 					"        df = spark.sql(file[\"query\"].strip() + f\" '{delta_date_filter}'\") \r\n",
 					"        sdf = df.cache()\r\n",
+					"\r\n",
+					"        if sdf.limit(1).count() == 0:\r\n",
+					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
+					"            file_result['status'] = 'Correct'\r\n",
+					"            file_result['exception'] = \"There is no new data\"\r\n",
+					"            results.append(file_result)\r\n",
+					"            continue\r\n",
+					"\r\n",
+					"\r\n",
 					"\r\n",
 					"        \r\n",
 					"        if DeltaTable.isDeltaTable(spark, delta_table_path_dimensions):\r\n",
@@ -646,34 +601,16 @@
 					"\r\n",
 					"    results.append(file_result)"
 				],
-				"execution_count": 32
+				"execution_count": 69
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Load Fact Table**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Carga FULL tabla/s de hechos\r\n",
 					"\r\n",
@@ -826,30 +763,12 @@
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Guardar ficheros Logs**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Obtener la fecha actual\r\n",
 					"fecha_actual = datetime.now()\r\n",
@@ -877,34 +796,16 @@
 					"\r\n",
 					"destination_blob.upload_blob(json_data, overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 74
 			},
 			{
 				"cell_type": "markdown",
-				"metadata": {
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"**Actualizar fichero metadata**"
 				]
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"# Configurar la conexión\r\n",
 					"\r\n",
@@ -942,21 +843,10 @@
 					"\r\n",
 					"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 				],
-				"execution_count": 18
+				"execution_count": 75
 			},
 			{
 				"cell_type": "code",
-				"metadata": {
-					"jupyter": {
-						"source_hidden": false,
-						"outputs_hidden": false
-					},
-					"nteract": {
-						"transient": {
-							"deleting": false
-						}
-					}
-				},
 				"source": [
 					"        # # Comprobar si la tabla Delta existe\r\n",
 					"        # if DeltaTable.isDeltaTable(spark, delta_table_path):\r\n",

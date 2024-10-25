@@ -1,5 +1,5 @@
 {
-	"name": "LoadSCD2AndFact",
+	"name": "LoadSCD2AndFact_1d83bd0a-dd01-4d44-adb2-c1fdc98194df",
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -13,11 +13,12 @@
 			"executorMemory": "28g",
 			"executorCores": 4,
 			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "ccf65e91-c261-4b16-947c-d89fe1cac1d8"
+				"spark.autotune.trackingId": "a3f28e9d-626b-4ae3-a056-6d2664a4ed71"
 			}
 		},
 		"metadata": {
@@ -49,6 +50,26 @@
 		},
 		"cells": [
 			{
+				"cell_type": "code",
+				"metadata": {
+					"tags": [
+						"parameters_overwritten"
+					]
+				},
+				"source": [
+					"# This cell is generated from runtime parameters. Learn more: https://go.microsoft.com/fwlink/?linkid=2161015\n",
+					"data_lake_container = \"abfss://mdw@datalake1pgc.dfs.core.windows.net\"\n",
+					"gold_folder_logs = \"gold/Logs\"\n",
+					"container_name = \"mdw\"\n",
+					"metadata_folder = \"mdw/bronze/Configuration\"\n",
+					"tables_to_load = \"[{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Articles\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Client\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Currency\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Date\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Hours\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"OperationType\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"PostalCode\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Tariff\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Warehouse\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"fact\\\",\\\"TableName\\\":\\\"Sales\\\",\\\"UpdateDate\\\":\\\"2024-10-25\\\",\\\"Load\\\":\\\"Y\\\"}]\"\n",
+					"golden_folder_dimensions = \"gold/Dimensions\"\n",
+					"golden_folder_fact = \"gold/Fact\"\n",
+					""
+				],
+				"execution_count": 34
+			},
+			{
 				"cell_type": "markdown",
 				"metadata": {
 					"nteract": {
@@ -77,7 +98,7 @@
 					"import pandas as pd\r\n",
 					"import csv"
 				],
-				"execution_count": 3
+				"execution_count": 20
 			},
 			{
 				"cell_type": "code",
@@ -101,7 +122,7 @@
 					"# CREATE DATABASE IF NOT EXISTS gold;\r\n",
 					"# USE gold;"
 				],
-				"execution_count": 2
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -115,14 +136,17 @@
 							"deleting": false
 						}
 					},
+					"microsoft": {
+						"language": "sparksql"
+					},
 					"collapsed": false
 				},
 				"source": [
-					"# %%sql\r\n",
-					"# USE gold;\r\n",
-					"# DROP TABLE IF EXISTS fact_Sales;"
+					"%%sql\r\n",
+					"USE gold;\r\n",
+					"DROP TABLE IF EXISTS fact_Sales;"
 				],
-				"execution_count": 2
+				"execution_count": 33
 			},
 			{
 				"cell_type": "code",
@@ -185,7 +209,7 @@
 					"        }\r\n",
 					"    ]"
 				],
-				"execution_count": 3
+				"execution_count": 35
 			},
 			{
 				"cell_type": "code",
@@ -393,7 +417,7 @@
 					"        }\r\n",
 					"    ]"
 				],
-				"execution_count": 6
+				"execution_count": 23
 			},
 			{
 				"cell_type": "markdown",
@@ -437,6 +461,18 @@
 					"dict_tables_to_load = []\r\n",
 					"\r\n",
 					"for row in tables_to_load:\r\n",
+					"    #csv_data = row[\"SchemaName,TableName,UpdateDate,Load\"]\r\n",
+					"    \r\n",
+					"    # Usar el lector de csv para separar los campos\r\n",
+					"    #reader = csv.reader(io.StringIO(csv_data))\r\n",
+					"    \r\n",
+					"    # for schema, table, update_date, load in reader:\r\n",
+					"    #     dict_tables_to_load.append({\r\n",
+					"    #         \"SchemaName\": schema,\r\n",
+					"    #         \"TableName\": table,\r\n",
+					"    #         \"UpdateDate\": update_date,\r\n",
+					"    #         \"Load\": load\r\n",
+					"    #     })\r\n",
 					"    dict_tables_to_load.append({\r\n",
 					"    \"SchemaName\": row[\"SchemaName\"],\r\n",
 					"    \"TableName\": row[\"TableName\"],\r\n",
@@ -469,7 +505,26 @@
 					"    dim for dim in factList if dim[\"name\"] in load_y_tables2\r\n",
 					"]"
 				],
-				"execution_count": 14
+				"execution_count": 36
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"results = []\r\n",
+					"exception = []"
+				],
+				"execution_count": 37
 			},
 			{
 				"cell_type": "markdown",
@@ -606,7 +661,8 @@
 					"            sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
 					"\r\n",
 					"            # Hash\r\n",
-					"            columns_to_hash = [col for col in sdf.columns if col not in (f\"sk{table_name}\" ,'fechaCarga', 'fechaDelta','fromDate', 'toDate', 'isCurrent')]\r\n",
+					"            #columns_to_hash = [col for col in sdf.columns if col not in (f\"sk{table_name}\" ,'fechaCarga', 'fechaDelta','fromDate', 'toDate', 'isCurrent')]\r\n",
+					"            columns_to_hash = [col for col in sdf.columns if col not in (f\"sk{table_name}\" ,'loadDate', 'deltaDate','fromDate', 'toDate', 'isCurrent')]\r\n",
 					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
 					"\r\n",
 					"            # Reorganizar la estructura de la tabla\r\n",
@@ -641,7 +697,7 @@
 					"\r\n",
 					"    results.append(file_result)"
 				],
-				"execution_count": 32
+				"execution_count": 8
 			},
 			{
 				"cell_type": "markdown",
@@ -680,7 +736,10 @@
 					"        'datetime': str(datetime.now())  \r\n",
 					"    }\r\n",
 					"    table_name = file[\"name\"].split('_')[0]\r\n",
+					"    key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
 					"\r\n",
+					"    key_columns = key_columns_str.split(',')\r\n",
+					"    conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
 					"    # Definir la ruta de la tabla Delta\r\n",
 					"    delta_table_path_fact = f\"{data_lake_container}/{golden_folder_fact}/{table_name}\"\r\n",
 					"    #delta_table_path = f\"abfss://mdw@datalake1pgc.dfs.core.windows.net/gold/Fact/{table_name}\"\r\n",
@@ -692,7 +751,12 @@
 					"    try:\r\n",
 					"        # Leer el archivo CSV en un DataFrame de Spark\r\n",
 					"        #sdf = spark.read.csv(f\"gs://your-bucket/{file['name']}\", header=True, inferSchema=True)\r\n",
+					"        #table_name = file[\"name\"].split('_')[0]\r\n",
+					"        #source_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
+					"        #key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
 					"\r\n",
+					"        #key_columns = key_columns_str.split(',')\r\n",
+					"        #conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
 					"        # Verificar si el DataFrame está vacío\r\n",
 					"        if sdf.limit(1).count() == 0:\r\n",
 					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
@@ -701,22 +765,17 @@
 					"            results.append(file_result)\r\n",
 					"            continue\r\n",
 					"\r\n",
-					"        # Añadir columnas necesarias\r\n",
-					"        # sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss')) \\\r\n",
-					"        #          .withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss')) \\\r\n",
-					"        #          .withColumn(\"isCurrent\", F.lit(1))\r\n",
-					"\r\n",
 					"        # Truncar la tabla Delta si existe\r\n",
 					"        if DeltaTable.isDeltaTable(spark, delta_table_path_fact):\r\n",
 					"            delta_table = DeltaTable.forPath(spark, delta_table_path_fact)\r\n",
-					"            delta_table.delete()  # Truncar la tabla Delta\r\n",
+					"            existing_columns = delta_table.toDF().columns\r\n",
+					"            #delta_table.delete()  # Truncar la tabla Delta\r\n",
 					"\r\n",
 					"            #last_row number para incremental\r\n",
 					"\r\n",
 					"            sdf.createOrReplaceTempView(\"temp_sales_view\")\r\n",
-					"            spark.sql(f\"\"\"\r\n",
-					"                INSERT INTO gold.fact_{table_name}  \r\n",
-					"                SELECT ROW_NUMBER() OVER(ORDER BY s.dateOP) AS skSales, s.*, \r\n",
+					"            spark.sql(f\"\"\" \r\n",
+					"                SELECT  s.*, \r\n",
 					"                        COALESCE(a.skArticles, -1) AS skArticles,\r\n",
 					"                        COALESCE(w.skWarehouse, -1) AS skWarehouse,\r\n",
 					"                        COALESCE(cl.skClient, -1) AS skClient, \r\n",
@@ -745,7 +804,46 @@
 					"                    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate\r\n",
 					"                LEFT JOIN gold.dim_Warehouse AS w\r\n",
 					"                    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\r\n",
-					"                \"\"\")\r\n",
+					"                \"\"\").createOrReplaceTempView(\"temp_sales_extended_view\")\r\n",
+					"\r\n",
+					"                #columns_to_hash = [col for col in sdf.columns if col not in (f\"sk{table_name}\", 'fechaCarga', 'fechaDelta', 'fromDate', 'toDate', 'isCurrent')]\r\n",
+					"\r\n",
+					"            # 2. Usar la vista temporal existente y crear un nuevo DataFrame con el hash\r\n",
+					"            temp_sales_df = spark.sql(\"SELECT * FROM temp_sales_extended_view\")\r\n",
+					"\r\n",
+					"            columns_to_hash = [col for col in temp_sales_df.columns if col not in (f\"sk{table_name}\", 'loadDate', 'deltaDate')]\r\n",
+					"            # 3. Añadir la columna de hash al DataFrame\r\n",
+					"            temp_sales_df_with_hash = temp_sales_df.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"\r\n",
+					"            # 4. Crear una nueva vista temporal que incluya el hash\r\n",
+					"            temp_sales_df_with_hash.createOrReplaceTempView(\"temp_sales_extended_view_with_hash\")\r\n",
+					"\r\n",
+					"\r\n",
+					"            #next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk{table_name}), 0) + 1 AS next_key FROM gold.fact_{table_name}\").collect()[0][\"next_key\"]\r\n",
+					"            # Comprobar si la tabla Delta existe\r\n",
+					" \r\n",
+					"                \r\n",
+					"            # Obtener la última surrogate key para crear nuevas\r\n",
+					"            last_surrogate_key = delta_table.toDF().agg(F.max(f\"sk{table_name}\")).collect()[0][0] or 0\r\n",
+					"            next_surrogate_key = last_surrogate_key + 1\r\n",
+					"            \r\n",
+					"            # Merge new data into existing table con lógica SCD Tipo 2\r\n",
+					"            delta_table.alias(\"existing\").merge(\r\n",
+					"                source=temp_sales_df_with_hash.alias(\"updates\"),\r\n",
+					"                condition=\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])\r\n",
+					"            ).whenMatchedUpdate(\r\n",
+					"                condition=\"existing.hash != updates.hash\",\r\n",
+					"                set={\r\n",
+					"                    **{f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col not in ('loadDate', 'skSales')}  # Actualiza todos los campos menos `fechaCarga`\r\n",
+					"\r\n",
+					"                }\r\n",
+					"            ).whenNotMatchedInsert(\r\n",
+					"                values={\r\n",
+					"                    f\"sk{table_name}\": F.expr(f\"{next_surrogate_key} + row_number() over (order by (select null)) - 1\"),  # Aumenta la surrogate key en base a la fila\r\n",
+					"                    **{f\"updates.{col}\": f\"updates.{col}\" for col in existing_columns}\r\n",
+					"                }\r\n",
+					"            ).execute()\r\n",
+					"\r\n",
 					"\r\n",
 					"            # Almacenar conteos de filas\r\n",
 					"            file_result['status'] = 'Correct'\r\n",
@@ -763,17 +861,7 @@
 					"                file_result['inserted_rows'] = 0\r\n",
 					"                file_result['updated_rows'] = 0\r\n",
 					"\r\n",
-					"\r\n",
-					"\r\n",
 					"        else:\r\n",
-					"\r\n",
-					"            #window_spec = Window.orderBy(\"dateOp\", \"idArticles\")\r\n",
-					"            #sdf = sdf.withColumn(f\"sk{table_name}\", F.row_number().over(window_spec))\r\n",
-					"            #todas_las_columnas = sdf.columns\r\n",
-					"            #columnas_al_principio = [f\"sk{table_name}\"]  # Suponiendo que la tabla tiene una columna idWarehouse\r\n",
-					"            #otras_columnas = [col for col in todas_las_columnas if col not in columnas_al_principio]\r\n",
-					"            #nuevo_orden_columnas = columnas_al_principio + otras_columnas\r\n",
-					"            #sdf = sdf.select(*nuevo_orden_columnas)\r\n",
 					"\r\n",
 					"            sdf.createOrReplaceTempView(\"temp_sales_view\")\r\n",
 					"            sdf = spark.sql(f\"\"\" \r\n",
@@ -808,6 +896,16 @@
 					"                    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\r\n",
 					"                \"\"\")\r\n",
 					"\r\n",
+					"            #temp_sales_df = spark.sql(\"SELECT * FROM temp_sales_extended_view\")\r\n",
+					"\r\n",
+					"            columns_to_hash = [col for col in sdf.columns if col not in (f\"sk{table_name}\", 'fechaCarga', 'fechaDelta')]\r\n",
+					"            # 3. Añadir la columna de hash al DataFrame\r\n",
+					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"\r\n",
+					"            # 4. Crear una nueva vista temporal que incluya el hash\r\n",
+					"            #temp_sales_df_with_hash.createOrReplaceTempView(\"temp_sales_extended_view_with_hash\")\r\n",
+					"\r\n",
+					"\r\n",
 					"        # Cargar datos en la tabla Delta\r\n",
 					"            sdf.write.format(\"delta\").mode(\"overwrite\").save(delta_table_path_fact)\r\n",
 					"            #sdf.write.format(\"delta\").mode(\"append\").save(delta_table_path)  # valorar carga incremental más adelante\r\n",
@@ -829,7 +927,7 @@
 					"\r\n",
 					"    results.append(file_result)"
 				],
-				"execution_count": 21
+				"execution_count": 40
 			},
 			{
 				"cell_type": "markdown",
@@ -843,6 +941,26 @@
 				"source": [
 					"**Guardar ficheros Logs**"
 				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"existing_columns\r\n",
+					"\r\n",
+					"#temp_sales_df_with_hash.printSchema()"
+				],
+				"execution_count": 43
 			},
 			{
 				"cell_type": "code",
@@ -884,7 +1002,7 @@
 					"\r\n",
 					"destination_blob.upload_blob(json_data, overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 10
 			},
 			{
 				"cell_type": "markdown",
@@ -949,7 +1067,7 @@
 					"\r\n",
 					"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 				],
-				"execution_count": 18
+				"execution_count": 11
 			},
 			{
 				"cell_type": "code",
@@ -992,7 +1110,7 @@
 					"        #     ).execute()\r\n",
 					""
 				],
-				"execution_count": null
+				"execution_count": 12
 			}
 		]
 	}

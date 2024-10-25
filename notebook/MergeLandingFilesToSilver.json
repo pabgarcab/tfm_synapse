@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "4513f2f5-24c3-4de3-b591-c9912767b4b1"
+				"spark.autotune.trackingId": "6750e2d2-5300-43d9-b287-bc757840ca05"
 			}
 		},
 		"metadata": {
@@ -130,7 +130,7 @@
 					"import io\r\n",
 					"from pyspark.sql import functions as F"
 				],
-				"execution_count": 11
+				"execution_count": 48
 			},
 			{
 				"cell_type": "markdown",
@@ -177,7 +177,7 @@
 					"correct_files = []\r\n",
 					"incorrect_files = []"
 				],
-				"execution_count": null
+				"execution_count": 49
 			},
 			{
 				"cell_type": "markdown",
@@ -292,9 +292,19 @@
 					"            last_merge_operation = history_df.filter(history_df.operation == 'MERGE').orderBy(F.desc(\"timestamp\")).limit(1)\r\n",
 					"            last_result = last_merge_operation.collect()\r\n",
 					"\r\n",
-					"            file_result['inserted_rows'] = last_result[0].operationMetrics[\"numTargetRowsInserted\"]\r\n",
-					"            file_result['updated_rows'] = last_result[0].operationMetrics[\"numTargetRowsUpdated\"]\r\n",
+					"            #file_result['inserted_rows'] = last_result[0].operationMetrics[\"numTargetRowsInserted\"]\r\n",
+					"            #file_result['updated_rows'] = last_result[0].operationMetrics[\"numTargetRowsUpdated\"]\r\n",
+					"            #correct_files.append(file['name'])  # Agregar a la lista de archivos correctos\r\n",
+					"            if last_result:\r\n",
+					"                file_result['inserted_rows'] = last_result[0].operationMetrics.get(\"numTargetRowsInserted\", 0)\r\n",
+					"                file_result['updated_rows'] = last_result[0].operationMetrics.get(\"numTargetRowsUpdated\", 0)\r\n",
+					"            else:\r\n",
+					"                print(f\"No hay registros de operación MERGE para la tabla {file['name']}\")\r\n",
+					"                file_result['inserted_rows'] = 0\r\n",
+					"                file_result['updated_rows'] = 0\r\n",
+					"            \r\n",
 					"            correct_files.append(file['name'])  # Agregar a la lista de archivos correctos\r\n",
+					"\r\n",
 					"\r\n",
 					"        else:\r\n",
 					"            # Crear nueva tabla Delta\r\n",
@@ -338,7 +348,7 @@
 					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
 					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
 				],
-				"execution_count": 13
+				"execution_count": 50
 			},
 			{
 				"cell_type": "markdown",
@@ -387,7 +397,7 @@
 					"\r\n",
 					"destination_blob.upload_blob(json_data, overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 51
 			},
 			{
 				"cell_type": "markdown",
@@ -416,8 +426,7 @@
 					}
 				},
 				"source": [
-					"results = ''\r\n",
-					"error_messages = ''\r\n",
+					"results_dict = []\r\n",
 					"\r\n",
 					"# Bucle para archivos correctos\r\n",
 					"for i in correct_files_variable:\r\n",
@@ -444,9 +453,16 @@
 					"    # Verificar el estado de la copia\r\n",
 					"    if copy_properties[\"copy_status\"] == \"success\":\r\n",
 					"        source_blob.delete_blob()  # Descomentar para eliminar el blob original\r\n",
-					"        results += f\"Archivo {source_blob_name} procesado exitosamente y movido a bronze/Processed. {str(datetime.now())}\\n\"\r\n",
+					"        results_dict.append({\r\n",
+					"            \"file\": source_blob_name,\r\n",
+					"            \"status\": \"Correct\",\r\n",
+					"            \"destination\": f\"bronze/Processed/{destination_blob_name}\" })\r\n",
+					"        #results += f\"Archivo {source_blob_name} procesado exitosamente y movido a bronze/Processed. {str(datetime.now())}\\n\"\r\n",
 					"    else:\r\n",
-					"        error_messages += f\"Error al copiar el archivo {source_blob_name}.\\n\"\r\n",
+					"        results_dict.append({\r\n",
+					"            \"file\": source_blob_name,\r\n",
+					"            \"status\": \"Fail to copy file\",\r\n",
+					"            \"destination\": f\"bronze/Processed/{destination_blob_name}\" })\r\n",
 					"\r\n",
 					"# Bucle para archivos incorrectos\r\n",
 					"for i in incorrect_files_variable:\r\n",
@@ -472,14 +488,18 @@
 					"    # Verificar el estado de la copia\r\n",
 					"    if copy_properties[\"copy_status\"] == \"success\":\r\n",
 					"        source_blob.delete_blob()  # Descomentar para eliminar el blob original\r\n",
-					"        results += f\"Archivo {source_blob_name} procesado erróneamente y movido a bronze/Landing/Error. {str(datetime.now())} \\n\"\r\n",
+					"        results_dict.append({\r\n",
+					"            \"file\": source_blob_name,\r\n",
+					"            \"status\": \"Incorrect\",\r\n",
+					"            \"destination\": f\"bronze/Landing/Error/{destination_blob_name}\" })\r\n",
+					"        #results += f\"Archivo {source_blob_name} procesado erróneamente y movido a bronze/Landing/Error. {str(datetime.now())} \\n\"\r\n",
 					"    else:\r\n",
-					"        error_messages += f\"Error al procesar y copiar el archivo {source_blob_name}.\\n\"\r\n",
-					"\r\n",
-					"# Combina todos los resultados en un solo texto\r\n",
-					"final_output = results + error_messages "
+					"        results_dict.append({\r\n",
+					"            \"file\": source_blob_name,\r\n",
+					"            \"status\": \"Fail to copy File\",\r\n",
+					"            \"destination\": f\"bronze/Landing/Error/{destination_blob_name}\" })"
 				],
-				"execution_count": null
+				"execution_count": 60
 			},
 			{
 				"cell_type": "markdown",
@@ -491,7 +511,7 @@
 					}
 				},
 				"source": [
-					"**Save logs files**"
+					"**Save logs parquet files**"
 				]
 			},
 			{
@@ -508,6 +528,7 @@
 					}
 				},
 				"source": [
+					"# Obtener la fecha actual\r\n",
 					"fecha_actual = datetime.now()\r\n",
 					"year = fecha_actual.strftime('%Y')  # Año actual (por ejemplo, '2024')\r\n",
 					"month = fecha_actual.strftime('%m')  # Mes actual (por ejemplo, '10')\r\n",
@@ -515,15 +536,19 @@
 					"hora = fecha_actual.strftime('%H%M%S')  # Hora actual en formato HHMMSS (por ejemplo, '235959')\r\n",
 					"\r\n",
 					"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
-					"output_blob_name = f\"Log_{day}_{hora}.json\"\r\n",
-					"output_blob_name = f\"{year}/{month}/{output_blob_name}\"\r\n",
-					"#output_blob_name = \"logs.txt\"\r\n",
-					"output_blob = blob_service_client.get_blob_client(container=bronze_logs, blob=output_blob_name)\r\n",
+					"archivo_nombre = f\"Log_{day}_{hora}.json\"\r\n",
 					"\r\n",
-					"# Subir el contenido al blob\r\n",
-					"output_blob.upload_blob(final_output, overwrite=True)"
+					"json_data = json.dumps(results_dict, indent=4, ensure_ascii=False)\r\n",
+					"\r\n",
+					"# Crear la ruta de destino con la jerarquía Año/Mes y el nombre del archivo\r\n",
+					"destination_blob_name = f\"{year}/{month}/{archivo_nombre}\"\r\n",
+					"\r\n",
+					"# Crear un cliente del blob de destino\r\n",
+					"destination_blob = blob_service_client.get_blob_client(container=bronze_logs, blob=destination_blob_name)\r\n",
+					"\r\n",
+					"destination_blob.upload_blob(json_data, overwrite=True)"
 				],
-				"execution_count": null
+				"execution_count": 61
 			},
 			{
 				"cell_type": "markdown",
@@ -560,11 +585,11 @@
 					"# Definir los nombres de los contenedores y blobs\r\n",
 					"#container_name = \"etl/bronze/Configuration\"\r\n",
 					"#metadata_folder = \"mdw/bronze/Configuration\"\r\n",
-					"container_name = metadata_folder\r\n",
+					"#container_name = metadata_folder\r\n",
 					"csv_blob_name = \"ConfiguracionOrigenes.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
 					"\r\n",
 					"# Leer el archivo CSV desde el Data Lake\r\n",
-					"blob_client = blob_service_client.get_blob_client(container=container_name, blob=csv_blob_name)\r\n",
+					"blob_client = blob_service_client.get_blob_client(container=metadata_folder, blob=csv_blob_name)\r\n",
 					"\r\n",
 					"stream = io.BytesIO(blob_client.download_blob().readall())\r\n",
 					"df = pd.read_csv(stream, sep=',')  # Especifica el separador aquí\r\n",

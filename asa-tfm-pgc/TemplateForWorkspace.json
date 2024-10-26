@@ -50,6 +50,305 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('workspaceName'), '/0 - Get ExecutionID')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set year",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'yyyy')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set day",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set month",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Set month_copy1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "day",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set hour",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set day_copy1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "hour",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'HHmmss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set month",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Set year",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "month",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'MM')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set executionID",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Set hour",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "executionID",
+							"value": {
+								"value": "@concat(variables('day'), '_', variables('hour'))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "year",
+									"value": {
+										"type": "Expression",
+										"content": "@formatDateTime(utcnow(), 'yyyy')"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					},
+					{
+						"name": "Set month_copy1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "month",
+									"value": {
+										"type": "Expression",
+										"content": "@formatDateTime(utcnow(), 'MM')"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					},
+					{
+						"name": "Set day_copy1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set day",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "day",
+									"value": {
+										"type": "Expression",
+										"content": "@formatDateTime(utcnow(), 'dd')"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					},
+					{
+						"name": "Set hour_copy1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set hour",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "hour",
+									"value": {
+										"type": "Expression",
+										"content": "@formatDateTime(utcnow(), 'HHmmss')"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					},
+					{
+						"name": "Set executionID_copy1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set hour_copy1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "executionID",
+									"value": {
+										"type": "Expression",
+										"content": "@concat(variables('day'), '_', variables('hour'))"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"year": {
+						"type": "String"
+					},
+					"month": {
+						"type": "String"
+					},
+					"day": {
+						"type": "String"
+					},
+					"hour": {
+						"type": "String"
+					},
+					"executionID": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/1 - SqlToLanding')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -361,6 +660,41 @@
 										"type": "Expression"
 									},
 									"type": "string"
+								},
+								"year": {
+									"value": {
+										"value": "@variables('year')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"month": {
+									"value": {
+										"value": "@variables('month')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"day": {
+									"value": {
+										"value": "@variables('day')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"hour": {
+									"value": {
+										"value": "@variables('hour')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"executionID": {
+									"value": {
+										"value": "@variables('executionID')",
+										"type": "Expression"
+									},
+									"type": "string"
 								}
 							},
 							"snapshot": true,
@@ -405,7 +739,14 @@
 					{
 						"name": "Get ConnectionString",
 						"type": "Lookup",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Set executionID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -454,6 +795,119 @@
 							"variableName": "connectionString",
 							"value": {
 								"value": "@activity('Get ConnectionString').output.value[0].conn\n",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set year",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "year",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'yyyy')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set day",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set month",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "day",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set hour",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set day",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "hour",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'HHmmss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set month",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set year",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "month",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'MM')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set executionID",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set hour",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "executionID",
+							"value": {
+								"value": "@concat(variables('day'), '_', variables('hour'))",
 								"type": "Expression"
 							}
 						}
@@ -514,6 +968,21 @@
 					"connectionString": {
 						"type": "String",
 						"defaultValue": "a"
+					},
+					"year": {
+						"type": "String"
+					},
+					"month": {
+						"type": "String"
+					},
+					"day": {
+						"type": "String"
+					},
+					"hour": {
+						"type": "String"
+					},
+					"executionID": {
+						"type": "String"
 					}
 				},
 				"annotations": []
@@ -611,6 +1080,41 @@
 										"type": "Expression"
 									},
 									"type": "string"
+								},
+								"year": {
+									"value": {
+										"value": "@variables('year')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"month": {
+									"value": {
+										"value": "@variables('month')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"day": {
+									"value": {
+										"value": "@variables('day')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"hour": {
+									"value": {
+										"value": "@variables('hour')",
+										"type": "Expression"
+									},
+									"type": "string"
+								},
+								"executionID": {
+									"value": {
+										"value": "@variables('ExecutionID')",
+										"type": "Expression"
+									},
+									"type": "string"
 								}
 							},
 							"snapshot": true,
@@ -696,7 +1200,14 @@
 					{
 						"name": "Get ConnectionString",
 						"type": "Lookup",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Set executionID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -748,6 +1259,119 @@
 								"type": "Expression"
 							}
 						}
+					},
+					{
+						"name": "Set year",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "year",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'yyyy')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set day",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set month",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "day",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'dd')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set hour",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set day",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "hour",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'HHmmss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set month",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set year",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "month",
+							"value": {
+								"value": "@formatDateTime(utcnow(), 'MM')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set executionID",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set hour",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "executionID",
+							"value": {
+								"value": "@concat(variables('day'), '_', variables('hour'))",
+								"type": "Expression"
+							}
+						}
 					}
 				],
 				"policy": {
@@ -789,6 +1413,21 @@
 					"connectionString": {
 						"type": "String",
 						"defaultValue": "a"
+					},
+					"year": {
+						"type": "String"
+					},
+					"month": {
+						"type": "String"
+					},
+					"day": {
+						"type": "String"
+					},
+					"hour": {
+						"type": "String"
+					},
+					"executionID": {
+						"type": "String"
 					}
 				},
 				"annotations": []
@@ -809,7 +1448,14 @@
 					{
 						"name": "Load Bronze",
 						"type": "ExecutePipeline",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Get exeuctionID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"secureInput": false
 						},
@@ -870,6 +1516,23 @@
 							"waitOnCompletion": true,
 							"parameters": {}
 						}
+					},
+					{
+						"name": "Get exeuctionID",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "0 - Get ExecutionID",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
 					}
 				],
 				"policy": {
@@ -880,7 +1543,8 @@
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/pipelines/1 - SqlToLanding')]",
 				"[concat(variables('workspaceId'), '/pipelines/2 - BronzeToSilver')]",
-				"[concat(variables('workspaceId'), '/pipelines/3 - Load SCD2 and Fact')]"
+				"[concat(variables('workspaceId'), '/pipelines/3 - Load SCD2 and Fact')]",
+				"[concat(variables('workspaceId'), '/pipelines/0 - Get ExecutionID')]"
 			]
 		},
 		{
@@ -1898,7 +2562,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "26174397-bee7-450f-99ba-a12511d37a33"
+						"spark.autotune.trackingId": "288d0d20-5f96-4691-a50c-900357f59ddf"
 					}
 				},
 				"metadata": {
@@ -1923,8 +2587,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -1972,7 +2635,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",

@@ -849,7 +849,7 @@
 					"hour": {
 						"type": "string"
 					},
-					"ExecutionID": {
+					"executionID": {
 						"type": "string"
 					}
 				},
@@ -1174,7 +1174,7 @@
 					"hour": {
 						"type": "string"
 					},
-					"ExecutionID": {
+					"executionID": {
 						"type": "string"
 					}
 				},
@@ -1267,7 +1267,7 @@
 									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.hour",
 									"type": "Expression"
 								},
-								"ExecutionID": {
+								"executionID": {
 									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.executionID",
 									"type": "Expression"
 								}
@@ -1312,7 +1312,7 @@
 									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.hour",
 									"type": "Expression"
 								},
-								"ExecutionID": {
+								"executionID": {
 									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.executionID",
 									"type": "Expression"
 								}

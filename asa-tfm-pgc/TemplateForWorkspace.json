@@ -313,7 +313,7 @@
 							"variableName": "pipelineReturnValue",
 							"value": [
 								{
-									"key": "ExecutionID",
+									"key": "executionID",
 									"value": {
 										"type": "Expression",
 										"content": "@concat(variables('day'), '_', variables('hour'))"
@@ -1268,7 +1268,7 @@
 									"type": "Expression"
 								},
 								"ExecutionID": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.ExecutionID",
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.executionID",
 									"type": "Expression"
 								}
 							}
@@ -1313,7 +1313,7 @@
 									"type": "Expression"
 								},
 								"ExecutionID": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.ExecutionID",
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.executionID",
 									"type": "Expression"
 								}
 							}
@@ -2364,7 +2364,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "72587505-834c-4a32-8d7a-37c0b9d5871c"
+						"spark.autotune.trackingId": "83fa44e3-ea13-4478-ae07-7a0563a972c5"
 					}
 				},
 				"metadata": {
@@ -2389,8 +2389,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -2410,7 +2409,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -2809,10 +2807,10 @@
 							"today_datetime = datetime.now()\r\n",
 							"\r\n",
 							"delta_date_filter = (today_datetime.strftime('%Y%m%d')) # 'yyyyMMdd'\r\n",
-							"#delta_date_filter = '20241008'\r\n",
+							"delta_date_filter = '19901008' # Debud\r\n",
 							"\r\n",
 							"delta_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-							"#delta_date_string = '2024-10-08'\r\n",
+							"delta_date_string = '1990-10-08'\r\n",
 							"\r\n",
 							"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 							"dict_tables_to_load = []\r\n",
@@ -3234,7 +3232,7 @@
 							"\r\n",
 							"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
 							"#archivo_nombre = f\"Log_{day}_{hour}.json\"\r\n",
-							"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
+							"log_file_name = f\"Log_{executionID}.json\"\r\n",
 							"\r\n",
 							"# Reemplaza con tu cadena de conexión a Azure\r\n",
 							"\r\n",
@@ -4444,7 +4442,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "b72b8220-98f8-4254-a193-190222d36f5a"
+						"spark.autotune.trackingId": "2de27420-53ed-46c0-bdb7-e9aba191b671"
 					}
 				},
 				"metadata": {
@@ -4755,7 +4753,7 @@
 							"\r\n",
 							"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
 							"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
-							"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
+							"log_file_name = f\"Log_{executionID}.json\"\r\n",
 							"\r\n",
 							"json_data = json.dumps(results, indent=4, ensure_ascii=False)\r\n",
 							"\r\n",
@@ -4907,7 +4905,7 @@
 							"# hour = actual_time.strftime('%H%M%S')\r\n",
 							"\r\n",
 							"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
-							"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
+							"log_file_name = f\"Log_{executionID}.json\"\r\n",
 							"\r\n",
 							"json_data = json.dumps(results_dict, indent=4, ensure_ascii=False)\r\n",
 							"\r\n",

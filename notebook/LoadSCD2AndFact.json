@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "6810d1a6-fee0-4012-854c-7dcefaa76fb1"
+				"spark.autotune.trackingId": "abbce457-4c46-4849-9524-0b7731457c61"
 			}
 		},
 		"metadata": {
@@ -1069,7 +1069,7 @@
 					"json_data = json.dumps(results, indent=4, ensure_ascii=False)\r\n",
 					"\r\n",
 					"# Crear la ruta de destino con la jerarquía Año/Mes y el nombre del archivo\r\n",
-					"destination_blob_name = f\"{gold_folder_logs}/{year}/{month}/{archivo_nombre}\"\r\n",
+					"destination_blob_name = f\"{gold_folder_logs}/{year}/{month}/{log_file_name}\"\r\n",
 					"\r\n",
 					"# Crear un cliente del blob de destino\r\n",
 					"destination_blob = blob_service_client.get_blob_client(container=container_name, blob=destination_blob_name)\r\n",

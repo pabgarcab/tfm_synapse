@@ -85,35 +85,35 @@
 						},
 						"year": {
 							"value": {
-								"value": "@variables('year')",
+								"value": "@formatDateTime(utcnow(), 'yyyy')",
 								"type": "Expression"
 							},
 							"type": "string"
 						},
 						"month": {
 							"value": {
-								"value": "@variables('month')",
+								"value": "@formatDateTime(utcnow(), 'MM')",
 								"type": "Expression"
 							},
 							"type": "string"
 						},
 						"day": {
 							"value": {
-								"value": "@variables('day')",
+								"value": "@formatDateTime(utcnow(), 'dd')",
 								"type": "Expression"
 							},
 							"type": "string"
 						},
 						"hour": {
 							"value": {
-								"value": "@variables('hour')",
+								"value": "@formatDateTime(utcnow(), 'HHmmss')",
 								"type": "Expression"
 							},
 							"type": "string"
 						},
 						"executionID": {
 							"value": {
-								"value": "@variables('ExecutionID')",
+								"value": "@concat(formatDateTime(utcnow(), 'dd'), '_', formatDateTime(utcnow(), 'HHmmss'))",
 								"type": "Expression"
 							},
 							"type": "string"
@@ -399,6 +399,21 @@
 			"GoldenFolderfact": {
 				"type": "string",
 				"defaultValue": "gold/Fact"
+			},
+			"year": {
+				"type": "string"
+			},
+			"month": {
+				"type": "string"
+			},
+			"day": {
+				"type": "string"
+			},
+			"hour": {
+				"type": "string"
+			},
+			"ExecutionID": {
+				"type": "string"
 			}
 		},
 		"variables": {

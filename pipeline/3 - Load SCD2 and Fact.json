@@ -113,7 +113,7 @@
 						},
 						"executionID": {
 							"value": {
-								"value": "@variables('Execution_ID')",
+								"value": "@variables('ExecutionID')",
 								"type": "Expression"
 							},
 							"type": "string"
@@ -271,8 +271,11 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "",
-					"value": "@formatDateTime(utcnow(), 'yyyy')"
+					"variableName": "year",
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'yyyy')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
@@ -293,13 +296,23 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "day",
-					"value": "@formatDateTime(utcnow(), 'dd')"
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'dd')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
 				"name": "Set hour",
 				"type": "SetVariable",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Set day",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"secureOutput": false,
 					"secureInput": false
@@ -307,7 +320,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "hour",
-					"value": "@formatDateTime(utcnow(), 'HHmmss')"
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'HHmmss')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
@@ -328,7 +344,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "month",
-					"value": "@formatDateTime(utcnow(), 'MM')"
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'MM')",
+						"type": "Expression"
+					}
 				}
 			},
 			{

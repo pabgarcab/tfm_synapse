@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "c908c245-fba9-4ccb-bd17-c4980bca2071"
+				"spark.autotune.trackingId": "288d0d20-5f96-4691-a50c-900357f59ddf"
 			}
 		},
 		"metadata": {
@@ -48,6 +48,33 @@
 			"sessionKeepAliveTimeout": 30
 		},
 		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# This cell is generated from runtime parameters. Learn more: https://go.microsoft.com/fwlink/?linkid=2161015\r\n",
+					"data_lake_container = \"abfss://mdw@datalake1pgc.dfs.core.windows.net\"\r\n",
+					"connection_string = \"DefaultEndpointsProtocol=https;AccountName=datalake1pgc;AccountKey=5zNea4dmjuWHZQcfT1EIp+DmiPDhy2E9iAfqLllNnYerOKCKbyEJnqbaSj3KzP3XDE3rPF17LRt5+AStO3BBJQ==;EndpointSuffix=core.windows.net\"\r\n",
+					"gold_folder_logs = \"gold/Logs\"\r\n",
+					"container_name = \"mdw\"\r\n",
+					"metadata_folder = \"mdw/bronze/Configuration\"\r\n",
+					"tables_to_load = \"[{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Articles\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Currency\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Date\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Hours\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"OperationType\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"PostalCode\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Tariff\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Warehouse\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"}]\"\r\n",
+					"golden_folder_dimensions = \"gold/Dimensions\"\r\n",
+					"golden_folder_fact = \"gold/Fact\"\r\n",
+					""
+				],
+				"execution_count": 1
+			},
 			{
 				"cell_type": "markdown",
 				"metadata": {
@@ -161,7 +188,7 @@
 					"                        On f.idFechas = c.idFecha\r\n",
 					"                    LEFT JOIN silver.horas  AS h\r\n",
 					"                        On h.idHoras = c.idHora\r\n",
-					"                    WHERE GREATEST(d.fechaDelta, c.fechaDelta) >=\r\n",
+					"                    -- WHERE GREATEST(d.fechaDelta, c.fechaDelta) >=\r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"    ]"
@@ -197,23 +224,23 @@
 					"                        COALESCE(d.skDate, -1) AS skDate\r\n",
 					"                FROM temp_sales_view as s\r\n",
 					"                LEFT JOIN gold.dim_Articles AS a\r\n",
-					"                    ON s.idArticles = a.idArticles AND s.dateOp BETWEEN a.fromDate AND a.toDate\r\n",
+					"                    ON s.idArticles = a.idArticles AND s.dateOp BETWEEN a.fromDate AND a.toDate AND a.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_Client AS cl\r\n",
-					"                    ON s.idClient = cl.idClient AND s.dateOp BETWEEN cl.fromDate AND cl.toDate\r\n",
+					"                    ON s.idClient = cl.idClient AND s.dateOp BETWEEN cl.fromDate AND cl.toDate AND cl.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_Currency AS cu\r\n",
-					"                    ON s.idCurrency = cu.idCurrency AND s.dateOp BETWEEN cu.fromDate AND cu.toDate\r\n",
+					"                    ON s.idCurrency = cu.idCurrency AND s.dateOp BETWEEN cu.fromDate AND cu.toDate AND cu.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_Date AS d\r\n",
-					"                    ON s.idDate = d.idDate AND s.dateOp BETWEEN d.fromDate AND d.toDate\r\n",
+					"                    ON s.idDate = d.idDate AND s.dateOp BETWEEN d.fromDate AND d.toDate AND d.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_Hours AS h\r\n",
-					"                    ON s.idHours = h.idHours AND s.dateOp BETWEEN h.fromDate AND h.toDate\r\n",
+					"                    ON s.idHours = h.idHours AND s.dateOp BETWEEN h.fromDate AND h.toDate AND h.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_OperationType AS o\r\n",
-					"                    ON s.idOperationType = o.idOperationType AND s.dateOp BETWEEN o.fromDate AND o.toDate\r\n",
+					"                    ON s.idOperationType = o.idOperationType AND s.dateOp BETWEEN o.fromDate AND o.toDate AND o.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_PostalCode AS p\r\n",
-					"                    ON s.idPostalCode = p.idPostalCode AND s.dateOp BETWEEN p.fromDate AND p.toDate\r\n",
+					"                    ON s.idPostalCode = p.idPostalCode AND s.dateOp BETWEEN p.fromDate AND p.toDate AND p.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_Tariff AS t\r\n",
-					"                    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate\r\n",
+					"                    ON s.idTariff = t.idTariff AND s.dateOp BETWEEN t.fromDate AND t.toDate AND t.isCurrent = 1\r\n",
 					"                LEFT JOIN gold.dim_Warehouse AS w\r\n",
-					"                    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate\r\n",
+					"                    ON s.idWarehouse = w.idWarehouse AND s.dateOp BETWEEN w.fromDate AND w.toDate AND w.isCurrent = 1\r\n",
 					"                     \"\"\"\r\n",
 					"        }\r\n",
 					"    ]"
@@ -716,7 +743,6 @@
 					"    # Definir la ruta de la tabla Delta\r\n",
 					"    delta_table_path_fact = f\"{data_lake_container}/{golden_folder_fact}/{table_name}\"\r\n",
 					"    \r\n",
-					"   \r\n",
 					"    df = spark.sql(file[\"query\"].strip() + f\" '{delta_date_filter}'\") # Hacer lo mismo más adelante con los lookcups \r\n",
 					"    sdf = df.cache()\r\n",
 					"\r\n",
@@ -831,7 +857,7 @@
 					"            \r\n",
 					"        # Almacenar conteos de filas\r\n",
 					"        file_result['status'] = 'Correct'\r\n",
-					"        file_result['inserted_rows'] = sdf.count()  # Contar todas las filas insertadas\r\n",
+					"        file_result['inserted_rows'] = sdf.count()\r\n",
 					"\r\n",
 					"    except Exception as e:\r\n",
 					"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",

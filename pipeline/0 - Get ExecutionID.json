@@ -15,7 +15,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "",
-					"value": "@formatDateTime(utcnow(), 'yyyy')"
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'yyyy')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
@@ -42,7 +45,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "day",
-					"value": "@formatDateTime(utcnow(), 'dd')"
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'dd')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
@@ -63,7 +69,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "hour",
-					"value": "@formatDateTime(utcnow(), 'HHmmss')"
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'HHmmss')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
@@ -86,7 +95,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "month",
-					"value": "@formatDateTime(utcnow(), 'MM')"
+					"value": {
+						"value": "@formatDateTime(utcnow(), 'MM')",
+						"type": "Expression"
+					}
 				}
 			},
 			{
@@ -248,7 +260,7 @@
 					"variableName": "pipelineReturnValue",
 					"value": [
 						{
-							"key": "executionID",
+							"key": "ExecutionID",
 							"value": {
 								"type": "Expression",
 								"content": "@concat(variables('day'), '_', variables('hour'))"

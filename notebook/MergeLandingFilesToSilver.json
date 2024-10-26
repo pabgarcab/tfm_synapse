@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "b72b8220-98f8-4254-a193-190222d36f5a"
+				"spark.autotune.trackingId": "2de27420-53ed-46c0-bdb7-e9aba191b671"
 			}
 		},
 		"metadata": {
@@ -326,7 +326,7 @@
 					"\r\n",
 					"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
 					"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
-					"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
+					"log_file_name = f\"Log_{executionID}.json\"\r\n",
 					"\r\n",
 					"json_data = json.dumps(results, indent=4, ensure_ascii=False)\r\n",
 					"\r\n",
@@ -476,7 +476,7 @@
 					"# hour = actual_time.strftime('%H%M%S')\r\n",
 					"\r\n",
 					"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
-					"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
+					"log_file_name = f\"Log_{executionID}.json\"\r\n",
 					"\r\n",
 					"json_data = json.dumps(results_dict, indent=4, ensure_ascii=False)\r\n",
 					"\r\n",

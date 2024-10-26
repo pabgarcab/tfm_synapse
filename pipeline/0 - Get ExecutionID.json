@@ -260,7 +260,7 @@
 					"variableName": "pipelineReturnValue",
 					"value": [
 						{
-							"key": "ExecutionID",
+							"key": "executionID",
 							"value": {
 								"type": "Expression",
 								"content": "@concat(variables('day'), '_', variables('hour'))"

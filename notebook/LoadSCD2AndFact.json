@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "c70a53a9-a8b2-4c30-a3f8-063ca76e1e1a"
+				"spark.autotune.trackingId": "83fa44e3-ea13-4478-ae07-7a0563a972c5"
 			}
 		},
 		"metadata": {
@@ -456,10 +456,10 @@
 					"today_datetime = datetime.now()\r\n",
 					"\r\n",
 					"delta_date_filter = (today_datetime.strftime('%Y%m%d')) # 'yyyyMMdd'\r\n",
-					"#delta_date_filter = '20241008'\r\n",
+					"delta_date_filter = '19901008' # Debud\r\n",
 					"\r\n",
 					"delta_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-					"#delta_date_string = '2024-10-08'\r\n",
+					"delta_date_string = '1990-10-08'\r\n",
 					"\r\n",
 					"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 					"dict_tables_to_load = []\r\n",
@@ -878,7 +878,7 @@
 					"\r\n",
 					"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
 					"#archivo_nombre = f\"Log_{day}_{hour}.json\"\r\n",
-					"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
+					"log_file_name = f\"Log_{executionID}.json\"\r\n",
 					"\r\n",
 					"# Reemplaza con tu cadena de conexión a Azure\r\n",
 					"\r\n",

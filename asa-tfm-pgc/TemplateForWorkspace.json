@@ -2364,7 +2364,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "83fa44e3-ea13-4478-ae07-7a0563a972c5"
+						"spark.autotune.trackingId": "cb937b69-74b3-4c13-8544-324d30392e97"
 					}
 				},
 				"metadata": {
@@ -2389,11 +2389,40 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# This cell is generated from runtime parameters. Learn more: https://go.microsoft.com/fwlink/?linkid=2161015\r\n",
+							"data_lake_container = \"abfss://mdw@datalake1pgc.dfs.core.windows.net\"\r\n",
+							"gold_folder_logs = \"gold/Logs\"\r\n",
+							"container_name = \"mdw\"\r\n",
+							"connection_string = \"DefaultEndpointsProtocol=https;AccountName=datalake1pgc;AccountKey=5zNea4dmjuWHZQcfT1EIp+DmiPDhy2E9iAfqLllNnYerOKCKbyEJnqbaSj3KzP3XDE3rPF17LRt5+AStO3BBJQ==;EndpointSuffix=core.windows.net\"\r\n",
+							"metadata_folder = \"mdw/bronze/Configuration\"\r\n",
+							"tables_to_load = \"[{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Articles\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Client\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Currency\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Date\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Hours\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"OperationType\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"PostalCode\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Tariff\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Warehouse\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"fact\\\",\\\"TableName\\\":\\\"Sales\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"}]\"\r\n",
+							"golden_folder_dimensions = \"gold/Dimensions\"\r\n",
+							"golden_folder_fact = \"gold/Fact\"\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 21
+					},
 					{
 						"cell_type": "markdown",
 						"metadata": {
@@ -2409,6 +2438,7 @@
 					},
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -2424,7 +2454,7 @@
 							"import csv"
 						],
 						"outputs": [],
-						"execution_count": 3
+						"execution_count": 22
 					},
 					{
 						"cell_type": "code",
@@ -2438,20 +2468,45 @@
 									"deleting": false
 								}
 							},
+							"microsoft": {
+								"language": "sparksql"
+							},
 							"collapsed": false
 						},
 						"source": [
-							"# Borrar cuando se complete y valide todo\r\n",
-							"# %%sql\r\n",
-							"# USE default;\r\n",
-							"# DROP DATABASE  gold CASCADE ;\r\n",
-							"# USE default;\r\n",
-							"# CREATE DATABASE IF NOT EXISTS gold;\r\n",
-							"# USE gold;\r\n",
-							"# DROP TABLE IF EXISTS fact_Sales;"
+							"%%sql\r\n",
+							"USE default;\r\n",
+							"DROP DATABASE  gold CASCADE ;\r\n",
+							"USE default;\r\n",
+							"CREATE DATABASE IF NOT EXISTS gold;"
 						],
 						"outputs": [],
-						"execution_count": 2
+						"execution_count": 13
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"USE gold;\r\n",
+							"DROP TABLE IF EXISTS fact_Sales;"
+						],
+						"outputs": [],
+						"execution_count": 3
 					},
 					{
 						"cell_type": "code",
@@ -2509,13 +2564,13 @@
 							"                        On f.idFechas = c.idFecha\r\n",
 							"                    LEFT JOIN silver.horas  AS h\r\n",
 							"                        On h.idHoras = c.idHora\r\n",
-							"                    -- WHERE GREATEST(d.fechaDelta, c.fechaDelta) >=\r\n",
+							"                    WHERE GREATEST(d.fechaDelta, c.fechaDelta) >=\r\n",
 							"                     \"\"\"\r\n",
 							"        }\r\n",
 							"    ]"
 						],
 						"outputs": [],
-						"execution_count": 3
+						"execution_count": 23
 					},
 					{
 						"cell_type": "code",
@@ -2535,6 +2590,8 @@
 							"        {\r\n",
 							"            \"name\": \"Sales\",\r\n",
 							"            \"query\": \"\"\"\r\n",
+							"                    SELECT    \r\n",
+							"                        s.*,\r\n",
 							"                        COALESCE(a.skArticles, -1) AS skArticles,\r\n",
 							"                        COALESCE(w.skWarehouse, -1) AS skWarehouse,\r\n",
 							"                        COALESCE(cl.skClient, -1) AS skClient, \r\n",
@@ -2568,7 +2625,7 @@
 							"    ]"
 						],
 						"outputs": [],
-						"execution_count": null
+						"execution_count": 16
 					},
 					{
 						"cell_type": "code",
@@ -2772,7 +2829,7 @@
 							"    ]"
 						],
 						"outputs": [],
-						"execution_count": 6
+						"execution_count": 24
 					},
 					{
 						"cell_type": "markdown",
@@ -2850,10 +2907,16 @@
 							"load_y_tables3 = {table['TableName'] for table in fact_tables if table['Load'] == 'Y'}\r\n",
 							"filtered_factList_Lookup = [\r\n",
 							"    dim for dim in lookupFact if dim[\"name\"] in load_y_tables3\r\n",
-							"]"
+							"]\r\n",
+							"\r\n",
+							"# load_y_tables4 = {table['TableName'] for table in fact_tables if table['Load'] == 'Y'}\r\n",
+							"# filtered_createTablesFact = [\r\n",
+							"#     dim for dim in createTablesFact if dim[\"name\"] in load_y_tables4\r\n",
+							"# ]\r\n",
+							""
 						],
 						"outputs": [],
-						"execution_count": 14
+						"execution_count": 25
 					},
 					{
 						"cell_type": "markdown",
@@ -2939,11 +3002,12 @@
 							"            next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk{table_name}), 0) + 1 AS next_key FROM gold.dim_{table_name}\").collect()[0][\"next_key\"]\r\n",
 							"\r\n",
 							"            sdf.createOrReplaceTempView(\"temp_view\")\r\n",
+							"\r\n",
 							"            spark.sql(f\"\"\"\r\n",
 							"                MERGE INTO gold.dim_{table_name}  \r\n",
 							"                AS existing\r\n",
 							"                USING temp_view AS updates\r\n",
-							"                ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
+							"                ON {\" AND \".join([f\"existing.{key}=updates.{key}\" for key in key_columns])}\r\n",
 							"                WHEN MATCHED AND existing.isCurrent = 1 AND existing.hash != updates.hash THEN\r\n",
 							"                UPDATE SET\r\n",
 							"                    existing.toDate = current_date(),\r\n",
@@ -2953,14 +3017,40 @@
 							"            spark.sql(f\"\"\"\r\n",
 							"                INSERT INTO gold.dim_{table_name}    \r\n",
 							"                SELECT \r\n",
-							"                    {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk{table_name}, \r\n",
+							"                    {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk{table_name},  \r\n",
 							"                    updates.*\r\n",
 							"                FROM temp_view AS updates\r\n",
-							"                LEFT JOIN gold.dim_{table_name}  \r\n",
-							"                AS existing\r\n",
+							"                LEFT JOIN gold.dim_{table_name} AS existing\r\n",
 							"                ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
-							"                WHERE existing.{key_columns_str} IS NULL OR (existing.{key_columns_str} IS NOT NULL AND existing.isCurrent = 0 AND existing.hash != updates.hash)\r\n",
+							"                WHERE \r\n",
+							"                    existing.id{table_name} IS NULL OR \r\n",
+							"                    (existing.isCurrent = 0 AND existing.hash != updates.hash) OR \r\n",
+							"                    (existing.isCurrent = 1 AND existing.hash != updates.hash)\r\n",
 							"            \"\"\")\r\n",
+							"\r\n",
+							"            # spark.sql(f\"\"\"\r\n",
+							"            #     MERGE INTO gold.dim_{table_name}  \r\n",
+							"            #     AS existing\r\n",
+							"            #     USING temp_view AS updates\r\n",
+							"            #     ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
+							"            #     WHEN MATCHED AND existing.isCurrent = 1 AND existing.hash != updates.hash THEN\r\n",
+							"            #     UPDATE SET\r\n",
+							"            #         existing.toDate = current_date(),\r\n",
+							"            #         existing.isCurrent = 0\r\n",
+							"            # \"\"\")\r\n",
+							"\r\n",
+							"            # spark.sql(f\"\"\"\r\n",
+							"            #     INSERT INTO gold.dim_{table_name}    \r\n",
+							"            #     SELECT \r\n",
+							"            #         {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk{table_name}, \r\n",
+							"            #         updates.*\r\n",
+							"            #     FROM temp_view AS updates\r\n",
+							"            #     LEFT JOIN gold.dim_{table_name}  \r\n",
+							"            #     AS existing\r\n",
+							"            #     ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
+							"            #     WHERE existing.{key_columns_str} IS NULL \r\n",
+							"            #     OR (existing.{key_columns_str} IS NOT NULL AND existing.isCurrent = 0 AND existing.hash != updates.hash)\r\n",
+							"            # \"\"\")\r\n",
 							"\r\n",
 							"            # Almacenar conteos de filas\r\n",
 							"            file_result['status'] = 'Correct'\r\n",
@@ -3034,6 +3124,155 @@
 						"source": [
 							"**Load Fact Table**"
 						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"for file, file2 in zip(filtered_factList, filtered_factList_Lookup):\r\n",
+							"    file_result = {\r\n",
+							"        'table': f\"fact_{file['name']}\",\r\n",
+							"        'status': 'Incorrect',\r\n",
+							"        'inserted_rows': 0,\r\n",
+							"        'updated_rows': 0,\r\n",
+							"        'exception': 'N/A',\r\n",
+							"        'datetime': str(datetime.now())  \r\n",
+							"    }\r\n",
+							"    table_name = file[\"name\"].split('_')[0]\r\n",
+							"    key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
+							"\r\n",
+							"    key_columns = key_columns_str.split(',')\r\n",
+							"    conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+							"\r\n",
+							"    # Definir la ruta de la tabla Delta\r\n",
+							"    delta_table_path_fact = f\"{data_lake_container}/{golden_folder_fact}/{table_name}\"\r\n",
+							"    \r\n",
+							"    df = spark.sql(file[\"query\"].strip() + f\" '{delta_date_filter}'\") # Hacer lo mismo más adelante con los lookups \r\n",
+							"    sdf = df.cache()\r\n",
+							"\r\n",
+							"    try:\r\n",
+							"\r\n",
+							"        #source_wildcard = f\"{table_name}*.parquet\"   # Concatenar la subcadena\r\n",
+							"\r\n",
+							"\r\n",
+							"        # Verificar si el DataFrame está vacío\r\n",
+							"        if sdf.limit(1).count() == 0:\r\n",
+							"            print(f\"No se procesará la tabla {file['name']} porque no contiene nuevos datos.\")\r\n",
+							"            file_result['status'] = 'Correct'\r\n",
+							"            file_result['exception'] = \"There is no new data\"\r\n",
+							"            results.append(file_result)\r\n",
+							"            continue\r\n",
+							"\r\n",
+							"        # Truncar la tabla Delta si existe\r\n",
+							"        if DeltaTable.isDeltaTable(spark, delta_table_path_fact):\r\n",
+							"            delta_table = DeltaTable.forPath(spark, delta_table_path_fact)\r\n",
+							"            #delta_table.delete()  # Truncar la tabla Delta\r\n",
+							"\r\n",
+							"            #last_row number para incremental\r\n",
+							"            sdf.createOrReplaceTempView(\"temp_sales_view\")\r\n",
+							"            # spark.sql(f\"\"\"\r\n",
+							"            #             INSERT INTO gold.fact_{table_name} \r\n",
+							"            #             {file2[\"query\"].strip()}\r\n",
+							"            #            \"\"\")  # df = spark.sql(file[\"query\"].strip() + f\" '{delta_date_filter}'\") \r\n",
+							"\r\n",
+							"            sdf =spark.sql(f\"\"\"\r\n",
+							"                        {file2[\"query\"].strip()} \r\n",
+							"                        \"\"\")\r\n",
+							"\r\n",
+							"            #max_skSales = 0\r\n",
+							"            max_skSales = spark.sql(f\"SELECT COALESCE(MAX(sk{table_name}), 0) AS next_key FROM gold.fact_{table_name}\").collect()[0][\"next_key\"]  # +1???           \r\n",
+							"            sdf = sdf.withColumn(\"skSales\", F.expr(f\"{max_skSales} + row_number() OVER (ORDER BY id{table_name})\"))\r\n",
+							"\r\n",
+							"            columns_to_hash = [col for col in sdf.columns if col not in ('loadDate', 'deltaDate', 'skSales')]\r\n",
+							"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"            \r\n",
+							"            #next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk{table_name}), 0) + 1 AS next_key FROM gold.dim_{table_name}\").collect()[0][\"next_key\"]\r\n",
+							"          \r\n",
+							"            sdf.createOrReplaceTempView(\"temp_sales_view_merge\")\r\n",
+							"\r\n",
+							"            table_schema = spark.table(f\"gold.fact_{table_name}\").schema\r\n",
+							"\r\n",
+							"            # Listas de columnas para construir dinámicamente la consulta\r\n",
+							"            columns = [col for col in sdf.columns if col not in ('skSales', 'hash')]\r\n",
+							"\r\n",
+							"            # 2. Construir las cláusulas para el INSERT\r\n",
+							"            update_set = \", \".join([f\"existing.{col} = updates.{col}\" for col in columns])\r\n",
+							"            insert_columns = \", \".join(columns + ['skSales', 'hash'])  # Agregar 'skSales' y 'hash' al final\r\n",
+							"            insert_values = \", \".join([f\"updates.{col}\" for col in columns] + ['updates.skSales', 'updates.hash'])  # Asegurarte de que los valores estén en el mismo orden\r\n",
+							"\r\n",
+							"            # 3. Ejecutar el MERGE o INSERT\r\n",
+							"            spark.sql(f\"\"\"\r\n",
+							"                MERGE INTO gold.fact_{table_name} AS existing\r\n",
+							"                USING temp_sales_view_merge AS updates\r\n",
+							"                ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
+							"\r\n",
+							"                WHEN MATCHED AND existing.hash != updates.hash THEN\r\n",
+							"                UPDATE SET {update_set}  -- Aquí se actualizarán las columnas existentes\r\n",
+							"\r\n",
+							"                WHEN NOT MATCHED THEN\r\n",
+							"                INSERT ({insert_columns}) \r\n",
+							"                VALUES ({insert_values})\r\n",
+							"            \"\"\")\r\n",
+							"            \r\n",
+							"            # Almacenar conteos de filas\r\n",
+							"            file_result['status'] = 'Correct'\r\n",
+							"            history_df = spark.sql(f\"DESCRIBE HISTORY gold.fact_{table_name}\")\r\n",
+							"            last_merge_operation = history_df.filter(history_df.operation == 'MERGE').orderBy(F.desc(\"timestamp\")).limit(1)\r\n",
+							"            last_result = last_merge_operation.collect()\r\n",
+							"\r\n",
+							"            if last_result:\r\n",
+							"                file_result['inserted_rows'] = last_result[0].operationMetrics.get(\"numTargetRowsInserted\", 0)\r\n",
+							"                file_result['updated_rows'] = last_result[0].operationMetrics.get(\"numTargetRowsUpdated\", 0)\r\n",
+							"            else:\r\n",
+							"                #print(f\"No hay registros de operación MERGE para la tabla {file['name']}\")\r\n",
+							"                file_result['inserted_rows'] = 0\r\n",
+							"                file_result['updated_rows'] = 0\r\n",
+							"\r\n",
+							"        else:\r\n",
+							"            \r\n",
+							"            sdf.createOrReplaceTempView(\"temp_sales_view\")\r\n",
+							"            sdf =spark.sql(f\"\"\"\r\n",
+							"                        {file2[\"query\"].strip()} \r\n",
+							"                        \"\"\")\r\n",
+							"\r\n",
+							"            max_skSales = 0\r\n",
+							"            sdf = sdf.withColumn(\"skSales\", F.expr(f\"{max_skSales} + row_number() OVER (ORDER BY id{table_name})\"))\r\n",
+							"\r\n",
+							"\r\n",
+							"            columns_to_hash = [col for col in sdf.columns if col not in ('loadDate', 'deltaDate', 'skSales')]\r\n",
+							"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"            \r\n",
+							"            sdf.write.format(\"delta\").mode(\"overwrite\").save(delta_table_path_fact)\r\n",
+							"\r\n",
+							"            # Crear la tabla Delta en caso de que no exista\r\n",
+							"            spark.sql(f'CREATE TABLE IF NOT EXISTS gold.fact_{table_name} USING DELTA LOCATION \\'{delta_table_path_fact}\\'')\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.fact_{table_name} SET TBLPROPERTIES ('delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')\")\r\n",
+							"            spark.sql(f\"ALTER TABLE gold.fact_{table_name} SET TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true')\")\r\n",
+							"            \r\n",
+							"        # Almacenar conteos de filas\r\n",
+							"        file_result['status'] = 'Correct'\r\n",
+							"        file_result['inserted_rows'] = sdf.count()\r\n",
+							"\r\n",
+							"    except Exception as e:\r\n",
+							"        print(f\"Error procesando el archivo {file['name']}: {e}\")\r\n",
+							"        file_result['exception'] = f\"{e}\"\r\n",
+							"        results.append(file_result)\r\n",
+							"        continue\r\n",
+							"\r\n",
+							"    #results.append(file_result)"
+						],
+						"outputs": [],
+						"execution_count": 34
 					},
 					{
 						"cell_type": "code",

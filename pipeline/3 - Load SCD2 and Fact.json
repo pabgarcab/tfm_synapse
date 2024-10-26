@@ -292,7 +292,7 @@
 			"hour": {
 				"type": "string"
 			},
-			"ExecutionID": {
+			"executionID": {
 				"type": "string"
 			}
 		},

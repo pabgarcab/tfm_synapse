@@ -1253,22 +1253,6 @@
 							},
 							"waitOnCompletion": true,
 							"parameters": {
-								"year": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.year",
-									"type": "Expression"
-								},
-								"month": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.month",
-									"type": "Expression"
-								},
-								"day": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.day",
-									"type": "Expression"
-								},
-								"hour": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.hour",
-									"type": "Expression"
-								},
 								"executionID": {
 									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.executionID",
 									"type": "Expression"
@@ -1298,22 +1282,6 @@
 							},
 							"waitOnCompletion": true,
 							"parameters": {
-								"year": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.year",
-									"type": "Expression"
-								},
-								"month": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.month",
-									"type": "Expression"
-								},
-								"day": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.day",
-									"type": "Expression"
-								},
-								"hour": {
-									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.hour",
-									"type": "Expression"
-								},
 								"executionID": {
 									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.executionID",
 									"type": "Expression"
@@ -4626,7 +4594,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "2cc1950f-1742-4707-8bef-7545f35ce731"
+						"spark.autotune.trackingId": "bcc18168-1bfd-4300-8c5d-e1f08db50efa"
 					}
 				},
 				"metadata": {
@@ -4651,8 +4619,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},

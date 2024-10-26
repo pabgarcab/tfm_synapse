@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "2de27420-53ed-46c0-bdb7-e9aba191b671"
+				"spark.autotune.trackingId": "bcc18168-1bfd-4300-8c5d-e1f08db50efa"
 			}
 		},
 		"metadata": {
@@ -88,6 +88,31 @@
 					"from pyspark.sql import functions as F"
 				],
 				"execution_count": 48
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					}
+				},
+				"source": [
+					"%%sql\r\n",
+					"USE default;\r\n",
+					"DROP DATABASE  silver CASCADE ;\r\n",
+					"USE default;\r\n",
+					"CREATE DATABASE IF NOT EXISTS silver;"
+				],
+				"execution_count": null
 			},
 			{
 				"cell_type": "markdown",

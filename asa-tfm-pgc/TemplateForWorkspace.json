@@ -2364,7 +2364,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "288d0d20-5f96-4691-a50c-900357f59ddf"
+						"spark.autotune.trackingId": "72587505-834c-4a32-8d7a-37c0b9d5871c"
 					}
 				},
 				"metadata": {
@@ -2389,39 +2389,12 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							}
-						},
-						"source": [
-							"# This cell is generated from runtime parameters. Learn more: https://go.microsoft.com/fwlink/?linkid=2161015\r\n",
-							"data_lake_container = \"abfss://mdw@datalake1pgc.dfs.core.windows.net\"\r\n",
-							"connection_string = \"DefaultEndpointsProtocol=https;AccountName=datalake1pgc;AccountKey=5zNea4dmjuWHZQcfT1EIp+DmiPDhy2E9iAfqLllNnYerOKCKbyEJnqbaSj3KzP3XDE3rPF17LRt5+AStO3BBJQ==;EndpointSuffix=core.windows.net\"\r\n",
-							"gold_folder_logs = \"gold/Logs\"\r\n",
-							"container_name = \"mdw\"\r\n",
-							"metadata_folder = \"mdw/bronze/Configuration\"\r\n",
-							"tables_to_load = \"[{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Articles\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Currency\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Date\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Hours\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"OperationType\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"PostalCode\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Tariff\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"},{\\\"SchemaName\\\":\\\"dim\\\",\\\"TableName\\\":\\\"Warehouse\\\",\\\"UpdateDate\\\":\\\"1900-01-01\\\",\\\"Load\\\":\\\"Y\\\"}]\"\r\n",
-							"golden_folder_dimensions = \"gold/Dimensions\"\r\n",
-							"golden_folder_fact = \"gold/Fact\"\r\n",
-							""
-						],
-						"outputs": [],
-						"execution_count": 1
-					},
 					{
 						"cell_type": "markdown",
 						"metadata": {
@@ -2437,6 +2410,7 @@
 					},
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -3252,14 +3226,15 @@
 						},
 						"source": [
 							"# Obtener la fecha actual\r\n",
-							"fecha_actual = datetime.now()\r\n",
-							"year = fecha_actual.strftime('%Y') \r\n",
-							"month = fecha_actual.strftime('%m') \r\n",
-							"day = fecha_actual.strftime('%d')  \r\n",
-							"hora = fecha_actual.strftime('%H%M%S') \r\n",
+							"# fecha_actual = datetime.now()\r\n",
+							"# year = fecha_actual.strftime('%Y') \r\n",
+							"# month = fecha_actual.strftime('%m') \r\n",
+							"# day = fecha_actual.strftime('%d')  \r\n",
+							"# hour = fecha_actual.strftime('%H%M%S') \r\n",
 							"\r\n",
 							"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
-							"archivo_nombre = f\"Log_{day}_{hora}.json\"\r\n",
+							"#archivo_nombre = f\"Log_{day}_{hour}.json\"\r\n",
+							"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
 							"\r\n",
 							"# Reemplaza con tu cadena de conexión a Azure\r\n",
 							"\r\n",
@@ -4469,7 +4444,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "b69af1e7-b9aa-495a-adfe-55d9aef2f569"
+						"spark.autotune.trackingId": "b72b8220-98f8-4254-a193-190222d36f5a"
 					}
 				},
 				"metadata": {
@@ -4772,14 +4747,15 @@
 						},
 						"source": [
 							"# Get current date\r\n",
-							"actual_time = datetime.now()\r\n",
-							"year = actual_time.strftime('%Y')\r\n",
-							"month = actual_time.strftime('%m')\r\n",
-							"day = actual_time.strftime('%d')\r\n",
-							"hour = actual_time.strftime('%H%M%S')\r\n",
+							"# actual_time = datetime.now()\r\n",
+							"# year = actual_time.strftime('%Y')\r\n",
+							"# month = actual_time.strftime('%m')\r\n",
+							"# day = actual_time.strftime('%d')\r\n",
+							"# hour = actual_time.strftime('%H%M%S')\r\n",
 							"\r\n",
 							"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
-							"log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
+							"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
+							"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
 							"\r\n",
 							"json_data = json.dumps(results, indent=4, ensure_ascii=False)\r\n",
 							"\r\n",
@@ -4924,13 +4900,14 @@
 						},
 						"source": [
 							"# Obtener la fecha actual\r\n",
-							"actual_time = datetime.now()\r\n",
-							"year = actual_time.strftime('%Y')\r\n",
-							"month = actual_time.strftime('%m')\r\n",
-							"day = actual_time.strftime('%d')\r\n",
-							"hour = actual_time.strftime('%H%M%S')\r\n",
+							"# actual_time = datetime.now()\r\n",
+							"# year = actual_time.strftime('%Y')\r\n",
+							"# month = actual_time.strftime('%m')\r\n",
+							"# day = actual_time.strftime('%d')\r\n",
+							"# hour = actual_time.strftime('%H%M%S')\r\n",
 							"\r\n",
-							"log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
+							"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
+							"log_file_name = f\"Log_{ExecutionID}.json\"\r\n",
 							"\r\n",
 							"json_data = json.dumps(results_dict, indent=4, ensure_ascii=False)\r\n",
 							"\r\n",

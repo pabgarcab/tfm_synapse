@@ -313,7 +313,7 @@
 							"variableName": "pipelineReturnValue",
 							"value": [
 								{
-									"key": "executionID",
+									"key": "ExecutionID",
 									"value": {
 										"type": "Expression",
 										"content": "@concat(variables('day'), '_', variables('hour'))"
@@ -1385,7 +1385,28 @@
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
-							"parameters": {}
+							"parameters": {
+								"year": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.year",
+									"type": "Expression"
+								},
+								"month": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.month",
+									"type": "Expression"
+								},
+								"day": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.day",
+									"type": "Expression"
+								},
+								"hour": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.hour",
+									"type": "Expression"
+								},
+								"ExecutionID": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.ExecutionID",
+									"type": "Expression"
+								}
+							}
 						}
 					},
 					{
@@ -1409,7 +1430,28 @@
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
-							"parameters": {}
+							"parameters": {
+								"year": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.year",
+									"type": "Expression"
+								},
+								"month": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.month",
+									"type": "Expression"
+								},
+								"day": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.day",
+									"type": "Expression"
+								},
+								"hour": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.hour",
+									"type": "Expression"
+								},
+								"ExecutionID": {
+									"value": "@activity('Get exeuctionID').output.pipelineReturnValue.ExecutionID",
+									"type": "Expression"
+								}
+							}
 						}
 					},
 					{

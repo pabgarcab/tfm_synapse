@@ -147,6 +147,37 @@
 								"type": "Expression"
 							},
 							"type": "string"
+						},
+						"year": {
+							"value": {
+								"value": "@variables('year')",
+								"type": "Expression"
+							},
+							"type": "string"
+						},
+						"month": {
+							"value": {
+								"value": "@variables('month')",
+								"type": "Expression"
+							}
+						},
+						"day": {
+							"value": {
+								"value": "@variables('day')",
+								"type": "Expression"
+							}
+						},
+						"hour": {
+							"value": {
+								"value": "@variables('hour')",
+								"type": "Expression"
+							}
+						},
+						"executionID": {
+							"value": {
+								"value": "@variables('execution_ID')",
+								"type": "Expression"
+							}
 						}
 					},
 					"snapshot": true,
@@ -191,7 +222,14 @@
 			{
 				"name": "Get ConnectionString",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Set executionID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -239,6 +277,107 @@
 					"variableName": "connectionString",
 					"value": {
 						"value": "@activity('Get ConnectionString').output.value[0].conn\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set year",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "",
+					"value": "@formatDateTime(utcnow(), 'yyyy')"
+				}
+			},
+			{
+				"name": "Set day",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set month",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "day",
+					"value": "@formatDateTime(utcnow(), 'dd')"
+				}
+			},
+			{
+				"name": "Set hour",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set day",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "hour",
+					"value": "@formatDateTime(utcnow(), 'HHmmss')"
+				}
+			},
+			{
+				"name": "Set month",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set year",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "month",
+					"value": "@formatDateTime(utcnow(), 'MM')"
+				}
+			},
+			{
+				"name": "Set executionID",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set hour",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "executionID",
+					"value": {
+						"value": "@concat(variables('day'), '_', variables('hour'))",
 						"type": "Expression"
 					}
 				}
@@ -296,6 +435,21 @@
 			"connectionString": {
 				"type": "String",
 				"defaultValue": "a"
+			},
+			"year": {
+				"type": "String"
+			},
+			"month": {
+				"type": "String"
+			},
+			"day": {
+				"type": "String"
+			},
+			"hour": {
+				"type": "String"
+			},
+			"executionID": {
+				"type": "String"
 			}
 		},
 		"annotations": []

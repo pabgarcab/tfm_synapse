@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "38b14828-b737-4261-b3e8-5956f33948fc"
+				"spark.autotune.trackingId": "5ccf57f0-343c-4c1f-9e57-49286a15f57d"
 			}
 		},
 		"metadata": {
@@ -114,12 +114,15 @@
 							"deleting": false
 						}
 					},
+					"microsoft": {
+						"language": "sparksql"
+					},
 					"collapsed": false
 				},
 				"source": [
-					"#%%sql\r\n",
-					"# USE gold;\r\n",
-					"# DROP TABLE IF EXISTS fact_Sales;"
+					"%%sql\r\n",
+					"USE gold; \r\n",
+					"DROP TABLE IF EXISTS fact_Sales;"
 				],
 				"execution_count": 3
 			},
@@ -809,7 +812,7 @@
 					"            columns = [col for col in sdf.columns if col not in ('skSales', 'hash')]\r\n",
 					"\r\n",
 					"            # 2. Construir las cláusulas para el INSERT\r\n",
-					"            update_set = \", \".join([f\"existing.{col} = updates.{col}\" for col in columns])\r\n",
+					"            update_set = \", \".join([f\"existing.{col} = updates.{col}\" for col in columns] + [\"existing.hash = updates.hash\"])\r\n",
 					"            insert_columns = \", \".join(columns + ['skSales', 'hash'])  # Agregar 'skSales' y 'hash' al final\r\n",
 					"            insert_values = \", \".join([f\"updates.{col}\" for col in columns] + ['updates.skSales', 'updates.hash'])  # Asegurarte de que los valores estén en el mismo orden\r\n",
 					"\r\n",

@@ -178,7 +178,7 @@
 						},
 						"executionID": {
 							"value": {
-								"value": "@concat(formatDateTime(utcnow(), 'dd'), '_', formatDateTime(utcnow(), 'HHmmss'))",
+								"value": "@pipeline().parameters.executionID",
 								"type": "Expression"
 							},
 							"type": "string"

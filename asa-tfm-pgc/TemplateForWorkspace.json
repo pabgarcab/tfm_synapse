@@ -2334,7 +2334,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "f756d18d-32bc-4f9a-8e7a-ce8a416988b8"
+						"spark.autotune.trackingId": "4d4128ef-07fb-4d4c-89b9-cc2ab2833ec3"
 					}
 				},
 				"metadata": {
@@ -2802,8 +2802,8 @@
 							"# delta_date_filter = (today_datetime.strftime('%Y%m%d')) # 'yyyyMMdd'\r\n",
 							"# delta_date_filter = '19900101' # Debud\r\n",
 							"\r\n",
-							"update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-							"#update_date_string = '1990-01-01'\r\n",
+							"#update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
+							"update_date_string = '1990-01-01'\r\n",
 							"\r\n",
 							"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 							"dict_tables_to_load = []\r\n",

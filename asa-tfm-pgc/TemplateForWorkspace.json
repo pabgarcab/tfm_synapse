@@ -2374,7 +2374,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "fd3d4373-f917-4e26-89b6-32f9e94eaa9a"
+						"spark.autotune.trackingId": "0369dd5c-2830-4be0-a475-e425b3c89251"
 					}
 				},
 				"metadata": {
@@ -2399,8 +2399,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -2420,7 +2419,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -2461,31 +2459,6 @@
 						],
 						"outputs": [],
 						"execution_count": 13
-					},
-					{
-						"cell_type": "code",
-						"metadata": {
-							"jupyter": {
-								"source_hidden": false,
-								"outputs_hidden": false
-							},
-							"nteract": {
-								"transient": {
-									"deleting": false
-								}
-							},
-							"microsoft": {
-								"language": "sparksql"
-							},
-							"collapsed": false
-						},
-						"source": [
-							"%%sql\r\n",
-							"USE gold; \r\n",
-							"DROP TABLE IF EXISTS dim_warehouse;"
-						],
-						"outputs": [],
-						"execution_count": 3
 					},
 					{
 						"cell_type": "code",
@@ -4491,7 +4464,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "51c03de8-71d8-43dc-8c85-66f0c860247d"
+						"spark.autotune.trackingId": "c1f2e4f4-9ee9-4a47-bd98-e893d6d39e88"
 					}
 				},
 				"metadata": {
@@ -4516,7 +4489,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4604,7 +4578,7 @@
 						},
 						"source": [
 							"%%sql\r\n",
-							"DROP TABLE IF EXISTS gold.dim_warehouse"
+							"DROP TABLE IF EXISTS gold.fact_sales"
 						],
 						"outputs": [],
 						"execution_count": null
@@ -4641,10 +4615,10 @@
 							"today_date = datetime.now()\r\n",
 							"\r\n",
 							"#delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
-							"delta_date_filter = '20241008'# test date\r\n",
+							"delta_date_filter = '20241010'# test date\r\n",
 							"\r\n",
 							"#delta_date_string = today_date.strftime('%Y-%m-%d') # Format 'yyyy-mm-dd'\r\n",
-							"delta_date_string = '2024-10-08' # test date\r\n",
+							"delta_date_string = '2024-10-10' # test date\r\n",
 							"\r\n",
 							"landing_files = json.loads(landing_files)  # String parameter to array again\r\n",
 							"\r\n",

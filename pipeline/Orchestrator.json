@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Load Bronze",
+				"name": "Bronze",
 				"type": "ExecutePipeline",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
@@ -28,11 +28,11 @@
 				}
 			},
 			{
-				"name": "Load Silver",
+				"name": "Silver",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Load Bronze",
+						"activity": "Bronze",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -57,11 +57,11 @@
 				}
 			},
 			{
-				"name": "Load and Transform Gold",
+				"name": "Gold",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "Load Silver",
+						"activity": "Silver",
 						"dependencyConditions": [
 							"Succeeded"
 						]

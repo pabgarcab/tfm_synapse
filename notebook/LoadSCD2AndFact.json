@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "337f78a9-4da8-41af-898c-387070936eeb"
+				"spark.autotune.trackingId": "daacd084-69e6-46fb-a894-c6620d4a5c0a"
 			}
 		},
 		"metadata": {
@@ -97,8 +97,8 @@
 					"#%%sql\r\n",
 					"# USE default;\r\n",
 					"# DROP DATABASE  gold CASCADE ;\r\n",
-					"# USE default;\r\n",
-					"# CREATE DATABASE IF NOT EXISTS gold;"
+					"# USE default; \r\n",
+					"# CREATE DATABASE IF NOT EXISTS gold; fact_Sales"
 				],
 				"execution_count": 13
 			},
@@ -114,12 +114,15 @@
 							"deleting": false
 						}
 					},
+					"microsoft": {
+						"language": "sparksql"
+					},
 					"collapsed": false
 				},
 				"source": [
-					"#%%sql\r\n",
-					"# USE gold; \r\n",
-					"# DROP TABLE IF EXISTS fact_Sales;"
+					"%%sql\r\n",
+					"USE gold; \r\n",
+					"DROP TABLE IF EXISTS dim_warehouse;"
 				],
 				"execution_count": 3
 			},
@@ -478,8 +481,8 @@
 					"# delta_date_filter = (today_datetime.strftime('%Y%m%d')) # 'yyyyMMdd'\r\n",
 					"# delta_date_filter = '19900101' # Debud\r\n",
 					"\r\n",
-					"update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-					"#update_date_string = '1990-01-01'\r\n",
+					"#update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
+					"update_date_string = '1990-01-01'\r\n",
 					"\r\n",
 					"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 					"dict_tables_to_load = []\r\n",
@@ -648,11 +651,10 @@
 					"                    updates.*\r\n",
 					"                FROM temp_view AS updates\r\n",
 					"                LEFT JOIN gold.dim_{table_name} AS existing\r\n",
-					"                ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])}\r\n",
+					"                ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])} AND existing.isCurrent = 1\r\n",
 					"                WHERE \r\n",
 					"                    existing.id{table_name} IS NULL OR \r\n",
-					"                    (existing.isCurrent = 0 AND existing.hash != updates.hash) OR \r\n",
-					"                    (existing.isCurrent = 1 AND existing.hash != updates.hash)\r\n",
+					"                    (existing.hash != updates.hash)\r\n",
 					"            \"\"\")\r\n",
 					"\r\n",
 					"            # Almacenar conteos de filas\r\n",

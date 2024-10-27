@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "d41131b6-fc97-455f-9704-5e00562123bd"
+				"spark.autotune.trackingId": "1bea12df-c6ef-44fe-9b01-c6ccbdd87461"
 			}
 		},
 		"metadata": {
@@ -536,7 +536,7 @@
 					"    return query_list\r\n",
 					"\r\n",
 					"# Ejecutar la función\r\n",
-					"updated_list_Dim = update_query_with_update_date(dimensionsList, filtered_dimensionsList)\r\n",
+					"updated_list_Dim = update_query_with_update_date(dim_tables, filtered_dimensionsList)\r\n",
 					"updated_list2_Fact = update_query_with_update_date(fact_tables, filtered_factList)\r\n",
 					"\r\n",
 					"# # Mostrar el resultado\r\n",

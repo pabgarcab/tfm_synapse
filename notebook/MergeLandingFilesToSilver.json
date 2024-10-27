@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "929dcc52-6d2b-4cab-9341-99d6cf749236"
+				"spark.autotune.trackingId": "867d7fb6-106c-4f8d-b16e-f60c54fba454"
 			}
 		},
 		"metadata": {
@@ -100,17 +100,14 @@
 						"transient": {
 							"deleting": false
 						}
-					},
-					"microsoft": {
-						"language": "sparksql"
 					}
 				},
 				"source": [
-					"%%sql\r\n",
-					"USE default;\r\n",
-					"DROP DATABASE  silver CASCADE ;\r\n",
-					"USE default;\r\n",
-					"CREATE DATABASE IF NOT EXISTS silver;"
+					"#%%sql\r\n",
+					"# USE default;\r\n",
+					"# DROP DATABASE  silver CASCADE ;\r\n",
+					"# USE default;\r\n",
+					"# CREATE DATABASE IF NOT EXISTS silver;"
 				],
 				"execution_count": null
 			},
@@ -146,10 +143,10 @@
 					"today_date = datetime.now()\r\n",
 					"\r\n",
 					"delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
-					"delta_date_filter = '20241008'# test date\r\n",
+					"delta_date_filter = '20241010'# test date\r\n",
 					"\r\n",
 					"delta_date_string = today_date.strftime('%Y-%m-%d') # Format 'yyyy-mm-dd'\r\n",
-					"delta_date_string = '2024-10-08' # test date\r\n",
+					"delta_date_string = '2024-10-10' # test date\r\n",
 					"\r\n",
 					"landing_files = json.loads(landing_files)  # String parameter to array again\r\n",
 					"\r\n",
@@ -209,10 +206,10 @@
 					"        sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
 					"        sdf.cache()\r\n",
 					"\r\n",
-					"        fecha_carga_actualizada = 20241007\r\n",
+					"        # fecha_carga_actualizada = 20241007\r\n",
 					"\r\n",
-					"        if table_name == 'fechas':\r\n",
-					"            sdf = sdf.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
+					"        # if table_name == 'fechas':\r\n",
+					"        #     sdf = sdf.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
 					"\r\n",
 					"\r\n",
 					"        if sdf.limit(1).count() == 0:\r\n",

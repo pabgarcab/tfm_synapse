@@ -1206,7 +1206,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Load Bronze",
+						"name": "Bronze",
 						"type": "ExecutePipeline",
 						"state": "Inactive",
 						"onInactiveMarkAs": "Succeeded",
@@ -1232,11 +1232,11 @@
 						}
 					},
 					{
-						"name": "Load Silver",
+						"name": "Silver",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "Load Bronze",
+								"activity": "Bronze",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -1261,11 +1261,11 @@
 						}
 					},
 					{
-						"name": "Load and Transform Gold",
+						"name": "Gold",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "Load Silver",
+								"activity": "Silver",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -2334,7 +2334,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "5c844dae-db56-42af-811e-1e2c08786338"
+						"spark.autotune.trackingId": "38b14828-b737-4261-b3e8-5956f33948fc"
 					}
 				},
 				"metadata": {
@@ -2359,8 +2359,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -2380,7 +2379,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",

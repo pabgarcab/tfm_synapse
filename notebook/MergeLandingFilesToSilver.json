@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "bcc18168-1bfd-4300-8c5d-e1f08db50efa"
+				"spark.autotune.trackingId": "a9f43573-f3e1-4f73-84dc-edbb1d7005ee"
 			}
 		},
 		"metadata": {
@@ -143,13 +143,13 @@
 				"source": [
 					"blob_service_client = BlobServiceClient.from_connection_string(connection_string) # Connection to our ADLG2\r\n",
 					"\r\n",
-					"today_date = datetime.now() # Today date 'yyyymmdd'\r\n",
+					"today_date = datetime.now()\r\n",
 					"\r\n",
-					"delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyy-mm-dd'\r\n",
-					"#delta_date_filter = '20241008'# test date\r\n",
+					"delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
+					"delta_date_filter = '20241008'# test date\r\n",
 					"\r\n",
 					"delta_date_string = today_date.strftime('%Y-%m-%d') # Format 'yyyy-mm-dd'\r\n",
-					"#delta_date_string = '2024-10-08' # test date\r\n",
+					"delta_date_string = '2024-10-08' # test date\r\n",
 					"\r\n",
 					"landing_files = json.loads(landing_files)  # String parameter to array again\r\n",
 					"\r\n",
@@ -198,6 +198,7 @@
 					"        'datetime': str(datetime.now())  \r\n",
 					"    }\r\n",
 					"\r\n",
+					"\r\n",
 					"    try:\r\n",
 					"        table_name = file[\"name\"][:file[\"name\"].index('_')]  # Name of the table\r\n",
 					"        source_wildcard = f\"{table_name}*.parquet\"   # Wildcard for files\r\n",
@@ -207,6 +208,12 @@
 					"        delta_table_path = data_lake_container + '/' + silver_folder + '/' + table_name\r\n",
 					"        sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
 					"        sdf.cache()\r\n",
+					"\r\n",
+					"        fecha_carga_actualizada = 20241007\r\n",
+					"\r\n",
+					"        if table_name = file[\"name\"][:file[\"name\"].index('_')] == 'fechas':\r\n",
+					"            sdf = df.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
+					"\r\n",
 					"\r\n",
 					"        if sdf.limit(1).count() == 0:\r\n",
 					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
@@ -313,7 +320,7 @@
 					"print(\"Archivos correctos:\", correct_files_variable)\r\n",
 					"print(\"Archivos incorrectos:\", incorrect_files_variable)"
 				],
-				"execution_count": 50
+				"execution_count": 1
 			},
 			{
 				"cell_type": "markdown",

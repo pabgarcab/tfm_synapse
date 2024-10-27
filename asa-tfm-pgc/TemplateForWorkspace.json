@@ -2374,7 +2374,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "0369dd5c-2830-4be0-a475-e425b3c89251"
+						"spark.autotune.trackingId": "55ab9622-e341-4754-bb9b-3bf6713ebbc5"
 					}
 				},
 				"metadata": {
@@ -2818,8 +2818,8 @@
 							"# delta_date_filter = (today_datetime.strftime('%Y%m%d')) # 'yyyyMMdd'\r\n",
 							"# delta_date_filter = '19900101' # Debud\r\n",
 							"\r\n",
-							"#update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-							"update_date_string = '1990-01-01'\r\n",
+							"update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
+							"#update_date_string = '1990-01-01'\r\n",
 							"\r\n",
 							"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 							"dict_tables_to_load = []\r\n",
@@ -4464,7 +4464,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "c1f2e4f4-9ee9-4a47-bd98-e893d6d39e88"
+						"spark.autotune.trackingId": "b9b9045b-9134-4765-ac76-222b5da1940f"
 					}
 				},
 				"metadata": {
@@ -4571,14 +4571,11 @@
 								"transient": {
 									"deleting": false
 								}
-							},
-							"microsoft": {
-								"language": "sparksql"
 							}
 						},
 						"source": [
-							"%%sql\r\n",
-							"DROP TABLE IF EXISTS gold.fact_sales"
+							"#%%sql\r\n",
+							"#DROP TABLE IF EXISTS gold.fact_sales"
 						],
 						"outputs": [],
 						"execution_count": null
@@ -4614,11 +4611,11 @@
 							"\r\n",
 							"today_date = datetime.now()\r\n",
 							"\r\n",
-							"#delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
-							"delta_date_filter = '20241010'# test date\r\n",
+							"delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
+							"#delta_date_filter = '20241010'# test date\r\n",
 							"\r\n",
 							"#delta_date_string = today_date.strftime('%Y-%m-%d') # Format 'yyyy-mm-dd'\r\n",
-							"delta_date_string = '2024-10-10' # test date\r\n",
+							"#delta_date_string = '2024-10-10' # test date\r\n",
 							"\r\n",
 							"landing_files = json.loads(landing_files)  # String parameter to array again\r\n",
 							"\r\n",

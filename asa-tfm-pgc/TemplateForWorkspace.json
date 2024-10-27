@@ -2334,7 +2334,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "d41131b6-fc97-455f-9704-5e00562123bd"
+						"spark.autotune.trackingId": "09c28577-2c27-489b-9ea1-6339563eaf65"
 					}
 				},
 				"metadata": {
@@ -2359,7 +2359,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -2379,6 +2380,7 @@
 					},
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -2858,7 +2860,7 @@
 							"    return query_list\r\n",
 							"\r\n",
 							"# Ejecutar la función\r\n",
-							"updated_list_Dim = update_query_with_update_date(dimensionsList, filtered_dimensionsList)\r\n",
+							"updated_list_Dim = update_query_with_update_date(dim_tables, filtered_dimensionsList)\r\n",
 							"updated_list2_Fact = update_query_with_update_date(fact_tables, filtered_factList)\r\n",
 							"\r\n",
 							"# # Mostrar el resultado\r\n",
@@ -4611,7 +4613,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "21ea2168-c162-406b-8b3a-1166041f18c5"
+						"spark.autotune.trackingId": "10bdb5a8-22f4-4c9d-9b75-8a1523017c85"
 					}
 				},
 				"metadata": {
@@ -4636,8 +4638,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},

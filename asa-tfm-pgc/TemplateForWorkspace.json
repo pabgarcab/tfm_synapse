@@ -691,7 +691,7 @@
 								},
 								"executionID": {
 									"value": {
-										"value": "@concat(formatDateTime(utcnow(), 'dd'), '_', formatDateTime(utcnow(), 'HHmmss'))",
+										"value": "@pipeline().parameters.executionID",
 										"type": "Expression"
 									},
 									"type": "string"
@@ -991,7 +991,7 @@
 								},
 								"executionID": {
 									"value": {
-										"value": "@concat(formatDateTime(utcnow(), 'dd'), '_', formatDateTime(utcnow(), 'HHmmss'))",
+										"value": "@pipeline().parameters.executionID",
 										"type": "Expression"
 									},
 									"type": "string"
@@ -2334,7 +2334,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "ed0ee182-1310-49ca-8217-332cd9c54c8b"
+						"spark.autotune.trackingId": "d06e1d0f-5eed-426d-80b4-163ea7586512"
 					}
 				},
 				"metadata": {
@@ -3201,7 +3201,7 @@
 							"        results.append(file_result)\r\n",
 							"        continue\r\n",
 							"\r\n",
-							"    #results.append(file_result)"
+							"    results.append(file_result)"
 						],
 						"outputs": [],
 						"execution_count": 34

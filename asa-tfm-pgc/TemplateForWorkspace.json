@@ -2334,7 +2334,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "cddcc283-45f9-40e7-9ecf-90ef92bdaed6"
+						"spark.autotune.trackingId": "d41131b6-fc97-455f-9704-5e00562123bd"
 					}
 				},
 				"metadata": {
@@ -2359,8 +2359,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -2380,7 +2379,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -4613,7 +4611,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "a9f43573-f3e1-4f73-84dc-edbb1d7005ee"
+						"spark.autotune.trackingId": "21ea2168-c162-406b-8b3a-1166041f18c5"
 					}
 				},
 				"metadata": {
@@ -4638,7 +4636,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4809,7 +4808,7 @@
 							"\r\n",
 							"        fecha_carga_actualizada = 20241007\r\n",
 							"\r\n",
-							"        if table_name = file[\"name\"][:file[\"name\"].index('_')] == 'fechas':\r\n",
+							"        if table_name == 'fechas':\r\n",
 							"            sdf = df.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
 							"\r\n",
 							"\r\n",

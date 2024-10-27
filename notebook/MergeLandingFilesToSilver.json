@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "a9f43573-f3e1-4f73-84dc-edbb1d7005ee"
+				"spark.autotune.trackingId": "10bdb5a8-22f4-4c9d-9b75-8a1523017c85"
 			}
 		},
 		"metadata": {
@@ -211,7 +211,7 @@
 					"\r\n",
 					"        fecha_carga_actualizada = 20241007\r\n",
 					"\r\n",
-					"        if table_name = file[\"name\"][:file[\"name\"].index('_')] == 'fechas':\r\n",
+					"        if table_name == 'fechas':\r\n",
 					"            sdf = df.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
 					"\r\n",
 					"\r\n",

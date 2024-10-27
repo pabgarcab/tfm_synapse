@@ -2334,7 +2334,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "4d4128ef-07fb-4d4c-89b9-cc2ab2833ec3"
+						"spark.autotune.trackingId": "5d92b4e2-bdaf-404d-846c-699f2302f5ce"
 					}
 				},
 				"metadata": {
@@ -2359,8 +2359,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -2380,7 +2379,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -2802,8 +2800,8 @@
 							"# delta_date_filter = (today_datetime.strftime('%Y%m%d')) # 'yyyyMMdd'\r\n",
 							"# delta_date_filter = '19900101' # Debud\r\n",
 							"\r\n",
-							"#update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-							"update_date_string = '1990-01-01'\r\n",
+							"update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
+							"#update_date_string = '1990-01-01'\r\n",
 							"\r\n",
 							"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 							"dict_tables_to_load = []\r\n",
@@ -4610,7 +4608,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "867d7fb6-106c-4f8d-b16e-f60c54fba454"
+						"spark.autotune.trackingId": "b92ebc74-33b1-4c0e-b3e9-d1cd985abffd"
 					}
 				},
 				"metadata": {
@@ -4635,7 +4633,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4737,10 +4736,10 @@
 							"today_date = datetime.now()\r\n",
 							"\r\n",
 							"delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
-							"delta_date_filter = '20241010'# test date\r\n",
+							"#delta_date_filter = '20241010'# test date\r\n",
 							"\r\n",
 							"delta_date_string = today_date.strftime('%Y-%m-%d') # Format 'yyyy-mm-dd'\r\n",
-							"delta_date_string = '2024-10-10' # test date\r\n",
+							"#delta_date_string = '2024-10-10' # test date\r\n",
 							"\r\n",
 							"landing_files = json.loads(landing_files)  # String parameter to array again\r\n",
 							"\r\n",

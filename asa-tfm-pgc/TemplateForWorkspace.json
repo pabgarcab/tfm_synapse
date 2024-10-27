@@ -2334,7 +2334,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "1bea12df-c6ef-44fe-9b01-c6ccbdd87461"
+						"spark.autotune.trackingId": "f756d18d-32bc-4f9a-8e7a-ce8a416988b8"
 					}
 				},
 				"metadata": {
@@ -2359,7 +2359,8 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28
+						"memory": 28,
+						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -2379,6 +2380,7 @@
 					},
 					{
 						"cell_type": "code",
+						"metadata": {},
 						"source": [
 							"from delta.tables import DeltaTable\r\n",
 							"from delta.tables import *\r\n",
@@ -2408,17 +2410,14 @@
 									"deleting": false
 								}
 							},
-							"microsoft": {
-								"language": "sparksql"
-							},
 							"collapsed": false
 						},
 						"source": [
-							"%%sql\r\n",
-							"USE default;\r\n",
-							"DROP DATABASE  gold CASCADE ;\r\n",
-							"USE default;\r\n",
-							"CREATE DATABASE IF NOT EXISTS gold;"
+							"#%%sql\r\n",
+							"# USE default;\r\n",
+							"# DROP DATABASE  gold CASCADE ;\r\n",
+							"# USE default;\r\n",
+							"# CREATE DATABASE IF NOT EXISTS gold;"
 						],
 						"outputs": [],
 						"execution_count": 13
@@ -2804,7 +2803,7 @@
 							"# delta_date_filter = '19900101' # Debud\r\n",
 							"\r\n",
 							"update_date_string = today_datetime.strftime('%Y-%m-%d') # 'yyyy-mm-dd'\r\n",
-							"update_date_string = '1990-01-01'\r\n",
+							"#update_date_string = '1990-01-01'\r\n",
 							"\r\n",
 							"# Convertir cada valor del CSV en un diccionario estructurado\r\n",
 							"dict_tables_to_load = []\r\n",
@@ -4611,7 +4610,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "f502cab6-9a0b-460c-8cad-37e8d33d52c1"
+						"spark.autotune.trackingId": "867d7fb6-106c-4f8d-b16e-f60c54fba454"
 					}
 				},
 				"metadata": {
@@ -4636,8 +4635,7 @@
 						"sparkVersion": "3.4",
 						"nodeCount": 3,
 						"cores": 4,
-						"memory": 28,
-						"automaticScaleJobs": false
+						"memory": 28
 					},
 					"sessionKeepAliveTimeout": 30
 				},
@@ -4695,17 +4693,14 @@
 								"transient": {
 									"deleting": false
 								}
-							},
-							"microsoft": {
-								"language": "sparksql"
 							}
 						},
 						"source": [
-							"%%sql\r\n",
-							"USE default;\r\n",
-							"DROP DATABASE  silver CASCADE ;\r\n",
-							"USE default;\r\n",
-							"CREATE DATABASE IF NOT EXISTS silver;"
+							"#%%sql\r\n",
+							"# USE default;\r\n",
+							"# DROP DATABASE  silver CASCADE ;\r\n",
+							"# USE default;\r\n",
+							"# CREATE DATABASE IF NOT EXISTS silver;"
 						],
 						"outputs": [],
 						"execution_count": null
@@ -4742,10 +4737,10 @@
 							"today_date = datetime.now()\r\n",
 							"\r\n",
 							"delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
-							"delta_date_filter = '20241008'# test date\r\n",
+							"delta_date_filter = '20241010'# test date\r\n",
 							"\r\n",
 							"delta_date_string = today_date.strftime('%Y-%m-%d') # Format 'yyyy-mm-dd'\r\n",
-							"delta_date_string = '2024-10-08' # test date\r\n",
+							"delta_date_string = '2024-10-10' # test date\r\n",
 							"\r\n",
 							"landing_files = json.loads(landing_files)  # String parameter to array again\r\n",
 							"\r\n",
@@ -4806,10 +4801,10 @@
 							"        sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
 							"        sdf.cache()\r\n",
 							"\r\n",
-							"        fecha_carga_actualizada = 20241007\r\n",
+							"        # fecha_carga_actualizada = 20241007\r\n",
 							"\r\n",
-							"        if table_name == 'fechas':\r\n",
-							"            sdf = sdf.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
+							"        # if table_name == 'fechas':\r\n",
+							"        #     sdf = sdf.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
 							"\r\n",
 							"\r\n",
 							"        if sdf.limit(1).count() == 0:\r\n",

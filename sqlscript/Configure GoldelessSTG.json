@@ -2,7 +2,7 @@
 	"name": "Configure GoldelessSTG",
 	"properties": {
 		"folder": {
-			"name": "Configuration"
+			"name": "old CETAs/Configuration"
 		},
 		"content": {
 			"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'tfmVerne.'\nGO\nCREATE DATABASE SCOPED CREDENTIAL ManagedIdentity WITH IDENTITY = 'Managed Identity' \nGO\nCREATE DATABASE SCOPED CREDENTIAL [https://datalake1pgc.dfs.core.windows.net] \nWITH IDENTITY = 'SHARED ACCESS SIGNATURE',\nSECRET = 'SAS Token';\nGO\nCREATE USER [asa-tfm-pgc] FROM EXTERNAL PROVIDER;\nGO\nALTER ROLE db_datareader ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_datawriter ADD MEMBER [asa-tfm-pgc];\nGO\nALTER ROLE db_owner ADD MEMBER [asa-tfm-pgc];\nGO\nCREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH (FORMAT_TYPE = PARQUET, DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec')\nGO\nCREATE EXTERNAL DATA SOURCE datalake1pgc\nWITH (\n    \n    LOCATION = 'abfss://mdw@datalake1pgc.dfs.core.windows.net',\n    CREDENTIAL = ManagedIdentity\n);\nGO\nCREATE SCHEMA dim AUTHORIZATION dbo\nGO\nCREATE SCHEMA fact AUTHORIZATION dbo\nGO\nCREATE SCHEMA gold AUTHORIZATION dbo\n\nCREATE SCHEMA etl AUTHORIZATION dbo",

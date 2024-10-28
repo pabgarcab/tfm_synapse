@@ -3,36 +3,11 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Set year",
-				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "",
-					"value": {
-						"value": "@formatDateTime(utcnow(), 'yyyy')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "Set day",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
 						"activity": "Set month",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					},
-					{
-						"activity": "Set month_copy1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -56,7 +31,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "Set day_copy1",
+						"activity": "Set day2",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -76,59 +51,7 @@
 				}
 			},
 			{
-				"name": "Set month",
-				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Set year",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "month",
-					"value": {
-						"value": "@formatDateTime(utcnow(), 'MM')",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Set executionID",
-				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [
-					{
-						"activity": "Set hour",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "executionID",
-					"value": {
-						"value": "@concat(variables('day'), '_', variables('hour'))",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "Set variable1",
+				"name": "Set year",
 				"type": "SetVariable",
 				"dependsOn": [],
 				"policy": {
@@ -151,11 +74,11 @@
 				}
 			},
 			{
-				"name": "Set month_copy1",
+				"name": "Set month",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "Set variable1",
+						"activity": "Set year",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -181,7 +104,7 @@
 				}
 			},
 			{
-				"name": "Set day_copy1",
+				"name": "Set day2",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
@@ -211,7 +134,7 @@
 				}
 			},
 			{
-				"name": "Set hour_copy1",
+				"name": "Set hour2",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
@@ -241,11 +164,11 @@
 				}
 			},
 			{
-				"name": "Set executionID_copy1",
+				"name": "Set executionID",
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "Set hour_copy1",
+						"activity": "Set hour2",
 						"dependencyConditions": [
 							"Succeeded"
 						]

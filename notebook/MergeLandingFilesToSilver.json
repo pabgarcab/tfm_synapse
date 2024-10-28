@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "51703c74-8422-4a91-ad2d-d5a6ab6cfd1b"
+				"spark.autotune.trackingId": "730fc08a-d278-4b54-93a7-f9c1d68402e2"
 			}
 		},
 		"metadata": {
@@ -162,10 +162,10 @@
 					"today_date = datetime.now()\r\n",
 					"\r\n",
 					"delta_date_filter = (today_date.strftime('%Y%m%d')) # Format 'yyyymmdd'\r\n",
-					"#delta_date_filter = '20241010'# test date\r\n",
+					"#delta_date_filter = '20241010' # test \r\n",
 					"\r\n",
 					"delta_date_string = today_date.strftime('%Y-%m-%d') # Format 'yyyy-mm-dd'\r\n",
-					"#delta_date_string = '2024-10-10' # test date\r\n",
+					"#delta_date_string = '2024-10-10' # test\r\n",
 					"\r\n",
 					"landing_files = json.loads(landing_files)  # String parameter to array again\r\n",
 					"\r\n",
@@ -225,12 +225,6 @@
 					"        sdf = spark.read.format('parquet').option(\"recursiveFileLookup\", \"true\").load(source_path)\r\n",
 					"        sdf.cache()\r\n",
 					"\r\n",
-					"        # fecha_carga_actualizada = 20241007\r\n",
-					"\r\n",
-					"        # if table_name == 'fechas':\r\n",
-					"        #     sdf = sdf.withColumn(\"fechaCarga\", F.lit(fecha_carga_actualizada))\r\n",
-					"\r\n",
-					"\r\n",
 					"        if sdf.limit(1).count() == 0:\r\n",
 					"            print(f\"No se procesará el archivo {file['name']} porque no contiene datos.\")\r\n",
 					"            file_result['status'] = 'Correct'\r\n",
@@ -240,7 +234,6 @@
 					"            continue\r\n",
 					"\r\n",
 					"        key_columns = key_columns_str.split(',')\r\n",
-					"        #key_columns = key_columns_str\r\n",
 					"        conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
 					"\r\n",
 					"        sdf = sdf.drop(\"fechaActualizacion\", \"pipelineID\")  # DROP column we don't need\r\n",
@@ -250,11 +243,10 @@
 					"            delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
 					"            existing_columns = delta_table.toDF().columns\r\n",
 					"            \r\n",
-					"            # ADD fechaDelta\r\n",
-					"            sdf = sdf.withColumn(\"fechaDelta\", lit(delta_date_filter))\r\n",
+					"            sdf = sdf.withColumn(\"fechaDelta\", lit(delta_date_filter)) # ADD fechaDelta\r\n",
 					"\r\n",
 					"            columns_to_hash = [col for col in sdf.columns if col not in ('fechaCarga', 'fechaDelta')]\r\n",
-					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"            sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash))) # ADD hash\r\n",
 					"\r\n",
 					"            # Create update set excluding fechaCarga\r\n",
 					"            update_set = {f\"existing.{col}\": f\"updates.{col}\" for col in existing_columns if col != 'fechaCarga'}\r\n",
@@ -321,7 +313,7 @@
 					"        incorrect_files.append(file['name'])  # Add to incorrect files list\r\n",
 					"        continue\r\n",
 					"\r\n",
-					"    results.append(file_result)  # Agregar resultado al final del bucle\r\n",
+					"    results.append(file_result)  # Append to result\r\n",
 					"\r\n",
 					"\r\n",
 					"# Print result to debug\r\n",
@@ -348,7 +340,7 @@
 					}
 				},
 				"source": [
-					"**Save log merge/load**"
+					"**Save log silver merge/load**"
 				]
 			},
 			{
@@ -372,16 +364,13 @@
 					"# day = actual_time.strftime('%d')\r\n",
 					"# hour = actual_time.strftime('%H%M%S')\r\n",
 					"\r\n",
-					"# Crear el nombre del archivo con el formato Log_<fecha>.json\r\n",
-					"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
 					"log_file_name = f\"Log_{executionID}.json\"\r\n",
 					"\r\n",
 					"json_data = json.dumps(results, indent=4, ensure_ascii=False)\r\n",
 					"\r\n",
-					"# Crear la ruta de destino con la jerarquía Año/Mes y el nombre del archivo\r\n",
 					"destination_blob_name = f\"{year}/{month}/{log_file_name}\"\r\n",
 					"\r\n",
-					"# Crear un cliente del blob de destino\r\n",
+					"# Client to connect\r\n",
 					"destination_blob = blob_service_client.get_blob_client(container=silver_logs, blob=destination_blob_name)\r\n",
 					"\r\n",
 					"destination_blob.upload_blob(json_data, overwrite=True)"
@@ -417,6 +406,7 @@
 				"source": [
 					"results_dict = []\r\n",
 					"\r\n",
+					"# Loop correct files\r\n",
 					"for i in correct_files_variable:\r\n",
 					"    source_blob_name = i\r\n",
 					"    name_part = i.split('_')[0]\r\n",
@@ -440,19 +430,18 @@
 					"    \r\n",
 					"    # Check and delele\r\n",
 					"    if copy_properties[\"copy_status\"] == \"success\":\r\n",
-					"        source_blob.delete_blob()  # Descomentar para eliminar el blob original\r\n",
+					"        source_blob.delete_blob()  # Delete if success\r\n",
 					"        results_dict.append({\r\n",
 					"            \"file\": source_blob_name,\r\n",
 					"            \"status\": \"Correct\",\r\n",
 					"            \"destination\": f\"bronze/Processed/{destination_blob_name}\" })\r\n",
-					"        #results += f\"Archivo {source_blob_name} procesado exitosamente y movido a bronze/Processed. {str(datetime.now())}\\n\"\r\n",
 					"    else:\r\n",
 					"        results_dict.append({\r\n",
 					"            \"file\": source_blob_name,\r\n",
 					"            \"status\": \"Fail to copy file\",\r\n",
 					"            \"destination\": f\"bronze/Processed/{destination_blob_name}\" })\r\n",
 					"\r\n",
-					"# Bucle para archivos incorrectos\r\n",
+					"# Loop incorrect files\r\n",
 					"for i in incorrect_files_variable:\r\n",
 					"    source_blob_name = i\r\n",
 					"    name_part = i.split('_')[0]\r\n",
@@ -465,7 +454,7 @@
 					"        month = date_str[4:6] \r\n",
 					"        destination_blob_name = f\"{name_part}/{year}/{month}/{i}\"\r\n",
 					"    else:\r\n",
-					"        destination_blob_name = i  # Si no tiene fecha, dejar el nombre como está\r\n",
+					"        destination_blob_name = i\r\n",
 					"\r\n",
 					"    source_blob = blob_service_client.get_blob_client(container=bronze_pending, blob=source_blob_name)\r\n",
 					"    destination_blob_error = blob_service_client.get_blob_client(container=bronze_error, blob=destination_blob_name)\r\n",
@@ -475,12 +464,11 @@
 					"\r\n",
 					"    # Check and delele\r\n",
 					"    if copy_properties[\"copy_status\"] == \"success\":\r\n",
-					"        source_blob.delete_blob()  # Descomentar para eliminar el blob original\r\n",
+					"        source_blob.delete_blob()  # Delete if success\r\n",
 					"        results_dict.append({\r\n",
 					"            \"file\": source_blob_name,\r\n",
 					"            \"status\": \"Incorrect\",\r\n",
 					"            \"destination\": f\"bronze/Landing/Error/{destination_blob_name}\" })\r\n",
-					"        #results += f\"Archivo {source_blob_name} procesado erróneamente y movido a bronze/Landing/Error. {str(datetime.now())} \\n\"\r\n",
 					"    else:\r\n",
 					"        results_dict.append({\r\n",
 					"            \"file\": source_blob_name,\r\n",
@@ -499,7 +487,7 @@
 					}
 				},
 				"source": [
-					"**Save logs parquet files**"
+					"**Save logs bronze parquet files**"
 				]
 			},
 			{
@@ -516,22 +504,12 @@
 					}
 				},
 				"source": [
-					"# Obtener la fecha actual\r\n",
-					"# actual_time = datetime.now()\r\n",
-					"# year = actual_time.strftime('%Y')\r\n",
-					"# month = actual_time.strftime('%m')\r\n",
-					"# day = actual_time.strftime('%d')\r\n",
-					"# hour = actual_time.strftime('%H%M%S')\r\n",
-					"\r\n",
-					"#log_file_name = f\"Log_{day}_{hour}.json\"\r\n",
 					"log_file_name = f\"Log_{executionID}.json\"\r\n",
 					"\r\n",
 					"json_data = json.dumps(results_dict, indent=4, ensure_ascii=False)\r\n",
 					"\r\n",
-					"# Crear la ruta de destino con la jerarquía Año/Mes y el nombre del archivo\r\n",
 					"destination_blob_name = f\"{year}/{month}/{log_file_name}\"\r\n",
 					"\r\n",
-					"# Crear un cliente del blob de destino\r\n",
 					"destination_blob = blob_service_client.get_blob_client(container=bronze_logs, blob=destination_blob_name)\r\n",
 					"\r\n",
 					"destination_blob.upload_blob(json_data, overwrite=True)"
@@ -548,7 +526,7 @@
 					}
 				},
 				"source": [
-					"**Update Configuration CSV**"
+					"**Update ConfiguracionOrigenes.csv**"
 				]
 			},
 			{
@@ -569,25 +547,22 @@
 					"\r\n",
 					"blob_service_client = BlobServiceClient.from_connection_string(connection_string)\r\n",
 					"\r\n",
-					"csv_blob_name = \"ConfiguracionOrigenes.csv\"  # Reemplaza con el nombre de tu archivo\r\n",
+					"csv_blob_name = \"ConfiguracionOrigenes.csv\"  # File name\r\n",
 					"\r\n",
-					"# Leer el archivo CSV desde el Data Lake\r\n",
+					"# Read file\r\n",
 					"blob_client = blob_service_client.get_blob_client(container=metadata_folder, blob=csv_blob_name)\r\n",
 					"\r\n",
 					"stream = io.BytesIO(blob_client.download_blob().readall())\r\n",
-					"df = pd.read_csv(stream, sep=',')  # Especifica el separador aquí\r\n",
-					"\r\n",
-					"# Limpiar nombres de columnas para eliminar espacios en blanco\r\n",
+					"df = pd.read_csv(stream, sep=',')  \r\n",
 					"df.columns = df.columns.str.strip()\r\n",
 					"\r\n",
-					"#landing_files = [item['name'] for item in filtered_dimensionsList]\r\n",
-					"for i in landing_files:\r\n",
-					"    df.loc[df['FileName'] == i[\"name\"][:i[\"name\"].index('_')], 'UpdateDate'] = f'{delta_date_string}'  # Cambiar los nombres de las columnas según tu archivo CSV\r\n",
+					"for i in landing_files: # UpdateDate \r\n",
+					"    df.loc[df['FileName'] == i[\"name\"][:i[\"name\"].index('_')], 'UpdateDate'] = f'{delta_date_string}'\r\n",
 					"\r\n",
 					"# Save DataFrame\r\n",
 					"output_stream = io.BytesIO()\r\n",
 					"df.to_csv(output_stream, index=False, sep=',', lineterminator='\\n')\r\n",
-					"output_stream.seek(0)  # Regresar al inicio del flujo\r\n",
+					"output_stream.seek(0)\r\n",
 					"\r\n",
 					"blob_client.upload_blob(output_stream.getvalue(), overwrite=True)"
 				],

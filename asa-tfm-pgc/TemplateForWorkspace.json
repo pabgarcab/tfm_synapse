@@ -3776,7 +3776,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "907339f3-16f2-4682-a77f-5d72e03414e5"
+						"spark.autotune.trackingId": "0a0c3e7c-fde1-4f58-bb31-f15f973a142c"
 					}
 				},
 				"metadata": {
@@ -3794,7 +3794,6 @@
 				"cells": [
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"from sklearn.model_selection import train_test_split\n",
@@ -3844,7 +3843,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Query Clima\n",
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
@@ -3878,7 +3876,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Query Quimicos \n",
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
@@ -3906,7 +3903,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# S x Q\n",
 							"\n",
@@ -4016,7 +4012,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Query Clima X Quimicos\n",
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
@@ -4103,7 +4098,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
 							"\n",
@@ -4141,7 +4135,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Todo junto\n",
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
@@ -4266,7 +4259,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# C x Q\n",
 							"\n",
@@ -4360,7 +4352,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
 							"\n",
@@ -4415,7 +4406,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"df = pd.read_sql(query, connection)\n",
 							"\n",
@@ -4436,7 +4426,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 579 1 Junto Original\n",
 							"\n",
@@ -4561,7 +4550,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 579 2 Junto Varianza\n",
 							"\n",
@@ -4686,7 +4674,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 575 1 Junto Orginal\n",
 							"\n",
@@ -4811,7 +4798,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 575 2 Junto Backward\n",
 							"\n",
@@ -4936,7 +4922,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 574 1 Junto Varianza\n",
 							"\n",
@@ -5061,7 +5046,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 574 2 SxQ Original \n",
 							"\n",
@@ -5186,7 +5170,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 573 1 Junto Original\n",
 							"\n",
@@ -5311,7 +5294,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 573 2 SxQ Varianza\n",
 							"\n",
@@ -5436,7 +5418,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 571 1 Junto Varianza\n",
 							"\n",
@@ -5561,7 +5542,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 571 2 CxQ Backward\n",
 							"\n",
@@ -5686,7 +5666,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 1 CxQ Backward\n",
 							"\n",
@@ -5811,7 +5790,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 2 C xQ Original\n",
 							"\n",
@@ -5936,7 +5914,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 568 1\n",
 							"\n",
@@ -6060,7 +6037,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 568 2   # Repetir \n",
 							"import pandas as pd\n",
@@ -6183,7 +6159,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 559 1\n",
 							"import pandas as pd\n",
@@ -6306,7 +6281,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# NO # 559 3\n",
 							"import pandas as pd\n",
@@ -6429,7 +6403,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"\n",
 							"import pandas as pd\n",
@@ -6552,7 +6525,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.ensemble import RandomForestClassifier\n",
 							"import pandas as pd\n",
@@ -6595,7 +6567,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"import numpy as np\n",
@@ -6717,7 +6688,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							""
 						],
@@ -6726,7 +6696,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 573 1 climaXsocio\n",
 							"\n",
@@ -6840,7 +6809,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Socio x Quimicos\n",
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
@@ -6949,7 +6917,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Socio x Clima\n",
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
@@ -7020,7 +6987,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 573 1 climaXsocio\n",
 							"\n",
@@ -7134,7 +7100,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 1 climaXsocio\n",
 							"\n",
@@ -7248,7 +7213,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 559 2 climaXsocio\n",
 							"\n",
@@ -7362,7 +7326,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 575 1 socioXquimicos\n",
 							"\n",
@@ -7476,7 +7439,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 2 socioXquimicos\n",
 							"\n",
@@ -7590,7 +7552,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 1 socioXquimicos\n",
 							"\n",
@@ -7704,7 +7665,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 568 1 socioXquimicos\n",
 							"\n",
@@ -7818,7 +7778,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 559 2 socioXquimicos\n",
 							"\n",
@@ -7932,7 +7891,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 559 1 socioXquimicos\n",
 							"\n",
@@ -8046,7 +8004,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 571 1 climaXquimicos\n",
 							"\n",
@@ -8160,7 +8117,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Terminar Clima x Quimicos  arriba"
 						],
@@ -8169,7 +8125,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"## Todo junto terminado"
 						],
@@ -8178,7 +8133,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 575 1\n",
 							"\n",
@@ -8292,7 +8246,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 573 1\n",
 							"\n",
@@ -8406,7 +8359,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 1\n",
 							"\n",
@@ -8520,7 +8472,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 568 2\n",
 							"import pandas as pd\n",
@@ -8633,7 +8584,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"## Junto"
 						],
@@ -8642,7 +8592,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 568 1\n",
 							"import pandas as pd\n",
@@ -8750,7 +8699,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"######## Quimicos abajo"
 						],
@@ -8759,7 +8707,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 579 1\n",
 							"\n",
@@ -8868,7 +8815,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 574 2\n",
 							"import pandas as pd\n",
@@ -8976,7 +8922,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 573 1\n",
 							"import pandas as pd\n",
@@ -9084,7 +9029,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 2\n",
 							"import pandas as pd\n",
@@ -9192,7 +9136,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 568 1\n",
 							"import pandas as pd\n",
@@ -9300,7 +9243,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 559 1\n",
 							"import pandas as pd\n",
@@ -9408,7 +9350,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"############################## Clima abajo"
 						],
@@ -9417,7 +9358,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 569 2\n",
 							"import pandas as pd\n",
@@ -9525,7 +9465,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 579 2\n",
 							"import pandas as pd\n",
@@ -9633,7 +9572,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 575 1\n",
 							"import pandas as pd\n",
@@ -9741,7 +9679,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 574 1\n",
 							"import pandas as pd\n",
@@ -9849,7 +9786,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 570 2\n",
 							"import pandas as pd\n",
@@ -9957,7 +9893,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 559 2\n",
 							"import pandas as pd\n",
@@ -10065,7 +10000,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# 559 1\n",
 							"import pandas as pd\n",
@@ -10173,7 +10107,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"#568 2\n",
 							"import pandas as pd\n",
@@ -10281,7 +10214,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"import numpy as np\n",
@@ -10388,7 +10320,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"from sklearn.model_selection import train_test_split, cross_val_score, KFold\n",
@@ -10472,7 +10403,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"from sklearn.model_selection import train_test_split, cross_val_score, KFold\n",
@@ -10520,7 +10450,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Establece la conexión con la base de datos SQL Server\n",
 							"#connection = pyodbc.connect('DRIVER={SQL Server};SERVER=NombreDelServidor;DATABASE=NombreDeLaBaseDeDatos;Trusted_Connection=yes;')\n",
@@ -10559,7 +10488,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"from sklearn.model_selection import train_test_split, KFold\n",
@@ -10603,7 +10531,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"\n",
 							"connection = pyodbc.connect('DRIVER={SQL Server};SERVER=DESKTOP-6UKL08J;DATABASE=IncidenceDWH;Trusted_Connection=yes;')\n",
@@ -10671,7 +10598,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"import numpy as np\n",
@@ -10697,7 +10623,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"query1 = \"\"\"SELECT -- [Country]\n",
 							"     -- ,t.[Year],\n",
@@ -10732,7 +10657,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"\n",
 							"# Ignorar el aviso de convergencia para el MLPRegressor\n",
@@ -10893,7 +10817,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# importing data\n",
 							"# df = pd.read_csv('Real estate.csv')\n",
@@ -10951,7 +10874,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"## Aqui\n",
 							"\n",
@@ -11009,7 +10931,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Con kfold\n",
 							"\n",
@@ -11141,7 +11062,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.feature_selection import SelectFromModel\n",
 							"from sklearn.preprocessing import StandardScaler\n",
@@ -11182,6 +11102,1133 @@
 						],
 						"outputs": [],
 						"execution_count": 50
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/kaggle1_entrenamiento_pablo_garcia')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "5678b2ad-58ca-4be7-a8a9-bfd4fb3d7ca3"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "python"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "markdown",
+						"source": [
+							"# Primera entrega Kaggle\n",
+							"\n",
+							"**Pablo García Caballero**"
+						]
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Importamos librerias"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"import pandas as pd\n",
+							"import numpy as np\n",
+							"import pickle\n",
+							"import re\n",
+							"\n",
+							"# Transformación de datos\n",
+							"from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder #, TargetEncoder\n",
+							"#import category_encoders as ce\n",
+							"from category_encoders import TargetEncoder\n",
+							"\n",
+							"from sklearn.impute import SimpleImputer\n",
+							"\n",
+							"# Modelos\n",
+							"from sklearn.tree import DecisionTreeClassifier\n",
+							"import lightgbm as lgb\n",
+							"\n",
+							"# Seleccion de variables y tuning de hiperparámetros\n",
+							"from sklearn.model_selection import train_test_split, RandomizedSearchCV\n",
+							"\n",
+							"# Métricas para evaluar un modelo de clasificación\n",
+							"from sklearn.metrics import classification_report, accuracy_score, precision_recall_curve, auc, roc_curve, roc_auc_score, average_precision_score, confusion_matrix\n",
+							"\n",
+							"# Librerías para visualización de resultados\n",
+							"import matplotlib.pyplot as plt\n",
+							"import seaborn as sns\n",
+							"\n",
+							"pd.set_option('display.max_columns', None)\n",
+							"pd.set_option('display.max_rows', None)"
+						],
+						"outputs": [],
+						"execution_count": 1
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Definimos la función disponible en el campus para clasificar las columnas"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"def guess_type(column_name:str , df:pd.DataFrame, m=None, original_df=None) -> str:\n",
+							"\n",
+							"    if df[column_name].dtype == 'O':\n",
+							"        return 'text'\n",
+							"    try:\n",
+							"        if m is not None and bool(m.get_all(name=column_name)):\n",
+							"            return m.get_all(name=column_name).type[0]\n",
+							"        elif m is not None and bool(m.get_all(name=column_name[:-2])) and original_df is not None:\n",
+							"            #lets check if this is a date:\n",
+							"            original_colname = column_name[:-2]\n",
+							"            atype = original_df[original_colname].dtype\n",
+							"            typ = str(atype)\n",
+							"            if re.search(\"^date.\", typ):\n",
+							"                return 'categorical'\n",
+							"            if atype == 'O':\n",
+							"                row_sample = original_df[original_colname].iloc[0]\n",
+							"                if is_date(row_sample):\n",
+							"                    return 'categorical'\n",
+							"\n",
+							"        #if isinstance(row_sample, float):\n",
+							"        #    return 'numerical'\n",
+							"        if df[column_name].dtype in ['float64', 'float32', 'float16']:\n",
+							"            # we have to check if column was wrong catalogued as numerical\n",
+							"            grouped = df[column_name].unique()\n",
+							"            if len(grouped) < 10:\n",
+							"                #check there are no decimals\n",
+							"                for v in grouped:\n",
+							"                    are_decimals = v - int(v)\n",
+							"                    if are_decimals > 0.0:\n",
+							"                        return 'numerical'\n",
+							"                return 'categorical'\n",
+							"            return 'numerical'\n",
+							"\n",
+							"        elif df[column_name].dtype in ['int64', 'int32', 'int16', 'int8']:\n",
+							"            max = df[column_name].max()\n",
+							"            min = df[column_name].min()\n",
+							"            diff = max - min\n",
+							"            diff2 = int(max) - int(min)\n",
+							"            if diff == diff2:\n",
+							"                if diff < 10:\n",
+							"                    grouped = df[column_name].unique()\n",
+							"                    if len(grouped)< 10:\n",
+							"                        return 'categorical'\n",
+							"            return \"numerical\"\n",
+							"        else:\n",
+							"            return \"categorical\"\n",
+							"    except Exception as e:\n",
+							"        return 'categorical'"
+						],
+						"outputs": [],
+						"execution_count": 2
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Carga de datos"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"dfTrain = pd.read_csv(\"MasterBI_Train.csv\", low_memory=False)\n",
+							"label = \"HasDetections\""
+						],
+						"outputs": [],
+						"execution_count": 3
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"dfTrain.head()"
+						],
+						"outputs": [],
+						"execution_count": 4
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"**EDA**. En primer lugar, realizamos un analisis exploratorio del conjunto de datos. "
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"dfTrain.info()"
+						],
+						"outputs": [],
+						"execution_count": 5
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Agrupamos las columnas que sean identificadores para posteriormermente elimarlas del df, ya que no son utiles para el entramiento"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"id_colums = [\"MachineIdentifier\"]#, \"ProductName\", \"EngineVersion\", \"AppVersion\", \"AvSigVersion\"]\n",
+							"dfTrain.drop(columns=id_colums, inplace=True)"
+						],
+						"outputs": [],
+						"execution_count": 6
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Convertimos a categoricas los campos que correspondan en función de la función guess_type"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"for i in dfTrain.columns:\n",
+							"    print(f\"{i} = {guess_type(i, dfTrain)}\")\n",
+							"    if guess_type(i, dfTrain) == \"categorical\":\n",
+							"        dfTrain[i] = dfTrain[i].astype('category')\n",
+							"        print(\"convertido\")\n",
+							"    else:\n",
+							"        print(\"no\")"
+						],
+						"outputs": [],
+						"execution_count": 7
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"columnas_cat = dfTrain.select_dtypes(include=[\"object\", \"category\"]).columns.to_list()\n",
+							"columnas_num = dfTrain.select_dtypes(include=[\"float64\", \"int64\"]).columns.to_list()"
+						],
+						"outputs": [],
+						"execution_count": 8
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"print(columnas_cat)\n",
+							"print(columnas_num)"
+						],
+						"outputs": [],
+						"execution_count": 9
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Eliminamos el label de nuestro conjunto de categóricas"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"if label in columnas_cat:\n",
+							"    columnas_cat.remove(label)\n",
+							"    print(\"Label borrado de las cat\")\n",
+							"else:\n",
+							"    columnas_num.remove(label)\n",
+							"    print(\"Label borrado de las num\")"
+						],
+						"outputs": [],
+						"execution_count": 10
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Imputamos los nulos mediante la media para las numericas"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"# esto esta mal , primero dividir\n",
+							"\n",
+							"imp_num = SimpleImputer(missing_values=np.nan, strategy='mean')\n",
+							"#dfTrain[columnas_num] = imp_num.fit_transform(dfTrain[columnas_num])"
+						],
+						"outputs": [],
+						"execution_count": 11
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Imputamos los nulos mediante la moda para las categoricas"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"imp_cat = SimpleImputer(missing_values=np.nan, strategy='most_frequent')\n",
+							"#dfTrain[columnas_cat] = imp_cat.fit_transform(dfTrain[columnas_cat])"
+						],
+						"outputs": [],
+						"execution_count": 12
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Preparamos la codificación de variables"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"cat_num = columnas_cat+columnas_num \n",
+							"dfTrain = dfTrain[cat_num+['HasDetections']]"
+						],
+						"outputs": [],
+						"execution_count": 14
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"te = TargetEncoder()"
+						],
+						"outputs": [],
+						"execution_count": 13
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"**Modelo**"
+						]
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Dividimos el df en train y test"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"# X = dfTrain.drop('HasDetections', axis=1)\n",
+							"# y = dfTrain['HasDetections']\n",
+							"# X = dfTrain.drop(label, axis=1)\n",
+							"# y = dfTrain[label]\n",
+							"X = dfTrain.drop(label, axis=1)\n",
+							"y = dfTrain[label]\n",
+							"\n",
+							"# Dividir los datos en conjuntos de entrenamiento y prueba\n",
+							"X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X_train[columnas_num] = imp_num.fit_transform(X_train[columnas_num])\n",
+							"X_train[columnas_cat] = imp_cat.fit_transform(X_train[columnas_cat])\n",
+							"#X_train.isnull().sum()"
+						],
+						"outputs": [],
+						"execution_count": 15
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X_test[columnas_num] = imp_num.transform(X_test[columnas_num])\n",
+							"X_test[columnas_cat] = imp_cat.transform(X_test[columnas_cat])\n",
+							"#X_test.isnull().sum()"
+						],
+						"outputs": [],
+						"execution_count": 16
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Aplicamos el encoder"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"print(columnas_cat)\n",
+							"print(columnas_num)"
+						],
+						"outputs": [],
+						"execution_count": 31
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"dfX_train_prep = pd.DataFrame(X_train , columns=columnas)\n",
+							"dfX_test_prep = pd.DataFrame(X_test , columns=columnas)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X_train_prep = te.fit_transform(X_train[columnas_cat], y_train)\n",
+							"X_test_prep = te.transform(X_test[columnas_cat])\n",
+							"#X_train.isnull().sum()"
+						],
+						"outputs": [],
+						"execution_count": 17
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X_test[columnas_num] = imp_num.transform(X_test[columnas_num])\n",
+							"X_test[columnas_cat] = imp_cat.transform(X_test[columnas_cat])\n",
+							"#X_test.isnull().sum()"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X_train_prep = te.fit_transform(X_train,y_train)\n",
+							"\n",
+							"#X_test_prep = te.transform(X_test)"
+						],
+						"outputs": [],
+						"execution_count": 19
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"te.fit_transform(X_train, y_train)"
+						],
+						"outputs": [],
+						"execution_count": 19
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X_train_prep = te.transform(X_train)\n",
+							"X_test_prep = te.transform(X_test)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"# X_train_prep = te.fit_transform(X_train, y_train)\n",
+							"# X_test_prep = te.fit_transform(X_test, y_test)\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Convertimos a df de nuevo"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"columnas = dfTrain.columns.to_list()\n",
+							"columnas.remove(label)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"dfX_train_prep = pd.DataFrame(X_train_prep , columns=columnas)\n",
+							"dfX_test_prep = pd.DataFrame(X_test_prep , columns=columnas)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Entrenamos el modelo"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"model = DecisionTreeClassifier(max_depth=20, random_state=42)\n",
+							"model.fit(dfX_train_prep, y_train)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"**Predición y evaluación**"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"prediciones = model.predict(X = dfX_train_prep, ) # , )\n",
+							"pred_proba = model.predict_proba( X = dfX_train_prep)\n",
+							"\n",
+							"data = confusion_matrix(y_train, prediciones)\n",
+							"\n",
+							"print(\"Matriz de confusión\")\n",
+							"plt.figure(figsize=(6,5))\n",
+							"sns.set(font_scale=1.4)\n",
+							"sns.heatmap(data, cmap=\"Blues\", annot=True, annot_kws={\"size\":12})"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"print(f\"Acurracy: {round(100*accuracy_score(y_train, prediciones),1)}% \\n\")\n",
+							"print(classification_report(y_train, prediciones, digits=3, zero_division=True))"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Curva ROC y AUX"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"fpr, tpr, _ = roc_curve(y_test, pred_proba[:,1])\n",
+							"roc_auc = auc(fpr, tpr)\n",
+							"\n",
+							"plt.figure(figsize = (6,5))\n",
+							"lw = 2\n",
+							"plt.plot(fpr, tpr, color='darkorange',\n",
+							"         lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)\n",
+							"plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')\n",
+							"plt.xlim([0.0, 1.0])\n",
+							"plt.ylim([0.0, 1.05])\n",
+							"plt.xlabel('False Positive Rate')\n",
+							"plt.ylabel('True Positive Rate')\n",
+							"plt.title('Receiver operating characteristic example')\n",
+							"plt.legend(loc=\"lower right\")\n",
+							"plt.show()"
+						],
+						"outputs": [],
+						"execution_count": 18
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"**Pase a producción**"
+						]
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Replicamos los pasos anteriores, pero sin dividir el df en test/train"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"dfTrainFull = pd.read_csv(\"MasterBI_Train.csv\", low_memory=False)\n",
+							"label = \"HasDetections\""
+						],
+						"outputs": [],
+						"execution_count": 97
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"id_colums = [\"MachineIdentifier\"]#, \"ProductName\", \"EngineVersion\", \"AppVersion\", \"AvSigVersion\"]\n",
+							"dfTrainFull.drop(columns=id_colums, inplace=True)"
+						],
+						"outputs": [],
+						"execution_count": 98
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"for i in dfTrainFull.columns:\n",
+							"    print(f\"{i} = {guess_type(i, dfTrainFull)}\")\n",
+							"    if guess_type(i, dfTrainFull) == \"categorical\":\n",
+							"        dfTrainFull[i] = dfTrainFull[i].astype('category')\n",
+							"        print(\"convertido\")\n",
+							"    else:\n",
+							"        print(\"no\")"
+						],
+						"outputs": [],
+						"execution_count": 99
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"columnas_cat = dfTrainFull.select_dtypes(include=[\"object\", \"category\"]).columns.to_list()\n",
+							"columnas_num = dfTrainFull.select_dtypes(include=[\"float64\", \"int64\"]).columns.to_list()"
+						],
+						"outputs": [],
+						"execution_count": 100
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"columnas_cat.remove(label)"
+						],
+						"outputs": [],
+						"execution_count": 101
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"imp_num = SimpleImputer(missing_values=np.nan, strategy='mean')\n",
+							"dfTrainFull[columnas_num] = imp_num.fit_transform(dfTrainFull[columnas_num])"
+						],
+						"outputs": [],
+						"execution_count": 102
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"imp_cat = SimpleImputer(missing_values=np.nan, strategy='most_frequent')\n",
+							"dfTrainFull[columnas_cat] = imp_cat.fit_transform(dfTrainFull[columnas_cat])"
+						],
+						"outputs": [],
+						"execution_count": 103
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"cat_num = columnas_cat+columnas_num \n",
+							"dfTrainFull = dfTrainFull[cat_num+['HasDetections']]"
+						],
+						"outputs": [],
+						"execution_count": 104
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"te = TargetEncoder()"
+						],
+						"outputs": [],
+						"execution_count": 105
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X = dfTrainFull.drop(label, axis=1)\n",
+							"y = dfTrainFull[label]"
+						],
+						"outputs": [],
+						"execution_count": 106
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"X_train_prep = te.fit_transform(X, y)"
+						],
+						"outputs": [],
+						"execution_count": 107
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"columnas = dfTrain.columns.to_list()\n",
+							"columnas.remove(label)"
+						],
+						"outputs": [],
+						"execution_count": 108
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"dfX_train_prep = pd.DataFrame(X_train_prep , columns=columnas)"
+						],
+						"outputs": [],
+						"execution_count": 110
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"model = DecisionTreeClassifier(max_depth=20, random_state=42)\n",
+							"model.fit(dfX_train_prep, y)"
+						],
+						"outputs": [],
+						"execution_count": 111
+					},
+					{
+						"cell_type": "markdown",
+						"source": [
+							"Por último, utilizando las funcionalidades de la librería pickle, guardamos todo aquello ques nos va a hacer falta para la inferencia con los datos de test"
+						]
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"# Modelo\n",
+							"with open(\"output/modelo.pkl\", \"wb\") as c:\n",
+							"    pickle.dump(model, c)\n",
+							"\n",
+							"# Transformación\n",
+							"with open(\"output/num_imputer.pkl\", \"wb\") as c:\n",
+							"    pickle.dump(imp_num, c)\n",
+							"with open(\"output/cat_imputer.pkl\", \"wb\") as c:\n",
+							"    pickle.dump(imp_cat, c)\n",
+							"with open(\"output/encoder.pkl\", \"wb\") as c:\n",
+							"    pickle.dump(te, c)\n",
+							"\n",
+							"# Lista de todas columnas\n",
+							"todas_columnas = dfTrainFull.columns.to_list()\n",
+							"with open(\"output/columns.pkl\", \"wb\") as c:\n",
+							"    pickle.dump(todas_columnas, c)\n",
+							"\n",
+							"# Columnas Cat\n",
+							"with open(\"output/cat_columns.pkl\", \"wb\") as c:\n",
+							"     pickle.dump(columnas_cat, c)\n",
+							"\n",
+							"# Columnas Num\n",
+							"with open(\"output/num_columns.pkl\", \"wb\") as c:\n",
+							"     pickle.dump(columnas_num, c)"
+						],
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/kaggle1_inferencia_pablo_garcia')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "debbdd55-47a9-44d3-8080-5c5b6be261c0"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "python"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"# Primera entrega Kaggle\n",
+							"\n",
+							"Inferencia \n",
+							"\n",
+							"**Pablo García Caballero**"
+						]
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Importamos librerias"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"import pandas as pd\n",
+							"import numpy as np\n",
+							"import pickle\n",
+							"import re\n",
+							"\n",
+							"# Transformación de datos\n",
+							"from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder #, TargetEncoder\n",
+							"#import category_encoders as ce\n",
+							"from category_encoders import TargetEncoder\n",
+							"\n",
+							"from sklearn.impute import SimpleImputer\n",
+							"\n",
+							"# Modelos\n",
+							"from sklearn.tree import DecisionTreeClassifier\n",
+							"\n",
+							"# Seleccion de variables y tuning de hiperparámetros\n",
+							"from sklearn.model_selection import train_test_split, RandomizedSearchCV\n",
+							"\n",
+							"# Métricas para evaluar un modelo de clasificación\n",
+							"from sklearn.metrics import classification_report, accuracy_score, precision_recall_curve, auc, roc_curve, roc_auc_score, average_precision_score, confusion_matrix\n",
+							"\n",
+							"# Librerías para visualización de resultados\n",
+							"import matplotlib.pyplot as plt\n",
+							"import seaborn as sns\n",
+							"\n",
+							"pd.set_option('display.max_columns', None)\n",
+							"pd.set_option('display.max_rows', None)"
+						],
+						"outputs": [],
+						"execution_count": 50
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"def guess_type(column_name:str , df:pd.DataFrame, m=None, original_df=None) -> str:\n",
+							"\n",
+							"    if df[column_name].dtype == 'O':\n",
+							"        return 'text'\n",
+							"    try:\n",
+							"        if m is not None and bool(m.get_all(name=column_name)):\n",
+							"            return m.get_all(name=column_name).type[0]\n",
+							"        elif m is not None and bool(m.get_all(name=column_name[:-2])) and original_df is not None:\n",
+							"            #lets check if this is a date:\n",
+							"            original_colname = column_name[:-2]\n",
+							"            atype = original_df[original_colname].dtype\n",
+							"            typ = str(atype)\n",
+							"            if re.search(\"^date.\", typ):\n",
+							"                return 'categorical'\n",
+							"            if atype == 'O':\n",
+							"                row_sample = original_df[original_colname].iloc[0]\n",
+							"                if is_date(row_sample):\n",
+							"                    return 'categorical'\n",
+							"\n",
+							"        #if isinstance(row_sample, float):\n",
+							"        #    return 'numerical'\n",
+							"        if df[column_name].dtype in ['float64', 'float32', 'float16']:\n",
+							"            # we have to check if column was wrong catalogued as numerical\n",
+							"            grouped = df[column_name].unique()\n",
+							"            if len(grouped) < 10:\n",
+							"                #check there are no decimals\n",
+							"                for v in grouped:\n",
+							"                    are_decimals = v - int(v)\n",
+							"                    if are_decimals > 0.0:\n",
+							"                        return 'numerical'\n",
+							"                return 'categorical'\n",
+							"            return 'numerical'\n",
+							"\n",
+							"        elif df[column_name].dtype in ['int64', 'int32', 'int16', 'int8']:\n",
+							"            max = df[column_name].max()\n",
+							"            min = df[column_name].min()\n",
+							"            diff = max - min\n",
+							"            diff2 = int(max) - int(min)\n",
+							"            if diff == diff2:\n",
+							"                if diff < 10:\n",
+							"                    grouped = df[column_name].unique()\n",
+							"                    if len(grouped)< 10:\n",
+							"                        return 'categorical'\n",
+							"            return \"numerical\"\n",
+							"        else:\n",
+							"            return \"categorical\"\n",
+							"    except Exception as e:\n",
+							"        return 'categorical'"
+						],
+						"outputs": [],
+						"execution_count": 29
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Carga de datos"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"dfTest = pd.read_csv(\"MasterBI_Test.csv\", low_memory=False)\n",
+							"label = \"HasDetections\""
+						],
+						"outputs": [],
+						"execution_count": 30
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"dfTest.head()"
+						],
+						"outputs": [],
+						"execution_count": 31
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"**EDA**. En primer lugar, realizamos un analisis exploratorio del conjunto de datos. "
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"dfTest = dfTest.set_index(\"MachineIdentifier\")"
+						],
+						"outputs": [],
+						"execution_count": 32
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Agrupamos las columnas que sean identificadores para posteriormermente elimarlas del df, ya que no son utiles para el entramiento"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"#id_colums = [\"ProductName\", \"EngineVersion\", \"AppVersion\", \"AvSigVersion\"]"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"#dfTest.drop(columns=id_colums, inplace=True)"
+						],
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Convertimos a categoricas los campos que correspondan en función de la función guess_type"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"for i in dfTest.columns:\n",
+							"    #print(i)\n",
+							"    print(f\"{i} = {guess_type(i, dfTest)}\")\n",
+							"    if guess_type(i, dfTest) == \"categorical\":\n",
+							"        dfTest[i] = dfTest[i].astype('category')\n",
+							"        print(\"convertido\")\n",
+							"    else:\n",
+							"        print(\"no\")"
+						],
+						"outputs": [],
+						"execution_count": 33
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Cargamos columnas"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"with open(\"output/cat_columns.pkl\", \"rb\") as c:\n",
+							"    cat_cols = pickle.load(c)"
+						],
+						"outputs": [],
+						"execution_count": 34
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"with open(\"output/num_columns.pkl\", \"rb\") as c:\n",
+							"    num_cols = pickle.load(c)"
+						],
+						"outputs": [],
+						"execution_count": 35
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Imputación de nulos"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"with open(\"output/cat_imputer.pkl\", \"rb\") as c:\n",
+							"    cat_imputer = pickle.load(c)\n",
+							"\n",
+							"dfTest[cat_cols] = cat_imputer.transform(dfTest[cat_cols])"
+						],
+						"outputs": [],
+						"execution_count": 36
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"with open(\"output/num_imputer.pkl\", \"rb\") as c:\n",
+							"    num_imputer = pickle.load(c)\n",
+							"\n",
+							"dfTest[num_cols] = num_imputer.transform(dfTest[num_cols])"
+						],
+						"outputs": [],
+						"execution_count": 37
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Codificamos variables"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"dfTest[cat_cols].head()"
+						],
+						"outputs": [],
+						"execution_count": 38
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"with open(\"output/columns.pkl\", \"rb\") as c:\n",
+							"    columnas = pickle.load(c)\n",
+							"    columnas.remove(label)"
+						],
+						"outputs": [],
+						"execution_count": 39
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"with open(\"output/encoder.pkl\", \"rb\") as c:\n",
+							"    encoder = pickle.load(c)\n",
+							"\n",
+							"dfTest[columnas] = encoder.transform(dfTest[columnas])"
+						],
+						"outputs": [],
+						"execution_count": 40
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Predicción de resultados"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"with open(\"output/modelo.pkl\", \"rb\") as c:\n",
+							"    modelo = pickle.load(c)"
+						],
+						"outputs": [],
+						"execution_count": 41
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"ordered_columns = cat_cols + num_cols\n",
+							"dfTest = dfTest[ordered_columns]\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 45
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"dfTest.head()"
+						],
+						"outputs": [],
+						"execution_count": 46
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"y_hat = modelo.predict(dfTest)"
+						],
+						"outputs": [],
+						"execution_count": 47
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Generamos el dataset de resultados"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"resultados = pd.DataFrame()\n",
+							"resultados[\"MachineIdentifier\"] = dfTest.reset_index()[\"MachineIdentifier\"]\n",
+							"resultados[\"HasDetections\"] = y_hat"
+						],
+						"outputs": [],
+						"execution_count": 48
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {},
+						"source": [
+							"Guardamos el resultado en formato csv"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"resultados.to_csv(\"output/resultadosKaggle1_pablo_garcia.csv\", index=False)"
+						],
+						"outputs": [],
+						"execution_count": 49
 					}
 				]
 			},

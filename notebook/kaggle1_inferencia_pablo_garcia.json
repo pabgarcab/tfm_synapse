@@ -1,0 +1,356 @@
+{
+	"name": "kaggle1_inferencia_pablo_garcia",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "607bd92e-7fd7-40b9-9b72-6769a8c704e4"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "python"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# Primera entrega Kaggle\n",
+					"\n",
+					"Inferencia \n",
+					"\n",
+					"**Pablo García Caballero**"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Importamos librerias"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"import pandas as pd\n",
+					"import numpy as np\n",
+					"import pickle\n",
+					"import re\n",
+					"\n",
+					"# Transformación de datos\n",
+					"from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder #, TargetEncoder\n",
+					"#import category_encoders as ce\n",
+					"from category_encoders import TargetEncoder\n",
+					"\n",
+					"from sklearn.impute import SimpleImputer\n",
+					"\n",
+					"# Modelos\n",
+					"from sklearn.tree import DecisionTreeClassifier\n",
+					"\n",
+					"# Seleccion de variables y tuning de hiperparámetros\n",
+					"from sklearn.model_selection import train_test_split, RandomizedSearchCV\n",
+					"\n",
+					"# Métricas para evaluar un modelo de clasificación\n",
+					"from sklearn.metrics import classification_report, accuracy_score, precision_recall_curve, auc, roc_curve, roc_auc_score, average_precision_score, confusion_matrix\n",
+					"\n",
+					"# Librerías para visualización de resultados\n",
+					"import matplotlib.pyplot as plt\n",
+					"import seaborn as sns\n",
+					"\n",
+					"pd.set_option('display.max_columns', None)\n",
+					"pd.set_option('display.max_rows', None)"
+				],
+				"execution_count": 50
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"def guess_type(column_name:str , df:pd.DataFrame, m=None, original_df=None) -> str:\n",
+					"\n",
+					"    if df[column_name].dtype == 'O':\n",
+					"        return 'text'\n",
+					"    try:\n",
+					"        if m is not None and bool(m.get_all(name=column_name)):\n",
+					"            return m.get_all(name=column_name).type[0]\n",
+					"        elif m is not None and bool(m.get_all(name=column_name[:-2])) and original_df is not None:\n",
+					"            #lets check if this is a date:\n",
+					"            original_colname = column_name[:-2]\n",
+					"            atype = original_df[original_colname].dtype\n",
+					"            typ = str(atype)\n",
+					"            if re.search(\"^date.\", typ):\n",
+					"                return 'categorical'\n",
+					"            if atype == 'O':\n",
+					"                row_sample = original_df[original_colname].iloc[0]\n",
+					"                if is_date(row_sample):\n",
+					"                    return 'categorical'\n",
+					"\n",
+					"        #if isinstance(row_sample, float):\n",
+					"        #    return 'numerical'\n",
+					"        if df[column_name].dtype in ['float64', 'float32', 'float16']:\n",
+					"            # we have to check if column was wrong catalogued as numerical\n",
+					"            grouped = df[column_name].unique()\n",
+					"            if len(grouped) < 10:\n",
+					"                #check there are no decimals\n",
+					"                for v in grouped:\n",
+					"                    are_decimals = v - int(v)\n",
+					"                    if are_decimals > 0.0:\n",
+					"                        return 'numerical'\n",
+					"                return 'categorical'\n",
+					"            return 'numerical'\n",
+					"\n",
+					"        elif df[column_name].dtype in ['int64', 'int32', 'int16', 'int8']:\n",
+					"            max = df[column_name].max()\n",
+					"            min = df[column_name].min()\n",
+					"            diff = max - min\n",
+					"            diff2 = int(max) - int(min)\n",
+					"            if diff == diff2:\n",
+					"                if diff < 10:\n",
+					"                    grouped = df[column_name].unique()\n",
+					"                    if len(grouped)< 10:\n",
+					"                        return 'categorical'\n",
+					"            return \"numerical\"\n",
+					"        else:\n",
+					"            return \"categorical\"\n",
+					"    except Exception as e:\n",
+					"        return 'categorical'"
+				],
+				"execution_count": 29
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Carga de datos"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"dfTest = pd.read_csv(\"MasterBI_Test.csv\", low_memory=False)\n",
+					"label = \"HasDetections\""
+				],
+				"execution_count": 30
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"dfTest.head()"
+				],
+				"execution_count": 31
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"**EDA**. En primer lugar, realizamos un analisis exploratorio del conjunto de datos. "
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"dfTest = dfTest.set_index(\"MachineIdentifier\")"
+				],
+				"execution_count": 32
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Agrupamos las columnas que sean identificadores para posteriormermente elimarlas del df, ya que no son utiles para el entramiento"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"#id_colums = [\"ProductName\", \"EngineVersion\", \"AppVersion\", \"AvSigVersion\"]"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"#dfTest.drop(columns=id_colums, inplace=True)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Convertimos a categoricas los campos que correspondan en función de la función guess_type"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"for i in dfTest.columns:\n",
+					"    #print(i)\n",
+					"    print(f\"{i} = {guess_type(i, dfTest)}\")\n",
+					"    if guess_type(i, dfTest) == \"categorical\":\n",
+					"        dfTest[i] = dfTest[i].astype('category')\n",
+					"        print(\"convertido\")\n",
+					"    else:\n",
+					"        print(\"no\")"
+				],
+				"execution_count": 33
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Cargamos columnas"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"with open(\"output/cat_columns.pkl\", \"rb\") as c:\n",
+					"    cat_cols = pickle.load(c)"
+				],
+				"execution_count": 34
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"with open(\"output/num_columns.pkl\", \"rb\") as c:\n",
+					"    num_cols = pickle.load(c)"
+				],
+				"execution_count": 35
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Imputación de nulos"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"with open(\"output/cat_imputer.pkl\", \"rb\") as c:\n",
+					"    cat_imputer = pickle.load(c)\n",
+					"\n",
+					"dfTest[cat_cols] = cat_imputer.transform(dfTest[cat_cols])"
+				],
+				"execution_count": 36
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"with open(\"output/num_imputer.pkl\", \"rb\") as c:\n",
+					"    num_imputer = pickle.load(c)\n",
+					"\n",
+					"dfTest[num_cols] = num_imputer.transform(dfTest[num_cols])"
+				],
+				"execution_count": 37
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Codificamos variables"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"dfTest[cat_cols].head()"
+				],
+				"execution_count": 38
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"with open(\"output/columns.pkl\", \"rb\") as c:\n",
+					"    columnas = pickle.load(c)\n",
+					"    columnas.remove(label)"
+				],
+				"execution_count": 39
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"with open(\"output/encoder.pkl\", \"rb\") as c:\n",
+					"    encoder = pickle.load(c)\n",
+					"\n",
+					"dfTest[columnas] = encoder.transform(dfTest[columnas])"
+				],
+				"execution_count": 40
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Predicción de resultados"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"with open(\"output/modelo.pkl\", \"rb\") as c:\n",
+					"    modelo = pickle.load(c)"
+				],
+				"execution_count": 41
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"ordered_columns = cat_cols + num_cols\n",
+					"dfTest = dfTest[ordered_columns]\n",
+					""
+				],
+				"execution_count": 45
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"dfTest.head()"
+				],
+				"execution_count": 46
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"y_hat = modelo.predict(dfTest)"
+				],
+				"execution_count": 47
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Generamos el dataset de resultados"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"resultados = pd.DataFrame()\n",
+					"resultados[\"MachineIdentifier\"] = dfTest.reset_index()[\"MachineIdentifier\"]\n",
+					"resultados[\"HasDetections\"] = y_hat"
+				],
+				"execution_count": 48
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Guardamos el resultado en formato csv"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"resultados.to_csv(\"output/resultadosKaggle1_pablo_garcia.csv\", index=False)"
+				],
+				"execution_count": 49
+			}
+		]
+	}
+}

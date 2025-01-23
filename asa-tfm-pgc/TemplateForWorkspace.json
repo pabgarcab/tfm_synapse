@@ -3760,6 +3760,380 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/Notebook 1')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "sparkTFM",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "f8bd6256-ab5c-4f5f-a86a-bbbf0e283603"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/7e84f9f8-73c5-4e82-9296-f2f3c4838394/resourceGroups/RG-TFM_MasterVerne_PGC/providers/Microsoft.Synapse/workspaces/asa-tfm-pgc/bigDataPools/sparkTFM",
+						"name": "sparkTFM",
+						"type": "Spark",
+						"endpoint": "https://asa-tfm-pgc.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkTFM",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.4",
+						"nodeCount": 3,
+						"cores": 4,
+						"memory": 28,
+						"automaticScaleJobs": false
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"from delta.tables import DeltaTable\r\n",
+							"from delta.tables import *\r\n",
+							"from pyspark.sql.functions import when, lit, current_date, date_format,concat_ws,xxhash64,current_timestamp\r\n",
+							"from pyspark.sql import SparkSession,Window\r\n",
+							"from pyspark.sql import functions as F\r\n",
+							"import json\r\n",
+							"import re\r\n",
+							"from datetime import datetime\r\n",
+							"from azure.storage.blob import BlobServiceClient\r\n",
+							"import io\r\n",
+							"import pandas as pd\r\n",
+							"import csv"
+						],
+						"outputs": [],
+						"execution_count": 1
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"from pyspark.sql import SparkSession\r\n",
+							"\r\n",
+							"# Crear una instancia de SparkSession\r\n",
+							"spark = SparkSession.builder.getOrCreate()\r\n",
+							"\r\n",
+							"# Eliminar la tabla Delta y su contenido\r\n",
+							"delta_table_path = \"/mnt/data/tablas_delta/ejemplo_tabla_delta\"\r\n",
+							"\r\n",
+							"# Usar Spark para eliminar la carpeta\r\n",
+							"fs = spark._jvm.org.apache.hadoop.fs.FileSystem.get(spark._jsc.hadoopConfiguration())\r\n",
+							"path = spark._jvm.org.apache.hadoop.fs.Path(delta_table_path)\r\n",
+							"\r\n",
+							"if fs.exists(path):\r\n",
+							"    fs.delete(path, True)  # True para eliminar recursivamente\r\n",
+							"    print(f\"Tabla Delta eliminada en: {delta_table_path}\")\r\n",
+							"else:\r\n",
+							"    print(f\"No se encontró la tabla Delta en la ruta: {delta_table_path}\")\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 15
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"from pyspark.sql import functions as F\r\n",
+							"\r\n",
+							"# Datos iniciales sin usar F.to_timestamp\r\n",
+							"data = [\r\n",
+							"    (1, 1, \"Pedro\", \"Lopez\", \"España\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+							"    (2, 2, \"Juan\", \"García\", \"España\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+							"    (3, 3, \"María\", \"Fernández\", \"Francia\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+							"    (4, 4, \"Lucía\", \"Caballero\", \"Alemania\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+							"    (5, 5, \"Sanda\", \"Ruiz\", \"Francia\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+							"    (6, 6, \"Manuel\", \"Sánchez\", \"Suiza\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1)\r\n",
+							"]\r\n",
+							"\r\n",
+							"columns = [\"sk\", \"id\", \"name\", \"lastName\", \"country\", \"fromDate\", \"toDate\", \"isCurrent\"]\r\n",
+							"\r\n",
+							"# Crear el DataFrame\r\n",
+							"df = spark.createDataFrame(data, columns)\r\n",
+							"\r\n",
+							"# Convertir las columnas 'fromDate' y 'toDate' a formato timestamp\r\n",
+							"df = df.withColumn(\"fromDate\", F.to_timestamp(F.col(\"fromDate\"), \"yyyy-MM-dd HH:mm:ss\")) \\\r\n",
+							"       .withColumn(\"toDate\", F.to_timestamp(F.col(\"toDate\"), \"yyyy-MM-dd HH:mm:ss\"))\r\n",
+							"\r\n",
+							"# Generar la columna de hash\r\n",
+							"columns_to_hash = [col for col in df.columns if col not in ('fromDate', 'toDate', 'isCurrent')]\r\n",
+							"df = df.withColumn(\"hash\", F.xxhash64(F.concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"\r\n",
+							"# Mostrar el DataFrame actualizado\r\n",
+							"df.show(truncate=False)\r\n",
+							"\r\n",
+							"# Ruta para almacenar la tabla Delta\r\n",
+							"delta_table_path = \"/mnt/data/tablas_delta/ejemplo_tabla_delta\"\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 16
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"df.write.format(\"delta\").mode(\"overwrite\").save(delta_table_path)\r\n",
+							"\r\n",
+							"print(f\"Tabla Delta creada en: {delta_table_path}\")\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 17
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"spark.sql(\"DROP TABLE IF EXISTS tabla_delta\")"
+						],
+						"outputs": [],
+						"execution_count": 18
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"spark.sql(f\"\"\"\r\n",
+							"CREATE TABLE tabla_delta\r\n",
+							"USING DELTA\r\n",
+							"LOCATION '{delta_table_path}'\r\n",
+							"\"\"\")\r\n",
+							"print(\"Tabla registrada en el catálogo como 'tabla_delta'\")"
+						],
+						"outputs": [],
+						"execution_count": 19
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"result_df = spark.sql(\"SELECT * FROM tabla_delta\")\r\n",
+							"result_df.show()"
+						],
+						"outputs": [],
+						"execution_count": 20
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"dataUpdate = [\r\n",
+							"    (2, \"Juan\", \"García\", \"Portugal\"),\r\n",
+							"    (6, \"Manuel\", \"Sánchez\", \"Italia\")\r\n",
+							"]\r\n",
+							"\r\n",
+							"columns = [\"id\", \"name\", \"lastName\", \"country\"]\r\n",
+							"\r\n",
+							"dfUpdate = spark.createDataFrame(dataUpdate, columns)\r\n",
+							"\r\n",
+							"# Mostrar el DataFrame\r\n",
+							"dfUpdate.show()"
+						],
+						"outputs": [],
+						"execution_count": 21
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"#table_name = file[\"name\"].split('_')[0]\r\n",
+							"table_name = \"prueba\"\r\n",
+							"#key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
+							"key_columns_str = \"id\" \r\n",
+							"\r\n",
+							"key_columns = key_columns_str.split(',')\r\n",
+							"conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+							"\r\n",
+							"#delta_table_path_dimensions = f\"{data_lake_container}/{golden_folder_dimensions}/{table_name}\"\r\n",
+							"delta_table_path_dimensions = delta_table_path\r\n",
+							"\r\n",
+							"#df = spark.sql(file[\"query\"].strip()) \r\n",
+							"df = dfUpdate  # esto seria el dataframe nuevo\r\n",
+							"sdf = df.cache()\r\n",
+							"\r\n",
+							"if DeltaTable.isDeltaTable(spark, delta_table_path_dimensions):\r\n",
+							"    sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"    sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+							"    sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+							"\r\n",
+							"    columns_to_hash = [col for col in sdf.columns if col not in ('fromDate', 'toDate', 'isCurrent')]\r\n",
+							"    sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+							"\r\n",
+							"    all_columns = sdf.columns\r\n",
+							"    start_columns = [f\"id\"]\r\n",
+							"    end_columns = [\"fromDate\", \"toDate\", \"isCurrent\", \"hash\"]\r\n",
+							"    other_columns = [col for col in all_columns if col not in start_columns + end_columns]\r\n",
+							"    new_order_columns = start_columns + other_columns + end_columns\r\n",
+							"    sdf = sdf.select(*new_order_columns)\r\n",
+							"\r\n",
+							"    #next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk{table_name}), 0) + 1 AS next_key FROM gold.dim_{table_name}\").collect()[0][\"next_key\"]  # tabla_delta\r\n",
+							"    next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk), 0) + 1 AS next_key FROM tabla_delta\").collect()[0][\"next_key\"] \r\n",
+							"\r\n",
+							"    sdf.createOrReplaceTempView(\"temp_view\")\r\n",
+							"\r\n",
+							"    # End current version\r\n",
+							"    spark.sql(f\"\"\"\r\n",
+							"        MERGE INTO tabla_delta  \r\n",
+							"        AS existing\r\n",
+							"        USING temp_view AS updates\r\n",
+							"        ON {\" AND \".join([f\"existing.{key}=updates.{key}\" for key in key_columns])}\r\n",
+							"        WHEN MATCHED AND existing.isCurrent = 1 AND existing.hash != updates.hash THEN\r\n",
+							"        UPDATE SET\r\n",
+							"            existing.toDate = current_date(),\r\n",
+							"            existing.isCurrent = 0\r\n",
+							"    \"\"\")\r\n",
+							"    \r\n",
+							"    # Load new versions\r\n",
+							"    spark.sql(f\"\"\"\r\n",
+							"        INSERT INTO tabla_delta    \r\n",
+							"        SELECT \r\n",
+							"            {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk,  \r\n",
+							"            updates.*\r\n",
+							"        FROM temp_view AS updates\r\n",
+							"        LEFT JOIN tabla_delta AS existing\r\n",
+							"        ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])} AND existing.isCurrent = 1\r\n",
+							"        WHERE \r\n",
+							"            existing.id IS NULL OR \r\n",
+							"            (existing.hash != updates.hash)\r\n",
+							"    \"\"\")\r\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 22
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"final = spark.sql(\"SELECT * FROM tabla_delta order by sk asc\")\r\n",
+							"final.show()"
+						],
+						"outputs": [],
+						"execution_count": 23
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/_ML')]",
 			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
@@ -11838,7 +12212,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "6d36e855-9300-45dc-9f83-16b8af8d4980"
+						"spark.autotune.trackingId": "9131a7fa-a006-40d0-b834-5d5e20e76a5b"
 					}
 				},
 				"metadata": {
@@ -11856,7 +12230,6 @@
 				"cells": [
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"# Primera entrega Kaggle\n",
 							"\n",
@@ -11865,14 +12238,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Importamos librerias"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"import numpy as np\n",
@@ -11909,14 +12280,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Definimos la función disponible en el campus para clasificar las columnas"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"def guess_type(column_name:str , df:pd.DataFrame, m=None, original_df=None) -> str:\n",
 							"\n",
@@ -11972,14 +12341,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Carga de datos"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"#dfTrain = pd.read_csv(\"MasterBI_Train.csv\", low_memory=False)\n",
 							"dfTrain = pd.read_csv(\"D:\\Master BI\\ML\\MasterBI_Train.csv\", low_memory=False)\n",
@@ -11990,7 +12357,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfTrain.head()"
 						],
@@ -11999,21 +12365,18 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**EDA**"
 						]
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Selección de variables. Identificamos variables que son identificadores y variables que dada su información pueden ir juntas."
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# id_colums = [\"MachineIdentifier\"]#, \"ProductName\", \"EngineVersion\", \"AppVersion\", \"AvSigVersion\"]\n",
 							"# dfTrain.drop(columns=id_colums, inplace=True)"
@@ -12023,7 +12386,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfTrain[[\"Census_OSEdition\", \"Census_OSSkuName\"]].drop_duplicates().head(20) #.sort_values(by=\"Census_OSEdition\")\n",
 							""
@@ -12033,7 +12395,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfTrain[[\"Platform\", \"Processor\"]].drop_duplicates().sort_values(by=\"Platform\")"
 						],
@@ -12042,7 +12403,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfTrain[[\"ProductName\", \"EngineVersion\", \"IsBeta\"]].drop_duplicates().sort_values(by=\"EngineVersion\").head(20)"
 						],
@@ -12051,14 +12411,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Como tienen relación vamos a unifircarlas, y despues a dropearlas"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfTrain[\"ProductNameIsBetaEngineVersion\"] = dfTrain[\"ProductName\"] + '_' + dfTrain[\"IsBeta\"].astype(str) + '_' + dfTrain[\"EngineVersion\"]\n",
 							"\n",
@@ -12073,7 +12431,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfTrain.info()"
 						],
@@ -12082,14 +12439,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Agrupamos las columnas que sean identificadores para posteriormermente elimarlas del df, ya que no son utiles para el entramiento"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# id_colums = [\"MachineIdentifier\"]#, \"ProductName\", \"EngineVersion\", \"AppVersion\", \"AvSigVersion\"]\n",
 							"# dfTrain.drop(columns=id_colums, inplace=True)"
@@ -12099,14 +12454,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Convertimos a categoricas los campos que correspondan en función de la función guess_type"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"for i in dfTrain.columns:\n",
 							"    print(f\"{i} = {guess_type(i, dfTrain)}\")\n",
@@ -12121,14 +12474,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Imputación de nulos mediante la media para las numericas y mediante la moda para las categoricas"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"columnas_cat = dfTrain.select_dtypes(include=[\"object\", \"category\"]).columns.to_list()\n",
 							"columnas_num = dfTrain.select_dtypes(include=[\"float64\", \"int64\"]).columns.to_list()"
@@ -12138,7 +12489,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"print(\"Numericas:\", columnas_cat)\n",
 							"print(\"Categorícas:\", columnas_num)"
@@ -12148,14 +12498,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Eliminamos el label de nuestro conjunto de categóricas"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"if label in columnas_cat:\n",
 							"    columnas_cat.remove(label)\n",
@@ -12169,7 +12517,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"imp_num = SimpleImputer(missing_values=np.nan, strategy='mean')\n",
 							"imp_cat = SimpleImputer(missing_values=np.nan, strategy='most_frequent')"
@@ -12179,14 +12526,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Preparamos la codificación de variables"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"columnas_todas = columnas_cat+columnas_num \n",
 							"dfTrain = dfTrain[columnas_todas+['HasDetections']]"
@@ -12196,7 +12541,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)"
 						],
@@ -12205,21 +12549,18 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Modelo**"
 						]
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Dividimos el df en train y test"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.model_selection import train_test_split, RandomizedSearchCV\n",
 							"from sklearn.pipeline import Pipeline\n",
@@ -12307,7 +12648,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"X = dfTrain.drop(label, axis=1)\n",
 							"y = dfTrain[label]\n",
@@ -12320,14 +12660,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Imputación de nulos"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"X_train[columnas_num] = imp_num.fit_transform(X_train[columnas_num])\n",
 							"X_train[columnas_cat] = imp_cat.fit_transform(X_train[columnas_cat])\n",
@@ -12338,7 +12676,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"X_test[columnas_num] = imp_num.transform(X_test[columnas_num])\n",
 							"X_test[columnas_cat] = imp_cat.transform(X_test[columnas_cat])\n",
@@ -12349,14 +12686,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Aplicamos el encoder"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Fit en el conjunto de entrenamiento\n",
 							"X_train[columnas_cat] = encoder.fit_transform(X_train[columnas_cat]) #.astype(str))\n",
@@ -12370,7 +12705,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.preprocessing import StandardScaler, LabelEncoder\n",
 							"\n",
@@ -12393,7 +12727,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"X_train_final.head()"
 						],
@@ -12402,21 +12735,18 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Convertimos a df de nuevo"
 						]
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Entrenamos el modelo"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.svm import SVC\n",
 							"clf = SVC(gamma='auto')\n",
@@ -12427,7 +12757,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.ensemble import RandomForestRegressor\n",
 							"clf = DecisionTreeClassifier(max_depth=20, random_state=42)\n",
@@ -12439,7 +12768,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.ensemble import RandomForestClassifier\n",
 							"\n",
@@ -12489,7 +12817,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.model_selection import RandomizedSearchCV, KFold\n",
 							"from scipy.stats import uniform\n",
@@ -12538,7 +12865,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# import lightgbm as lgb\n",
 							"# #clf = lgb.LGBMClassifier(n_estimators=250, max_depth=7,num_leaves=80,learning_rate=0.02,\n",
@@ -12553,14 +12879,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Predición y evaluación**"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from sklearn.metrics import confusion_matrix\n",
 							"import seaborn as sns\n",
@@ -12591,14 +12915,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Curva ROC y AUX"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"fpr, tpr, _ = roc_curve(y_test, pred_proba_2[:,1])\n",
 							"roc_auc = auc(fpr, tpr)\n",
@@ -12621,21 +12943,18 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"**Pase a producción**"
 						]
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Replicamos los pasos anteriores, pero sin dividir el df en test/train"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfTrainFull = pd.read_csv(\"MasterBI_Train.csv\", low_memory=False)\n",
 							"label = \"HasDetections\""
@@ -12645,7 +12964,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"id_colums = [\"MachineIdentifier\"]#, \"ProductName\", \"EngineVersion\", \"AppVersion\", \"AvSigVersion\"]\n",
 							"dfTrainFull.drop(columns=id_colums, inplace=True)"
@@ -12655,7 +12973,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"for i in dfTrainFull.columns:\n",
 							"    print(f\"{i} = {guess_type(i, dfTrainFull)}\")\n",
@@ -12670,7 +12987,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"columnas_cat = dfTrainFull.select_dtypes(include=[\"object\", \"category\"]).columns.to_list()\n",
 							"columnas_num = dfTrainFull.select_dtypes(include=[\"float64\", \"int64\"]).columns.to_list()"
@@ -12680,7 +12996,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"columnas_cat.remove(label)"
 						],
@@ -12689,7 +13004,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"imp_num = SimpleImputer(missing_values=np.nan, strategy='mean')\n",
 							"dfTrainFull[columnas_num] = imp_num.fit_transform(dfTrainFull[columnas_num])"
@@ -12699,7 +13013,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"imp_cat = SimpleImputer(missing_values=np.nan, strategy='most_frequent')\n",
 							"dfTrainFull[columnas_cat] = imp_cat.fit_transform(dfTrainFull[columnas_cat])"
@@ -12709,7 +13022,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"cat_num = columnas_cat+columnas_num \n",
 							"dfTrainFull = dfTrainFull[cat_num+['HasDetections']]"
@@ -12719,7 +13031,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"te = TargetEncoder()"
 						],
@@ -12728,7 +13039,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"X = dfTrainFull.drop(label, axis=1)\n",
 							"y = dfTrainFull[label]"
@@ -12738,7 +13048,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"X_train_prep = te.fit_transform(X, y)"
 						],
@@ -12747,7 +13056,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"columnas = dfTrain.columns.to_list()\n",
 							"columnas.remove(label)"
@@ -12757,7 +13065,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"dfX_train_prep = pd.DataFrame(X_train_prep , columns=columnas)"
 						],
@@ -12766,7 +13073,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"model = DecisionTreeClassifier(max_depth=20, random_state=42)\n",
 							"model.fit(dfX_train_prep, y)"
@@ -12776,14 +13082,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"Por último, utilizando las funcionalidades de la librería pickle, guardamos todo aquello ques nos va a hacer falta para la inferencia con los datos de test"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Modelo\n",
 							"with open(\"output/modelo.pkl\", \"wb\") as c:\n",

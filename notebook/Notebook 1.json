@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "023ad266-7aaa-4563-98a6-76b1893c1093"
+				"spark.autotune.trackingId": "c949609d-09a7-43af-a7b2-3ed06014c569"
 			}
 		},
 		"metadata": {
@@ -99,7 +99,7 @@
 					"    print(f\"No se encontró la tabla Delta en la ruta: {delta_table_path}\")\r\n",
 					""
 				],
-				"execution_count": 15
+				"execution_count": 49
 			},
 			{
 				"cell_type": "code",
@@ -147,7 +147,7 @@
 					"delta_table_path = \"/mnt/data/tablas_delta/ejemplo_tabla_delta\"\r\n",
 					""
 				],
-				"execution_count": 16
+				"execution_count": 50
 			},
 			{
 				"cell_type": "code",
@@ -168,7 +168,7 @@
 					"print(f\"Tabla Delta creada en: {delta_table_path}\")\r\n",
 					""
 				],
-				"execution_count": 17
+				"execution_count": 51
 			},
 			{
 				"cell_type": "code",
@@ -186,7 +186,7 @@
 				"source": [
 					"spark.sql(\"DROP TABLE IF EXISTS tabla_delta\")"
 				],
-				"execution_count": 18
+				"execution_count": 52
 			},
 			{
 				"cell_type": "code",
@@ -209,7 +209,7 @@
 					"\"\"\")\r\n",
 					"print(\"Tabla registrada en el catálogo como 'tabla_delta'\")"
 				],
-				"execution_count": 19
+				"execution_count": 53
 			},
 			{
 				"cell_type": "code",
@@ -228,7 +228,7 @@
 					"result_df = spark.sql(\"SELECT * FROM tabla_delta\")\r\n",
 					"result_df.show()"
 				],
-				"execution_count": 20
+				"execution_count": 54
 			},
 			{
 				"cell_type": "code",
@@ -247,16 +247,17 @@
 					"dataUpdate = [\r\n",
 					"    (2, \"Juan\", \"García\", \"Portugal\"),\r\n",
 					"    (6, \"Manuel\", \"Sánchez\", \"Italia\")\r\n",
+					"    (6, \"Martina\", \"Domínguez\", \"Italia\")\r\n",
 					"]\r\n",
 					"\r\n",
 					"columns = [\"id\", \"name\", \"lastName\", \"country\"]\r\n",
 					"\r\n",
-					"dfUpdate = spark.createDataFrame(dataUpdate, columns)\r\n",
+					"sdf = spark.createDataFrame(dataUpdate, columns)\r\n",
 					"\r\n",
 					"# Mostrar el DataFrame\r\n",
-					"dfUpdate.show()"
+					"sdf.show()"
 				],
-				"execution_count": 21
+				"execution_count": 55
 			},
 			{
 				"cell_type": "code",
@@ -272,69 +273,50 @@
 					}
 				},
 				"source": [
-					"#table_name = file[\"name\"].split('_')[0]\r\n",
-					"table_name = \"prueba\"\r\n",
-					"#key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
-					"key_columns_str = \"id\" \r\n",
+					"key_column = \"id\" # Podría parametrizarse de forma dinamica. Ej: f\"id{NombreDimension}\"\" si se recorre una lista\r\n",
 					"\r\n",
-					"key_columns = key_columns_str.split(',')\r\n",
-					"conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+					"# Añadimos los campos de las SCD2\r\n",
+					"sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
 					"\r\n",
-					"#delta_table_path_dimensions = f\"{data_lake_container}/{golden_folder_dimensions}/{table_name}\"\r\n",
-					"delta_table_path_dimensions = delta_table_path\r\n",
+					"# Creamos el hash por el que versionamos\r\n",
+					"columns_to_hash = [col for col in sdf.columns if col not in (f\"{key_column}\", 'fromDate', 'toDate', 'isCurrent')]\r\n",
+					"sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
 					"\r\n",
-					"#df = spark.sql(file[\"query\"].strip()) \r\n",
-					"df = dfUpdate  # esto seria el dataframe nuevo\r\n",
-					"sdf = df.cache()\r\n",
+					"# Calculamos el valor de la última sk\r\n",
+					"next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk), 0) + 1 AS next_key FROM tabla_delta\").collect()[0][\"next_key\"] \r\n",
 					"\r\n",
-					"if DeltaTable.isDeltaTable(spark, delta_table_path_dimensions):\r\n",
-					"    sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
-					"    sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
-					"    sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+					"# Almacenamos en una vista temporal el df de lo que entra nuevo\r\n",
+					"sdf.createOrReplaceTempView(\"temp_view\")\r\n",
 					"\r\n",
-					"    columns_to_hash = [col for col in sdf.columns if col not in ('fromDate', 'toDate', 'isCurrent')]\r\n",
-					"    sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"# Finalizamos las versión actuales\r\n",
+					"spark.sql(f\"\"\"\r\n",
+					"    MERGE INTO tabla_delta  \r\n",
+					"    AS existing\r\n",
+					"    USING temp_view AS updates\r\n",
+					"    ON {\" AND \".join([f\"existing.{key_column}=updates.{key_column}\"])}\r\n",
+					"    WHEN MATCHED AND existing.isCurrent = 1 AND existing.hash != updates.hash THEN\r\n",
+					"    UPDATE SET\r\n",
+					"        existing.toDate = current_date(),\r\n",
+					"        existing.isCurrent = 0\r\n",
+					"\"\"\")\r\n",
 					"\r\n",
-					"    all_columns = sdf.columns\r\n",
-					"    start_columns = [f\"id\"]\r\n",
-					"    end_columns = [\"fromDate\", \"toDate\", \"isCurrent\", \"hash\"]\r\n",
-					"    other_columns = [col for col in all_columns if col not in start_columns + end_columns]\r\n",
-					"    new_order_columns = start_columns + other_columns + end_columns\r\n",
-					"    sdf = sdf.select(*new_order_columns)\r\n",
-					"\r\n",
-					"    #next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk{table_name}), 0) + 1 AS next_key FROM gold.dim_{table_name}\").collect()[0][\"next_key\"]  # tabla_delta\r\n",
-					"    next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk), 0) + 1 AS next_key FROM tabla_delta\").collect()[0][\"next_key\"] \r\n",
-					"\r\n",
-					"    sdf.createOrReplaceTempView(\"temp_view\")\r\n",
-					"\r\n",
-					"    # End current version\r\n",
-					"    spark.sql(f\"\"\"\r\n",
-					"        MERGE INTO tabla_delta  \r\n",
-					"        AS existing\r\n",
-					"        USING temp_view AS updates\r\n",
-					"        ON {\" AND \".join([f\"existing.{key}=updates.{key}\" for key in key_columns])}\r\n",
-					"        WHEN MATCHED AND existing.isCurrent = 1 AND existing.hash != updates.hash THEN\r\n",
-					"        UPDATE SET\r\n",
-					"            existing.toDate = current_date(),\r\n",
-					"            existing.isCurrent = 0\r\n",
-					"    \"\"\")\r\n",
-					"    \r\n",
-					"    # Load new versions\r\n",
-					"    spark.sql(f\"\"\"\r\n",
-					"        INSERT INTO tabla_delta    \r\n",
-					"        SELECT \r\n",
-					"            {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk,  \r\n",
-					"            updates.*\r\n",
-					"        FROM temp_view AS updates\r\n",
-					"        LEFT JOIN tabla_delta AS existing\r\n",
-					"        ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])} AND existing.isCurrent = 1\r\n",
-					"        WHERE \r\n",
-					"            existing.id IS NULL OR \r\n",
-					"            (existing.hash != updates.hash)\r\n",
-					"    \"\"\")\r\n",
-					""
+					"# Insertamos las nuevas versiones y los valores nuevos\r\n",
+					"spark.sql(f\"\"\"\r\n",
+					"    INSERT INTO tabla_delta    \r\n",
+					"    SELECT \r\n",
+					"        {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk,  \r\n",
+					"        updates.*\r\n",
+					"    FROM temp_view AS updates\r\n",
+					"    LEFT JOIN tabla_delta AS existing\r\n",
+					"    ON {\" AND \".join([f\"existing.{key_column} = updates.{key_column}\"])} AND existing.isCurrent = 1\r\n",
+					"    WHERE \r\n",
+					"        existing.id IS NULL OR \r\n",
+					"        (existing.hash != updates.hash)\r\n",
+					"\"\"\")"
 				],
-				"execution_count": 22
+				"execution_count": 56
 			},
 			{
 				"cell_type": "code",
@@ -353,7 +335,7 @@
 					"final = spark.sql(\"SELECT * FROM tabla_delta order by sk asc\")\r\n",
 					"final.show()"
 				],
-				"execution_count": 23
+				"execution_count": 57
 			}
 		]
 	}

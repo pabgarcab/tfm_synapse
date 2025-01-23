@@ -1,0 +1,360 @@
+{
+	"name": "Notebook 1",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "sparkTFM",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "023ad266-7aaa-4563-98a6-76b1893c1093"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/7e84f9f8-73c5-4e82-9296-f2f3c4838394/resourceGroups/RG-TFM_MasterVerne_PGC/providers/Microsoft.Synapse/workspaces/asa-tfm-pgc/bigDataPools/sparkTFM",
+				"name": "sparkTFM",
+				"type": "Spark",
+				"endpoint": "https://asa-tfm-pgc.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/sparkTFM",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.4",
+				"nodeCount": 3,
+				"cores": 4,
+				"memory": 28,
+				"automaticScaleJobs": false
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"from delta.tables import DeltaTable\r\n",
+					"from delta.tables import *\r\n",
+					"from pyspark.sql.functions import when, lit, current_date, date_format,concat_ws,xxhash64,current_timestamp\r\n",
+					"from pyspark.sql import SparkSession,Window\r\n",
+					"from pyspark.sql import functions as F\r\n",
+					"import json\r\n",
+					"import re\r\n",
+					"from datetime import datetime\r\n",
+					"from azure.storage.blob import BlobServiceClient\r\n",
+					"import io\r\n",
+					"import pandas as pd\r\n",
+					"import csv"
+				],
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import SparkSession\r\n",
+					"\r\n",
+					"# Crear una instancia de SparkSession\r\n",
+					"spark = SparkSession.builder.getOrCreate()\r\n",
+					"\r\n",
+					"# Eliminar la tabla Delta y su contenido\r\n",
+					"delta_table_path = \"/mnt/data/tablas_delta/ejemplo_tabla_delta\"\r\n",
+					"\r\n",
+					"# Usar Spark para eliminar la carpeta\r\n",
+					"fs = spark._jvm.org.apache.hadoop.fs.FileSystem.get(spark._jsc.hadoopConfiguration())\r\n",
+					"path = spark._jvm.org.apache.hadoop.fs.Path(delta_table_path)\r\n",
+					"\r\n",
+					"if fs.exists(path):\r\n",
+					"    fs.delete(path, True)  # True para eliminar recursivamente\r\n",
+					"    print(f\"Tabla Delta eliminada en: {delta_table_path}\")\r\n",
+					"else:\r\n",
+					"    print(f\"No se encontró la tabla Delta en la ruta: {delta_table_path}\")\r\n",
+					""
+				],
+				"execution_count": 15
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import functions as F\r\n",
+					"\r\n",
+					"# Datos iniciales sin usar F.to_timestamp\r\n",
+					"data = [\r\n",
+					"    (1, 1, \"Pedro\", \"Lopez\", \"España\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (2, 2, \"Juan\", \"García\", \"España\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (3, 3, \"María\", \"Fernández\", \"Francia\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (4, 4, \"Lucía\", \"Caballero\", \"Alemania\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (5, 5, \"Sanda\", \"Ruiz\", \"Francia\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (6, 6, \"Manuel\", \"Sánchez\", \"Suiza\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1)\r\n",
+					"]\r\n",
+					"\r\n",
+					"columns = [\"sk\", \"id\", \"name\", \"lastName\", \"country\", \"fromDate\", \"toDate\", \"isCurrent\"]\r\n",
+					"\r\n",
+					"# Crear el DataFrame\r\n",
+					"df = spark.createDataFrame(data, columns)\r\n",
+					"\r\n",
+					"# Convertir las columnas 'fromDate' y 'toDate' a formato timestamp\r\n",
+					"df = df.withColumn(\"fromDate\", F.to_timestamp(F.col(\"fromDate\"), \"yyyy-MM-dd HH:mm:ss\")) \\\r\n",
+					"       .withColumn(\"toDate\", F.to_timestamp(F.col(\"toDate\"), \"yyyy-MM-dd HH:mm:ss\"))\r\n",
+					"\r\n",
+					"# Generar la columna de hash\r\n",
+					"columns_to_hash = [col for col in df.columns if col not in ('fromDate', 'toDate', 'isCurrent')]\r\n",
+					"df = df.withColumn(\"hash\", F.xxhash64(F.concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"\r\n",
+					"# Mostrar el DataFrame actualizado\r\n",
+					"df.show(truncate=False)\r\n",
+					"\r\n",
+					"# Ruta para almacenar la tabla Delta\r\n",
+					"delta_table_path = \"/mnt/data/tablas_delta/ejemplo_tabla_delta\"\r\n",
+					""
+				],
+				"execution_count": 16
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df.write.format(\"delta\").mode(\"overwrite\").save(delta_table_path)\r\n",
+					"\r\n",
+					"print(f\"Tabla Delta creada en: {delta_table_path}\")\r\n",
+					""
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql(\"DROP TABLE IF EXISTS tabla_delta\")"
+				],
+				"execution_count": 18
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql(f\"\"\"\r\n",
+					"CREATE TABLE tabla_delta\r\n",
+					"USING DELTA\r\n",
+					"LOCATION '{delta_table_path}'\r\n",
+					"\"\"\")\r\n",
+					"print(\"Tabla registrada en el catálogo como 'tabla_delta'\")"
+				],
+				"execution_count": 19
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"result_df = spark.sql(\"SELECT * FROM tabla_delta\")\r\n",
+					"result_df.show()"
+				],
+				"execution_count": 20
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"dataUpdate = [\r\n",
+					"    (2, \"Juan\", \"García\", \"Portugal\"),\r\n",
+					"    (6, \"Manuel\", \"Sánchez\", \"Italia\")\r\n",
+					"]\r\n",
+					"\r\n",
+					"columns = [\"id\", \"name\", \"lastName\", \"country\"]\r\n",
+					"\r\n",
+					"dfUpdate = spark.createDataFrame(dataUpdate, columns)\r\n",
+					"\r\n",
+					"# Mostrar el DataFrame\r\n",
+					"dfUpdate.show()"
+				],
+				"execution_count": 21
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"#table_name = file[\"name\"].split('_')[0]\r\n",
+					"table_name = \"prueba\"\r\n",
+					"#key_columns_str = f\"id{table_name.capitalize()}\" \r\n",
+					"key_columns_str = \"id\" \r\n",
+					"\r\n",
+					"key_columns = key_columns_str.split(',')\r\n",
+					"conditions_list = [f\"existing.{key}=updates.{key}\" for key in key_columns]\r\n",
+					"\r\n",
+					"#delta_table_path_dimensions = f\"{data_lake_container}/{golden_folder_dimensions}/{table_name}\"\r\n",
+					"delta_table_path_dimensions = delta_table_path\r\n",
+					"\r\n",
+					"#df = spark.sql(file[\"query\"].strip()) \r\n",
+					"df = dfUpdate  # esto seria el dataframe nuevo\r\n",
+					"sdf = df.cache()\r\n",
+					"\r\n",
+					"if DeltaTable.isDeltaTable(spark, delta_table_path_dimensions):\r\n",
+					"    sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"    sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"    sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
+					"\r\n",
+					"    columns_to_hash = [col for col in sdf.columns if col not in ('fromDate', 'toDate', 'isCurrent')]\r\n",
+					"    sdf = sdf.withColumn(\"hash\", xxhash64(concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"\r\n",
+					"    all_columns = sdf.columns\r\n",
+					"    start_columns = [f\"id\"]\r\n",
+					"    end_columns = [\"fromDate\", \"toDate\", \"isCurrent\", \"hash\"]\r\n",
+					"    other_columns = [col for col in all_columns if col not in start_columns + end_columns]\r\n",
+					"    new_order_columns = start_columns + other_columns + end_columns\r\n",
+					"    sdf = sdf.select(*new_order_columns)\r\n",
+					"\r\n",
+					"    #next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk{table_name}), 0) + 1 AS next_key FROM gold.dim_{table_name}\").collect()[0][\"next_key\"]  # tabla_delta\r\n",
+					"    next_surrogate_key = spark.sql(f\"SELECT COALESCE(MAX(sk), 0) + 1 AS next_key FROM tabla_delta\").collect()[0][\"next_key\"] \r\n",
+					"\r\n",
+					"    sdf.createOrReplaceTempView(\"temp_view\")\r\n",
+					"\r\n",
+					"    # End current version\r\n",
+					"    spark.sql(f\"\"\"\r\n",
+					"        MERGE INTO tabla_delta  \r\n",
+					"        AS existing\r\n",
+					"        USING temp_view AS updates\r\n",
+					"        ON {\" AND \".join([f\"existing.{key}=updates.{key}\" for key in key_columns])}\r\n",
+					"        WHEN MATCHED AND existing.isCurrent = 1 AND existing.hash != updates.hash THEN\r\n",
+					"        UPDATE SET\r\n",
+					"            existing.toDate = current_date(),\r\n",
+					"            existing.isCurrent = 0\r\n",
+					"    \"\"\")\r\n",
+					"    \r\n",
+					"    # Load new versions\r\n",
+					"    spark.sql(f\"\"\"\r\n",
+					"        INSERT INTO tabla_delta    \r\n",
+					"        SELECT \r\n",
+					"            {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk,  \r\n",
+					"            updates.*\r\n",
+					"        FROM temp_view AS updates\r\n",
+					"        LEFT JOIN tabla_delta AS existing\r\n",
+					"        ON {\" AND \".join([f\"existing.{key} = updates.{key}\" for key in key_columns])} AND existing.isCurrent = 1\r\n",
+					"        WHERE \r\n",
+					"            existing.id IS NULL OR \r\n",
+					"            (existing.hash != updates.hash)\r\n",
+					"    \"\"\")\r\n",
+					""
+				],
+				"execution_count": 22
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"final = spark.sql(\"SELECT * FROM tabla_delta order by sk asc\")\r\n",
+					"final.show()"
+				],
+				"execution_count": 23
+			}
+		]
+	}
+}

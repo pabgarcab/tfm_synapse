@@ -1,5 +1,5 @@
 {
-	"name": "Notebook 1",
+	"name": "Notebook 1_Copy1",
 	"properties": {
 		"nbformat": 4,
 		"nbformat_minor": 2,
@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "5e73e4e9-a68d-414c-b956-3fc6d5a9694e"
+				"spark.autotune.trackingId": "577a76b1-2fe0-4707-950e-ddd51d31a945"
 			}
 		},
 		"metadata": {
@@ -158,6 +158,197 @@
 					"sdf.show()"
 				],
 				"execution_count": 42
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import SparkSession\r\n",
+					"\r\n",
+					"# Crear una instancia de SparkSession\r\n",
+					"spark = SparkSession.builder.getOrCreate()\r\n",
+					"\r\n",
+					"# Eliminar la tabla Delta y su contenido\r\n",
+					"delta_table_path = \"/mnt/data/tablas_delta/ejemplo_tabla_delta\"\r\n",
+					"\r\n",
+					"# Usar Spark para eliminar la carpeta\r\n",
+					"fs = spark._jvm.org.apache.hadoop.fs.FileSystem.get(spark._jsc.hadoopConfiguration())\r\n",
+					"path = spark._jvm.org.apache.hadoop.fs.Path(delta_table_path)\r\n",
+					"\r\n",
+					"if fs.exists(path):\r\n",
+					"    fs.delete(path, True)  # True para eliminar recursivamente\r\n",
+					"    print(f\"Tabla Delta eliminada en: {delta_table_path}\")\r\n",
+					"else:\r\n",
+					"    print(f\"No se encontró la tabla Delta en la ruta: {delta_table_path}\")\r\n",
+					""
+				],
+				"execution_count": 31
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql import functions as F\r\n",
+					"\r\n",
+					"# Datos iniciales sin usar F.to_timestamp\r\n",
+					"data = [\r\n",
+					"    (1, 1, \"Pedro\", \"Lopez\", \"España\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (2, 2, \"Juan\", \"García\", \"España\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (3, 3, \"María\", \"Fernández\", \"Francia\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (4, 4, \"Lucía\", \"Caballero\", \"Alemania\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (5, 5, \"Sanda\", \"Ruiz\", \"Francia\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1),\r\n",
+					"    (6, 6, \"Manuel\", \"Sánchez\", \"Suiza\", \"1990-01-01 00:00:00\", \"9999-12-31 00:00:00\", 1)\r\n",
+					"]\r\n",
+					"\r\n",
+					"columns = [\"sk\", \"id\", \"name\", \"lastName\", \"country\", \"fromDate\", \"toDate\", \"isCurrent\"]\r\n",
+					"\r\n",
+					"# Crear el DataFrame\r\n",
+					"df = spark.createDataFrame(data, columns)\r\n",
+					"\r\n",
+					"# Convertir las columnas 'fromDate' y 'toDate' a formato timestamp\r\n",
+					"df = df.withColumn(\"fromDate\", F.to_timestamp(F.col(\"fromDate\"), \"yyyy-MM-dd HH:mm:ss\")) \\\r\n",
+					"       .withColumn(\"toDate\", F.to_timestamp(F.col(\"toDate\"), \"yyyy-MM-dd HH:mm:ss\"))\r\n",
+					"\r\n",
+					"# Generar la columna de hash\r\n",
+					"columns_to_hash = [col for col in df.columns if col not in ('fromDate', 'toDate', 'isCurrent')]\r\n",
+					"df = df.withColumn(\"hash\", F.xxhash64(F.concat_ws(\"||\", *columns_to_hash)))\r\n",
+					"\r\n",
+					"# Mostrar el DataFrame actualizado\r\n",
+					"df.show(truncate=False)\r\n",
+					"\r\n",
+					"# Ruta para almacenar la tabla Delta\r\n",
+					"delta_table_path = \"/mnt/data/tablas_delta/ejemplo_tabla_delta\"\r\n",
+					""
+				],
+				"execution_count": 32
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df.write.format(\"delta\").mode(\"overwrite\").save(delta_table_path)\r\n",
+					"print(f\"Tabla Delta creada en: {delta_table_path}\")"
+				],
+				"execution_count": 33
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql(\"DROP TABLE IF EXISTS tabla_delta\")"
+				],
+				"execution_count": 34
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql(f\"\"\"\r\n",
+					"CREATE TABLE tabla_delta\r\n",
+					"USING DELTA\r\n",
+					"LOCATION '{delta_table_path}'\r\n",
+					"\"\"\")\r\n",
+					"print(\"Tabla registrada en el catálogo como 'tabla_delta'\")"
+				],
+				"execution_count": 35
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"result_df = spark.sql(\"SELECT * FROM tabla_delta\")\r\n",
+					"result_df.show()"
+				],
+				"execution_count": 36
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"dataUpdate = [\r\n",
+					"    (2, \"Juan\", \"García\", \"Portugal\"),\r\n",
+					"    (6, \"Manuel\", \"Sánchez\", \"Italia\"),\r\n",
+					"    (7, \"Martina\", \"Domínguez\", \"Italia\")\r\n",
+					"]\r\n",
+					"\r\n",
+					"columns = [\"id\", \"name\", \"lastName\", \"country\"]\r\n",
+					"\r\n",
+					"sdf = spark.createDataFrame(dataUpdate, columns)\r\n",
+					"\r\n",
+					"# Mostrar el DataFrame\r\n",
+					"sdf.show()"
+				],
+				"execution_count": 39
 			},
 			{
 				"cell_type": "code",

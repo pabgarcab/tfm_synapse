@@ -17,7 +17,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "5e73e4e9-a68d-414c-b956-3fc6d5a9694e"
+				"spark.autotune.trackingId": "5d0eaa4e-6001-487b-89f3-815671e1c542"
 			}
 		},
 		"metadata": {
@@ -64,7 +64,7 @@
 					"import pandas as pd\r\n",
 					"import csv"
 				],
-				"execution_count": 30
+				"execution_count": 1
 			},
 			{
 				"cell_type": "code",
@@ -157,7 +157,7 @@
 					"# Mostrar el DataFrame\r\n",
 					"sdf.show()"
 				],
-				"execution_count": 42
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -175,8 +175,18 @@
 				"source": [
 					"key_column = \"id\" # Podría parametrizarse de forma dinamica. Ej: f\"id{NombreDimension}\"\" si se recorre una lista\r\n",
 					"\r\n",
+					"# Reorganizamos la tabla con fromDate al final\r\n",
+					"tabla_delta_columns = [col.name for col in spark.table(\"tabla_delta\").schema]\r\n",
+					"tabla_delta_columns.remove('fromDate')   # Elimina 'fromDate' de su posición actual\r\n",
+					"tabla_delta_columns.append('fromDate')\r\n",
+					"\r\n",
+					"\r\n",
+					"# Unir las columnas en un string separado por comas\r\n",
+					"columns_str = \",\".join(tabla_delta_columns)\r\n",
+					"\r\n",
 					"# Añadimos los campos de las SCD2\r\n",
-					"sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"#sdf = sdf.withColumn(\"fromDate\", F.to_timestamp(F.lit(current_date()), 'yyyy-MM-dd HH:mm:ss'))\r\n",
+					"#sdf = sdf.withColumn(\"fromDate0\", F.to_timestamp(F.lit('1990-01-01 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
 					"sdf = sdf.withColumn(\"toDate\", F.to_timestamp(F.lit('9999-12-31 00:00:00'), 'yyyy-MM-dd HH:mm:ss'))\r\n",
 					"sdf = sdf.withColumn(\"isCurrent\", F.lit(1))\r\n",
 					"\r\n",
@@ -204,19 +214,22 @@
 					"\r\n",
 					"# Insertamos las nuevas versiones y los valores nuevos\r\n",
 					"spark.sql(f\"\"\"\r\n",
-					"    INSERT INTO tabla_delta    \r\n",
+					"    INSERT INTO tabla_delta ({columns_str})\r\n",
 					"    SELECT \r\n",
-					"        {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk,  \r\n",
-					"        updates.*\r\n",
+					"        {next_surrogate_key} + row_number() OVER (ORDER BY (SELECT NULL)) - 1 AS sk, \r\n",
+					"        updates.*, \r\n",
+					"        CASE WHEN existing.id IS NOT NULL THEN current_date()\r\n",
+					"        ELSE '1990-01-01'\r\n",
+					"        END AS fromDate\r\n",
 					"    FROM temp_view AS updates\r\n",
-					"    LEFT JOIN tabla_delta AS existing\r\n",
-					"    ON {\" AND \".join([f\"existing.{key_column} = updates.{key_column}\"])} AND existing.isCurrent = 1\r\n",
+					"    LEFT JOIN (SELECT * FROM ( SELECT *, ROW_NUMBER() OVER (PARTITION BY {key_column} ORDER BY toDate DESC) AS rnk FROM tabla_delta WHERE isCurrent = 0 ) AS subquery WHERE rnk = 1) AS existing\r\n",
+					"    ON {\" AND \".join([f\"existing.{key_column} = updates.{key_column}\"])}\r\n",
 					"    WHERE \r\n",
 					"        existing.id IS NULL OR \r\n",
 					"        (existing.hash != updates.hash)\r\n",
 					"\"\"\")"
 				],
-				"execution_count": 43
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
@@ -235,7 +248,7 @@
 					"final = spark.sql(\"SELECT * FROM tabla_delta order by sk asc\")\r\n",
 					"final.show()"
 				],
-				"execution_count": 44
+				"execution_count": 4
 			}
 		]
 	}
